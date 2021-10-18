@@ -2,13 +2,18 @@ import "@pepperi-addons/cpi-node";
 import Tester from "./tester";
 import {
   Account,
+  Contact,
   Transaction,
   UIDetailsPage,
   UIField,
   UIObject,
+  User,
 } from "@pepperi-addons/cpi-node/build/cpi-side/app/entities";
-import { GeneralActivity, TransactionLine } from "@pepperi-addons/cpi-node";
-import { stat } from "fs";
+import {
+  GeneralActivity,
+  Item,
+  TransactionLine,
+} from "@pepperi-addons/cpi-node";
 
 /** A list of events */
 const EVENT_NAMES: string[] = [
@@ -222,7 +227,7 @@ let accountGeoIndex: number;
 let randZip: number;
 let randDiscount: number;
 let randPhone: string;
-let quantitiesTotal;
+let quantitiesTotal: number;
 let userEmail: string;
 let name: string;
 let phrase: string;
@@ -238,6 +243,9 @@ let dateOnly;
 let link: string;
 let HTML: string;
 let randDays: number;
+let interceptorArr: number[];
+const addonUUID = "2b39d63e-0982-4ada-8cbb-737b03b9ee58";
+const adalTableName = "Load_Test";
 
 //randGenerator for numeric fields
 function randGenerator(min: number, max: number) {
@@ -275,11 +283,25 @@ async function getUIFields(uiObject: UIObject) {
   return undefined;
 }
 //initiates test data for all objects
-async function initTestData(
-  dataObject: Transaction | TransactionLine | Account | GeneralActivity,
+export async function initTestData(
+  dataObject:
+    | Transaction
+    | TransactionLine
+    | Account
+    | GeneralActivity
+    | Contact
+    | User
+    | Item,
   resource: string
 ): Promise<
-  Transaction | TransactionLine | Account | GeneralActivity | undefined
+  | Transaction
+  | TransactionLine
+  | Account
+  | GeneralActivity
+  | Contact
+  | User
+  | Item
+  | undefined
 > {
   switch (resource) {
     //init Transaction for automation test
@@ -357,6 +379,7 @@ async function initTestData(
         "GrandTotal",
         randZip * randDiscount * quantitiesTotal
       );
+      break;
     }
     //init accounts for automation test
     case "accounts": {
@@ -411,6 +434,7 @@ async function initTestData(
         "Street",
         accounDataArr[accountGeoIndex].Street
       );
+      break;
     }
     //init activities for automation test
     case "activities": {
@@ -450,6 +474,7 @@ async function initTestData(
         accounDataArr[accountGeoIndex].Longtitude
       );
       await dataObject?.setFieldValue("PlannedDuration", randDays);
+      break;
     }
     //init transaction_lines for automation test
     case "transaction_lines": {
@@ -491,6 +516,82 @@ async function initTestData(
       await dataObject?.setFieldValue("TSAEmailLines", userEmail);
       await dataObject?.setFieldValue("TSALinkLines", link);
       await dataObject?.setFieldValue("TSAHTMLLines", HTML);
+      break;
+    }
+    //init contacts for automation test
+    case "contacts": {
+      await dataObject?.setFieldValue("ExternalID", ExID);
+      await dataObject?.setFieldValue("BirthDay", dateOnly);
+      await dataObject?.setFieldValue("Email", userEmail);
+      await dataObject?.setFieldValue("Email2", userEmail);
+      await dataObject?.setFieldValue("FirstName", name);
+      await dataObject?.setFieldValue("LastName", phrase);
+      await dataObject?.setFieldValue("Mobile", randPhone);
+      await dataObject?.setFieldValue("Phone", randPhone);
+      await dataObject?.setFieldValue("Status", 2);
+      await dataObject?.setFieldValue("TSACheckboxCnct", randBool);
+      await dataObject?.setFieldValue("TSACurrencyCnct", randZip);
+      await dataObject?.setFieldValue("TSADateCnct", dateOnly);
+      await dataObject?.setFieldValue("TSADateTimeCnct", dateTime + "Z");
+      await dataObject?.setFieldValue("TSADecimalCnct", randDiscount);
+      await dataObject?.setFieldValue("TSAEmailCnct", userEmail);
+      await dataObject?.setFieldValue("TSAHTMLCnct", HTML);
+      await dataObject?.setFieldValue(
+        "TSALimitedLineTextCnct",
+        phrase + randZip
+      );
+      await dataObject?.setFieldValue("TSAParagraphTextCnct", phrase + randZip);
+      await dataObject?.setFieldValue(
+        "TSASingleLineTextCnct",
+        phrase + randZip
+      );
+      await dataObject?.setFieldValue("TSALinkCnct", link);
+      await dataObject?.setFieldValue("TSANumberCnct", randZip);
+      await dataObject?.setFieldValue("TSAPhoneCnct", randPhone);
+      break;
+    }
+    //init users for automation test
+    case "users": {
+      await dataObject?.setFieldValue("FirstName", name);
+      await dataObject?.setFieldValue("LastName", phrase);
+      await dataObject?.setFieldValue("Phone", randPhone);
+      await dataObject?.setFieldValue("Mobile", randPhone);
+      break;
+    }
+    //init items for automation test
+    case "items": {
+      debugger;
+      //SET for TSA's
+      await dataObject?.setFieldValue(
+        "TSASingleLineText",
+        phrase + randDiscount
+      );
+
+      await dataObject?.setFieldValue(
+        "TSALimitedLineText",
+        phrase + randDiscount
+      );
+      await dataObject?.setFieldValue(
+        "TSAParagraphText",
+        phrase + randDiscount
+      );
+
+      await dataObject?.setFieldValue("TSADate", dateOnly);
+      await dataObject?.setFieldValue("TSADateTime", date);
+      await dataObject?.setFieldValue("TSADecimal", randDiscount.toFixed(6));
+      await dataObject?.setFieldValue("TSANumber", quantitiesTotal);
+      await dataObject?.setFieldValue("TSACurrency", quantitiesTotal);
+      await dataObject?.setFieldValue("TSACheckbox", randBool);
+      await dataObject?.setFieldValue("TSAEmail", userEmail);
+      await dataObject?.setFieldValue("TSAPhone", randPhone);
+      await dataObject?.setFieldValue("TSALink", link);
+      await dataObject?.setFieldValue("TSAHTML", HTML);
+      //Setup for system fields
+      await dataObject?.setFieldValue("UPC", ExID);
+      await dataObject?.setFieldValue("Name", name);
+      await dataObject?.setFieldValue("LongDescription", name);
+      await dataObject?.setFieldValue("Price", quantitiesTotal);
+      break;
     }
   }
   return dataObject;
@@ -541,65 +642,234 @@ export async function load(configuration: any) {
   HTML =
     "<h1>This is an HTMLFormattedTextField</h1><hr/><p>and it works,<b>even for bold</b></p><hr/>";
   randDays = randGenerator(10, 100);
-
+  interceptorArr = [];
   console.log("Finished setting up test variables");
 
-  // Put your cpi side code here
-  //debugger;
+  //====================================ADAL================================================
+  const adalData = await pepperi.api.adal
+    .get({
+      addon: addonUUID,
+      table: adalTableName,
+      key: "testKey1",
+    })
+    .then((obj) => obj.object);
+  console.log(adalData);
+  console.log("loadTestActive: " + adalData.TestActive);
+  console.log("counter: " + adalData.TestRunCounter);
+  console.log("InterceptorTestActive: " + adalData.InterceptorsTestActive);
+  const loadTestActive = adalData.TestActive;
+  const loadTestCounter = adalData.TestRunCounter;
+  const InterceptorsTestActive = adalData.InterceptorsTestActive;
 
-  // testing data insertion into accounts in bulk via AccountList and CPINode -- UPDATE: Chasky will implement a save function so the below would work.
-  // pepperi.events.intercept(
-  //   "RecalculateUIObject",
-  //   { UIObject: { context: { Name: GENERIC_DATA_VIEWS[0] } } },
-  //   async (data) => {
-  //     console.log(data.DataObject, data.UIObject, data.UIPage);
-  //     data.UIObject?.fields.forEach(async () => {
-  //
-
-  //UserHomePage
-  // pepperi.events.intercept(
-  //   "RecalculateUIObject",
-  //   { UIObject: { context: { Name: GENERIC_DATA_VIEWS[1] } } },
-  //   async (data) => {
-  //     data.UIObject?.fields.forEach((field) => {
-  // );
-
-  //Lines
-  // pepperi.events.intercept(
-  //   "IncrementFieldValue",
-  //   { FieldID: "UnitsQuantity" },
-  //   async (data, next, main) => {
-  //
-
-  // pepperi.events.intercept(
-  //   "DecrementFieldValue",
-  //   { FieldID: "UnitsQuantity" },
-  //   async (data, next, main) => {
-  //
-
-  // pepperi.events.intercept(
-  //   "TSAButtonPressed",
-  //   { FieldID: "TSAButtonField" },
-  //   async (data, next, main) => {
-
-  //header
-  // pepperi.events.intercept(
-  //   "SetFieldValue",
-  //   { FieldID: "DeliveryDate" },
-  //   async (data, next, main) => {
-  //
-
-  // //Account -- works other then the Date - existing bug
-  // pepperi.events.intercept(
-  //   "SetFieldValue",
-  //   { FieldID: "TSALastOrder" },
-  //   async (data, next, main) => {
-  //
-  // /header -- mini test for SetFieldValue/getFieldValue for checkbox/boolean
-  // pepperi.events.intercept(
-  //   "SetFieldValue",
-  //   { FieldID: "DeliveryDate" },
-  //   async (data, next, main) => {
+  //==========================Load inserts into UDT/ADAL====================================
+  if (
+    loadTestActive === true &&
+    (loadTestCounter === 0 || loadTestCounter === 1)
+  ) {
+    console.log("Inside load test if");
+    //insert one line into UDT after the each load occured
+    const date = new Date();
+    console.log(
+      "write to UDT by the " +
+        loadTestCounter +
+        " Index, TimeStamp: " +
+        date.toISOString()
+    );
+    try {
+      await pepperi.api.userDefinedTables.upsert({
+        table: "LoadUDT",
+        mainKey: date.toISOString(),
+        secondaryKey: loadTestCounter.toString(),
+        value: date.toISOString(),
+      });
+    } catch (err) {
+      console.log("issue detected on UDT insert.");
+      console.log(err);
+    }
+  }
+  if (InterceptorsTestActive === true) {
+    //=======================Interceptors test setup======================================
+    //Recalculate interceptors -- NEEDS WORK AFTER CHASKY FIXES DI-18619 Recalculate event triggers interceptor twice
+    // pepperi.events.intercept(
+    //   "RecalculateUIObject",
+    //   { UIObject: { context: { Name: "AccountForm" } } },
+    //   async (data, next, main) => {
+    //     console.log("Recalculate 1 - before main");
+    //     interceptorArr.push(1);
+    //     await next(main);
+    //     main = async (data) => {
+    //       console.log("Recalculate 1 - inside main");
+    //       interceptorArr.push(42);
+    //     }
+    //     console.log("Recalculate 1 - after main");
+    //     interceptorArr.push(7);
+    //     console.log(interceptorArr);
+    //   }
+    // );
+    // pepperi.events.intercept(
+    //   "RecalculateUIObject",
+    //   { UIObject: { context: { Name: "AccountForm" } } },
+    //   async (data, next, main) => {
+    //     console.log("Recalculate 2 - before main");
+    //     interceptorArr.push(2);
+    //     await next(main);
+    //     await next(async(data) => {
+    //       console.log("Recalculate 2 - inside main");
+    //       interceptorArr.push(43);
+    //     })
+    //     console.log("Recalculate 2 - after main");
+    //     interceptorArr.push(6);
+    //   }
+    // );
+    // pepperi.events.intercept(
+    //   "RecalculateUIObject",
+    //   { UIObject: { context: { Name: "AccountForm" } } },
+    //   async (data, next, main) => {
+    //     console.log("Recalculate 3 - before main");
+    //     interceptorArr.push(3);
+    //     await next(async(data) => {
+    //       console.log("Recalculate 3 - inside main");
+    //       interceptorArr.push(4);
+    //     });
+    //     console.log("Recalculate 3 - after main");
+    //     interceptorArr.push(5)
+    //   }
+    // );
+    //Lines
+    //====================IncrementFieldValue - BELOW LOGIC FOR IncrementFieldValue IS READY========================
+    // pepperi.events.intercept(
+    //   "IncrementFieldValue",
+    //   { FieldID: "UnitsQuantity" },
+    //   async (data, next, main) => {
+    //     console.log("IncrementFieldValue 1 - before main");
+    //     interceptorArr.push(8);
+    //     main = async () => {
+    //       console.log("IncrementFieldValue 1 - main");
+    //       interceptorArr.push(11);
+    //     };
+    //     await next(main);
+    //     console.log("IncrementFieldValue 1 - after main");
+    //     interceptorArr.push(14);
+    //     console.log(interceptorArr);
+    //   }
+    // );
+    // pepperi.events.intercept(
+    //   "IncrementFieldValue",
+    //   { FieldID: "UnitsQuantity" },
+    //   async (data, next, main) => {
+    //     console.log("IncrementFieldValue 2 - before main");
+    //     interceptorArr.push(9);
+    //     await next(main);
+    //     main = async () => {
+    //       console.log("IncrementFieldValue 2 - main");
+    //       interceptorArr.push(10);
+    //     };
+    //     console.log("IncrementFieldValue 2 - after main");
+    //     interceptorArr.push(13);
+    //   }
+    // );
+    // pepperi.events.intercept(
+    //   "IncrementFieldValue",
+    //   { FieldID: "UnitsQuantity" },
+    //   async (data, next, main) => {
+    //     console.log("IncrementFieldValue 3 - before main");
+    //     interceptorArr.push(10);
+    //     await next(main);
+    //     console.log("IncrementFieldValue 3 - after main");
+    //     interceptorArr.push(12);
+    //   }
+    // );
+    //================================EXAMPLE FOR UDT IMPLEMENTATION=================================
+    // await pepperi.api.userDefinedTables.upsert({
+    //   table: "InterceptorsUDT",
+    //   mainKey: "DecrementFieldValue " + Date().toString(),
+    //   secondaryKey: "DecrementFieldValue",
+    //   value: Date().toString(),
+    // });
+    //=====================DecrementFieldValue events==================================
+    // pepperi.events.intercept(
+    //   "DecrementFieldValue",
+    //   { FieldID: "UnitsQuantity" },
+    //   async (data, next, main) => {
+    //     console.log("DecrementFieldValue 1 - before main");
+    //     interceptorArr.push(15);
+    //     await next(main);
+    //     console.log("DecrementFieldValue 1 - after main");
+    //     interceptorArr.push(21);
+    //     console.log(interceptorArr);
+    //   }
+    // );
+    // pepperi.events.intercept(
+    //   "DecrementFieldValue",
+    //   { FieldID: "UnitsQuantity" },
+    //   async (data, next, main) => {
+    //     console.log("DecrementFieldValue 2 - before main");
+    //     interceptorArr.push(16);
+    //     await next(async (data) => {
+    //       console.log("DecrementFieldValue 2 - main");
+    //       interceptorArr.push(19);
+    //     });
+    //     console.log("DecrementFieldValue 2 - after main");
+    //     interceptorArr.push(20);
+    //   }
+    // );
+    // pepperi.events.intercept(
+    //   "DecrementFieldValue",
+    //   { FieldID: "UnitsQuantity" },
+    //   async (data, next, main) => {
+    //     console.log("DecrementFieldValue 3 - before main");
+    //     interceptorArr.push(17);
+    //     main = async () => {
+    //       console.log("DecrementFieldValue 3 - main");
+    //       interceptorArr.push(77);
+    //     };
+    //     console.log("DecrementFieldValue 3 - after main");
+    //     interceptorArr.push(18);
+    //   }
+    // );
+    //header -- BELOW LOGIC FOR SETFIELDVALUE IS READY
+    // pepperi.events.intercept(
+    //   "SetFieldValue",
+    //   { FieldID: "TSAInterceptorTrigger" },
+    //   async (data, next, main) => {
+    //     console.log("SetFieldValue 1 - before main");
+    //     interceptorArr.push(1);
+    //     await next(main);
+    //     main = async () => {
+    //       console.log("SetFieldValue 1 - inside main");
+    //       interceptorArr.push(42);
+    //     };
+    //     console.log("SetFieldValue 1 - after main");
+    //     interceptorArr.push(7);
+    //     console.log(interceptorArr);
+    //   }
+    // );
+    // pepperi.events.intercept(
+    //   "SetFieldValue",
+    //   { FieldID: "TSAInterceptorTrigger" },
+    //   async (data, next, main) => {
+    //     console.log("SetFieldValue 2 - before main");
+    //     interceptorArr.push(2);
+    //     await next(main);
+    //     console.log("SetFieldValue 2 - after main");
+    //     interceptorArr.push(6);
+    //   }
+    // );
+    // pepperi.events.intercept(
+    //   "SetFieldValue",
+    //   { FieldID: "TSAInterceptorTrigger" },
+    //   async (data, next, main) => {
+    //     console.log("SetFieldValue 3 - before main");
+    //     interceptorArr.push(3);
+    //     await next(async () => {
+    //       console.log("SetFieldValue 3 - inside main");
+    //       interceptorArr.push(4);
+    //     });
+    //     console.log("SetFieldValue 3 - after main");
+    //     interceptorArr.push(5);
+    //   }
+    // );
+  }
 }
 
 export const router = Router();
@@ -614,7 +884,7 @@ router.use("/test", async (req, res, next) => {
       }
     );
 
-    const uiPage = await pepperi.internal.UIPage.Create("Home");
+    const uiPage = await pepperi.UIPage.Create("Home");
     await uiPage.rebuild();
 
     const apiRes = await pepperi.app.accounts.add({
@@ -625,10 +895,7 @@ router.use("/test", async (req, res, next) => {
     });
     const accountUUID = apiRes.id;
 
-    const dataObject = await pepperi.internal.DataObject.Get(
-      "accounts",
-      accountUUID
-    );
+    const dataObject = await pepperi.DataObject.Get("accounts", accountUUID);
 
     const fieldValue = await dataObject?.getFieldValue("TSAParagraphTextAcc");
 
@@ -645,15 +912,11 @@ router.use("/test", async (req, res, next) => {
 });
 //debugger for specific code chunks
 router.use("/debug-tester", async (req, res) => {
-  const ExID = "CPINode testing";
-  const uiHomePage = await pepperi.internal.UIPage.Create("Home");
-  await uiHomePage.rebuild();
-
   let accRes = await pepperi.app.accounts.add({
     type: { Name: "Customer" },
     object: {
-      ExternalID: ExID,
-      Name: ExID,
+      ExternalID: "ExID" + Math.random(),
+      Name: "ExID" + Math.random(),
     },
   });
 
@@ -669,31 +932,22 @@ router.use("/debug-tester", async (req, res) => {
 
   const transactionUUID = apiRes.id;
 
-  let dataObject = await pepperi.internal.DataObject.Get(
+  let dataObject = await pepperi.DataObject.Get(
     "transactions",
     transactionUUID
   );
 
-  let TrnDetailsUIPage: UIDetailsPage;
-  try {
-    TrnDetailsUIPage = await pepperi.internal.UIPage.Create(
-      "Details",
-      dataObject!
-    );
-    TrnDetailsUIPage.rebuild();
-    console.log(uiHomePage.type);
-    console.log(TrnDetailsUIPage.type);
-  } catch (err) {
-    console.log(err);
-  }
+  const typeDef = dataObject?.typeDefinition;
+
+  //console.log(typeDef?.resource); // returns "None" instead of the objects resource
 });
 //Automation tests for CPINode
 router.use("/automation-tests/:v/tests", async (req, res) => {
-  const tester = Tester("My test");
-  const describe = tester.describe;
-  const it = tester.it;
-  const expect = tester.expect;
-
+  //const tester = Tester("My test");
+  // const describe = tester.describe;
+  // const it = tester.it;
+  // const expect = tester.expect;
+  const { describe, it, expect, run } = Tester("My test");
   const bgColor: string = "#659DBD";
   const color: string = "#FBEEC1";
   const accessories: string[] = ["#", "$", "%", "€", "£"];
@@ -706,7 +960,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
     //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
   });
 
-  const uiHomePage = await pepperi.internal.UIPage.Create("Home");
+  const uiHomePage = await pepperi.UIPage.Create("Home");
   await uiHomePage.rebuild();
   let uiObjectHP = uiHomePage.actions;
 
@@ -727,7 +981,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
       catalog: { Name: "Default Catalog" },
     },
   });
-
   let activityApiRes = await pepperi.app.activities.add({
     type: { Name: "CPINode Test Activity" },
     references: {
@@ -749,35 +1002,53 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
 
   const lineUUID = lineRes.result[0].id;
 
-  let dataObject = await pepperi.internal.DataObject.Get(
+  let itemRes = await pepperi.api.items.get({
+    key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" },
+    fields: ["InternalID", "ExternalID", "UUID"],
+  });
+
+  let itemUUID = itemRes.object.UUID;
+
+  let cnctRes = await pepperi.app.contacts.add({
+    references: { account: { UUID: accountUUID } },
+    object: { ExternalID: ExID },
+  });
+
+  const cnctUUID = cnctRes.id;
+
+  let dataObject = await pepperi.DataObject.Get(
     "transactions",
     transactionUUID
   );
 
-  let lineDataObject = await pepperi.internal.DataObject.Get(
+  let lineDataObject = await pepperi.DataObject.Get(
     "transaction_lines",
     lineUUID
   );
 
-  let accDataObject = await pepperi.internal.DataObject.Get(
-    "accounts",
-    accountUUID
-  );
+  let itemDataObject = await pepperi.DataObject.Get("items", itemUUID);
+
+  let accDataObject = await pepperi.DataObject.Get("accounts", accountUUID);
 
   const activityUUID = activityApiRes.id;
 
-  let actDataObject = await pepperi.internal.DataObject.Get(
-    "activities",
-    activityUUID
-  );
+  let actDataObject = await pepperi.DataObject.Get("activities", activityUUID);
+
+  let cnctDataObject = await pepperi.DataObject.Get("contacts", cnctUUID);
+
+  let userRes = await pepperi.api.users.get({
+    key: { UUID: "6ad107c0-2c7f-4856-9c1f-fde5318fa6b8" },
+    fields: ["InternalID", "ExternalID", "UUID"],
+  });
+
+  const userUUID = userRes.object.UUID;
+
+  let userDataObject = await pepperi.DataObject.Get("users", userUUID);
 
   let TrnDetailsUIPage: UIDetailsPage;
   if (dataObject!) {
     try {
-      TrnDetailsUIPage = await pepperi.internal.UIPage.Create(
-        "Details",
-        dataObject!
-      );
+      TrnDetailsUIPage = await pepperi.UIPage.Create("Details", dataObject!);
       TrnDetailsUIPage.rebuild();
     } catch (err) {
       console.log(err);
@@ -787,22 +1058,19 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
   let AccDetailsUIPage: UIDetailsPage;
   if (accDataObject!) {
     try {
-      AccDetailsUIPage = await pepperi.internal.UIPage.Create(
-        "Details",
-        accDataObject!
-      );
+      AccDetailsUIPage = await pepperi.UIPage.Create("Details", accDataObject!);
       AccDetailsUIPage.rebuild();
     } catch (err) {
       console.log(err);
     }
   }
-  //initTestData - init test data for all dataObjects
+  const tests = ["UI1", "UI2", "Data", "Negative"];
   let testName = req.params.v;
-  if (!["UI1", "UI2", "Data"].includes(testName)) {
+  if (!tests.includes(testName)) {
     testName = "error";
   }
   switch (testName) {
-    //===========================DataObject tests=====================================
+    //===========================DataObject tests===================================
     case "Data": {
       await initTestData(lineDataObject!, "transaction_lines");
       describe("TransactionLines DataObject Basic CRUD test", async () => {
@@ -964,12 +1232,10 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const internalID = lineDataObject?.internalID;
           const children = lineDataObject?.children;
           const item = lineDataObject?.item;
-          const cpiOrderItem = lineDataObject?.cpiOrderItem;
           const resource = lineDataObject?.resource;
           const uuid = lineDataObject?.uuid;
           const transaction = lineDataObject?.transaction;
           const typeDef = lineDataObject?.typeDefinition;
-          console.log(transaction);
           expect(children, "Failed on Children accessor")
             .to.be.an("array")
             .that.has.lengthOf(0);
@@ -1017,68 +1283,68 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .to.be.a("string")
               .that.is.equal("DorS CPINode Sales Order").and.is.not.null.and.is
               .not.undefined;
-          expect(
-            cpiOrderItem?.hidden,
-            "Failed on cpiOrderItem?.hidden accessor"
-          ).to.be.a("boolean").that.is.false.and.is.not.null.and.is.not
-            .undefined,
-            expect(
-              cpiOrderItem?.wrntyID,
-              "Failed on cpiOrderItem?.wrntyID accessor"
-            )
-              .to.be.a("number")
-              .that.is.below(0).and.is.not.null.and.is.not.undefined;
-          expect(
-            cpiOrderItem?.children,
-            "Failed on cpiOrderItem?.resource accessor"
-          )
-            .to.be.a("array")
-            .that.has.lengthOf(0).and.is.not.null.and.is.not.undefined,
-            expect(cpiOrderItem?.uuid, "Failed on cpiOrderItem?.UUID accessor")
-              .to.be.a("string")
-              .and.to.have.lengthOf(36).and.that.is.not.null,
-            expect(
-              cpiOrderItem?.dbObjectType,
-              "Failed on cpiOrderItem?.dbObjectType accessor"
-            )
-              .to.be.a("number")
-              .that.is.equal(34).and.is.not.null.and.is.not.undefined,
-            expect(
-              cpiOrderItem?.activityTypeDefinition.activityType,
-              "Failed on cpiOrderItem?.activityTypeDefinition.activityType accessor"
-            )
-              .to.be.a("number")
-              .that.is.equal(2).and.is.not.null.and.is.not.undefined,
-            expect(
-              cpiOrderItem?.activityTypeDefinition.dbObjectType,
-              "Failed on cpiOrderItem?.activityTypeDefinition.dbObjectType accessor"
-            )
-              .to.be.a("number")
-              .that.is.equal(39).and.is.not.null.and.is.not.undefined;
-          expect(
-            cpiOrderItem?.activityTypeDefinition.hidden,
-            "Failed on cpiOrderItem?.activityTypeDefinition.hidden accessor"
-          ).to.be.a("boolean").that.is.false.and.is.not.null.and.is.not
-            .undefined,
-            expect(
-              cpiOrderItem?.activityTypeDefinition.wrntyID,
-              "Failed on cpiOrderItem?.activityTypeDefinition.wrntyID accessor"
-            )
-              .to.be.a("number")
-              .that.is.above(0).and.is.not.null.and.is.not.undefined,
-            expect(
-              cpiOrderItem?.activityTypeDefinition.uuid,
-              "Failed on cpiOrderItem?.activityTypeDefinition.UUID accessor"
-            )
-              .to.be.a("string")
-              .and.to.have.lengthOf(36).and.that.is.not.null,
-            expect(
-              cpiOrderItem?.activityTypeDefinition.name,
-              "Failed on cpiOrderItem?.activityTypeDefinition.name accessor"
-            )
-              .to.be.a("string")
-              .that.is.equal("DorS CPINode Sales Order").and.is.not.null.and.is
-              .not.undefined;
+          // expect(
+          //   cpiOrderItem?.hidden,
+          //   "Failed on cpiOrderItem?.hidden accessor"
+          // ).to.be.a("boolean").that.is.false.and.is.not.null.and.is.not
+          //   .undefined,
+          //   expect(
+          //     cpiOrderItem?.wrntyID,
+          //     "Failed on cpiOrderItem?.wrntyID accessor"
+          //   )
+          //     .to.be.a("number")
+          //     .that.is.below(0).and.is.not.null.and.is.not.undefined;
+          // expect(
+          //   cpiOrderItem?.children,
+          //   "Failed on cpiOrderItem?.resource accessor"
+          // )
+          //   .to.be.a("array")
+          //   .that.has.lengthOf(0).and.is.not.null.and.is.not.undefined,
+          //   expect(cpiOrderItem?.uuid, "Failed on cpiOrderItem?.UUID accessor")
+          //     .to.be.a("string")
+          //     .and.to.have.lengthOf(36).and.that.is.not.null,
+          //   expect(
+          //     cpiOrderItem?.dbObjectType,
+          //     "Failed on cpiOrderItem?.dbObjectType accessor"
+          //   )
+          //     .to.be.a("number")
+          //     .that.is.equal(34).and.is.not.null.and.is.not.undefined,
+          //   expect(
+          //     cpiOrderItem?.activityTypeDefinition.activityType,
+          //     "Failed on cpiOrderItem?.activityTypeDefinition.activityType accessor"
+          //   )
+          //     .to.be.a("number")
+          //     .that.is.equal(2).and.is.not.null.and.is.not.undefined,
+          //   expect(
+          //     cpiOrderItem?.activityTypeDefinition.dbObjectType,
+          //     "Failed on cpiOrderItem?.activityTypeDefinition.dbObjectType accessor"
+          //   )
+          //     .to.be.a("number")
+          //     .that.is.equal(39).and.is.not.null.and.is.not.undefined;
+          // expect(
+          //   cpiOrderItem?.activityTypeDefinition.hidden,
+          //   "Failed on cpiOrderItem?.activityTypeDefinition.hidden accessor"
+          // ).to.be.a("boolean").that.is.false.and.is.not.null.and.is.not
+          //   .undefined,
+          //   expect(
+          //     cpiOrderItem?.activityTypeDefinition.wrntyID,
+          //     "Failed on cpiOrderItem?.activityTypeDefinition.wrntyID accessor"
+          //   )
+          //     .to.be.a("number")
+          //     .that.is.above(0).and.is.not.null.and.is.not.undefined,
+          //   expect(
+          //     cpiOrderItem?.activityTypeDefinition.uuid,
+          //     "Failed on cpiOrderItem?.activityTypeDefinition.UUID accessor"
+          //   )
+          //     .to.be.a("string")
+          //     .and.to.have.lengthOf(36).and.that.is.not.null,
+          //   expect(
+          //     cpiOrderItem?.activityTypeDefinition.name,
+          //     "Failed on cpiOrderItem?.activityTypeDefinition.name accessor"
+          //   )
+          //     .to.be.a("string")
+          //     .that.is.equal("DorS CPINode Sales Order").and.is.not.null.and.is
+          //     .not.undefined;
 
           expect(
             transaction?.hidden,
@@ -1428,11 +1694,13 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             );
         });
 
-        it("Basic CRUD for Accessors", async () => {
+        it("Basic CRUD for Accessors and setAsignee", async () => {
           //=================================Accessors============================================
           console.log(
-            "Transaction - DataObject Starting Basic CRUD for Accessors"
+            "Transaction - DataObject Starting Basic CRUD for Accessors (DI-18506 - dataObject.actionDateTime returns wrong value)"
           );
+
+          await dataObject?.setAssignee(userDataObject);
 
           const hidden = dataObject?.hidden;
           const internalID = dataObject?.internalID;
@@ -1443,7 +1711,23 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const catalog = dataObject?.catalog;
           const creator = dataObject?.creator;
           const lines = dataObject?.lines;
-          const perf = dataObject?.performer;
+          const actionDT = dataObject?.actionDateTime;
+          const ExternalID = dataObject?.externalID;
+          const asignee = dataObject?.assignee;
+          const status = dataObject?.status;
+
+          expect(ExternalID, "Failed on ExID accessor")
+            .to.be.a("string")
+            .that.is.equal(ExID).and.is.not.null.and.is.not.undefined;
+          expect(status, "Failed on status accessor")
+            .to.be.a("number")
+            .that.is.equal(2).and.is.not.null.and.is.not.undefined;
+          expect(asignee, "Failed on asignee accessor").to.be.an("object").that
+            .is.not.empty,
+            expect(asignee?.email, "Failed on asignee.email accessor")
+              .to.be.a("string")
+              .that.is.equal("test@cpinodetest.com").and.is.not.null.and.is.not
+              .undefined;
 
           expect(hidden, "Failed on Hidden Accessor")
             .to.be.a("boolean")
@@ -1497,7 +1781,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .and.to.be.above(0).and.that.is.not.null.and.is.not.undefined,
             expect(
               acc?.typeDefinition?.resource,
-              "Failed on typeDefinition.resource"
+              "Failed on typeDefinition.resource (DI-18630)"
             )
               .to.be.a("string")
               .and.to.be.equal("accounts").and.that.is.not.null.and.is.not
@@ -1542,24 +1826,24 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .undefined,
             expect(creator?.resource, "Failed on creator.resource")
               .to.be.a("string")
-              .that.is.equal("users").and.that.is.not.null.and.is.not.undefined,
-            expect(perf, "Failed on perf object").to.be.an("object").that.is.not
-              .null.and.is.not.undefined,
-            expect(perf?.hidden, "Failed on perf.hidden").to.be.a("boolean")
-              .that.is.false.and.that.is.not.null.and.is.not.undefined,
-            expect(perf?.internalID, "Failed on perf.internalID")
-              .to.be.a("number")
-              .that.is.above(0).and.that.is.not.null.and.is.not.undefined,
-            expect(perf?.uuid, "Failed on perf.uuid")
-              .to.be.a("string")
-              .and.to.have.lengthOf(36).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(perf?.resource, "Failed on perf.resource")
-              .to.be.a("string")
-              .that.is.equal("users").and.that.is.not.null.and.is.not.undefined,
-            console.log(
-              "Transaciton - DataObject Finished Basic CRUD for Accessors"
-            );
+              .that.is.equal("users").and.that.is.not.null.and.is.not.undefined;
+          // expect(perf, "Failed on perf object").to.be.an("object").that.is.not
+          //   .null.and.is.not.undefined,
+          // expect(perf?.hidden, "Failed on perf.hidden").to.be.a("boolean")
+          //   .that.is.false.and.that.is.not.null.and.is.not.undefined,
+          // expect(perf?.internalID, "Failed on perf.internalID")
+          //   .to.be.a("number")
+          //   .that.is.above(0).and.that.is.not.null.and.is.not.undefined,
+          // expect(perf?.uuid, "Failed on perf.uuid")
+          //   .to.be.a("string")
+          //   .and.to.have.lengthOf(36).and.that.is.not.null.and.is.not
+          //   .undefined,
+          // expect(perf?.resource, "Failed on perf.resource")
+          //   .to.be.a("string")
+          //   .that.is.equal("users").and.that.is.not.null.and.is.not.undefined,
+          console.log(
+            "Transaciton - DataObject Finished Basic CRUD for Accessors"
+          );
         });
       });
       await initTestData(accDataObject!, "accounts");
@@ -1820,7 +2104,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.above(0).and.that.is.not.null,
             expect(cntcs, "Failed on contacs")
               .to.be.an("array")
-              .with.lengthOf(0);
+              .with.lengthOf(1);
 
           console.log("Account - DataObject Finished Basic CRUD for Accessors");
         });
@@ -1959,18 +2243,37 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             "Activity - Dataobject Finished Basic CRUD for SetFieldValue and GetFieldValue for system fields"
           );
         });
-        it("Basic CRUD for Accessors", async () => {
+        it("Basic CRUD for Accessors and setAsignee", async () => {
           console.log(
             "Activity - DataObject Starting Basic CRUD for Accessors"
           );
+          //setAsignee
+          await actDataObject?.setAssignee(userDataObject);
+
           const hidden = actDataObject?.hidden;
           const internalID = actDataObject?.internalID;
           const resource = actDataObject?.resource;
           const typeDef = actDataObject?.typeDefinition;
           const uuid = actDataObject?.uuid;
           const creator = actDataObject?.creator;
-          const perf = actDataObject?.performer;
           const acc = actDataObject?.account;
+          const status = actDataObject?.status;
+          const assignee = actDataObject?.assignee;
+          const actionDT = actDataObject?.actionDateTime; //need to add after DI-18506
+          const ExternalID = actDataObject?.externalID;
+
+          expect(ExternalID, "Failed on ExID accessor")
+            .to.be.a("string")
+            .that.is.equal(ExID).and.is.not.null.and.is.not.undefined;
+          expect(status, "Failed on status accessor")
+            .to.be.a("number")
+            .that.is.equal(2).and.is.not.null.and.is.not.undefined;
+          expect(assignee, "Failed on asignee accessor").to.be.an("object").that
+            .is.not.empty,
+            expect(assignee?.email, "Failed on asignee.email accessor")
+              .to.be.a("string")
+              .that.is.equal("test@cpinodetest.com").and.is.not.null.and.is.not
+              .undefined;
 
           expect(hidden, "Failed on Hidden Accessor")
             .to.be.a("boolean")
@@ -2018,19 +2321,311 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .undefined,
             expect(creator?.resource, "Failed on creator.resource")
               .to.be.a("string")
-              .that.is.equal("users").and.that.is.not.null.and.is.not.undefined,
-            expect(perf?.hidden, "Failed on perf.hidden").to.be.a("boolean")
-              .that.is.false.and.that.is.not.null.and.is.not.undefined,
-            expect(perf?.internalID, "Failed on perf.internalID")
-              .to.be.a("number")
-              .that.is.above(0).and.that.is.not.null.and.is.not.undefined,
-            expect(perf?.uuid, "Failed on perf.uuid")
-              .to.be.a("string")
-              .and.to.have.lengthOf(36).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(perf?.resource, "Failed on perf.resource")
-              .to.be.a("string")
               .that.is.equal("users").and.that.is.not.null.and.is.not.undefined;
+          // expect(perf?.hidden, "Failed on perf.hidden").to.be.a("boolean")
+          //   .that.is.false.and.that.is.not.null.and.is.not.undefined,
+          // expect(perf?.internalID, "Failed on perf.internalID")
+          //   .to.be.a("number")
+          //   .that.is.above(0).and.that.is.not.null.and.is.not.undefined,
+          // expect(perf?.uuid, "Failed on perf.uuid")
+          //   .to.be.a("string")
+          //   .and.to.have.lengthOf(36).and.that.is.not.null.and.is.not
+          //   .undefined,
+          // expect(perf?.resource, "Failed on perf.resource")
+          //   .to.be.a("string")
+          //   .that.is.equal("users").and.that.is.not.null.and.is.not.undefined;
+        });
+      });
+      await initTestData(cnctDataObject!, "contacts");
+      describe("Contact DataObject Basic CRUD test", async () => {
+        it("Basic CRUD for SetFieldValue and GetFieldValue", async () => {
+          console.log(
+            "Contact - Dataobject Starting Basic CRUD for SetFieldValue and GetFieldValue"
+          );
+          //===============================GET=============================================
+          //===============================TSA==============================================
+          const getTSASingleLineText = await cnctDataObject?.getFieldValue(
+            "TSASingleLineTextCnct"
+          );
+          expect(getTSASingleLineText, "Failed on getTSASingleLineText")
+            .to.be.a("string")
+            .that.is.equal(phrase + randZip).and.that.is.not.null.and.is.not
+            .undefined;
+
+          const getTSALimitedLineText = await cnctDataObject?.getFieldValue(
+            "TSALimitedLineTextCnct"
+          );
+          expect(getTSALimitedLineText, "Failed on getTSALimitedLineText")
+            .to.be.a("string")
+            .that.is.equal(phrase + randZip).and.that.is.not.null.and.is.not
+            .undefined;
+
+          const getTSAParagraphText = await cnctDataObject?.getFieldValue(
+            "TSAParagraphTextCnct"
+          );
+          expect(getTSAParagraphText, "Failed on getTSAParagraphText")
+            .to.be.a("string")
+            .that.is.equal(phrase + randZip).and.that.is.not.null.and.is.not
+            .undefined;
+
+          const getTSACheckbox = await cnctDataObject?.getFieldValue(
+            "TSACheckboxCnct"
+          );
+          expect(getTSACheckbox, "Failed on getTSACheckbox")
+            .to.be.a("boolean")
+            .that.is.equal(randBool).and.that.is.not.null.and.is.not.undefined;
+
+          const getTSANumber = await cnctDataObject?.getFieldValue(
+            "TSANumberCnct"
+          );
+          expect(getTSANumber, "Failed on getTSANumber")
+            .to.be.a("number")
+            .that.is.equal(randZip).and.that.is.not.null.and.is.not.undefined;
+
+          const getTSADecimal = await cnctDataObject?.getFieldValue(
+            "TSADecimalCnct"
+          );
+          expect(getTSADecimal, "Failed on getTSADecimal")
+            .to.be.a("number")
+            .that.is.equal(+randDiscount.toFixed(4)).and.that.is.not.null.and.is
+            .not.undefined;
+
+          const getTSACurrency = await cnctDataObject?.getFieldValue(
+            "TSACurrencyCnct"
+          );
+          expect(getTSACurrency, "Failed on getTSACurrency")
+            .to.be.a("number")
+            .that.is.equal(randZip).and.that.is.not.null.and.is.not.undefined;
+
+          const getTSAPhone = await cnctDataObject?.getFieldValue(
+            "TSAPhoneCnct"
+          );
+          expect(getTSAPhone, "Failed on getTSAPhone")
+            .to.be.a("string")
+            .that.is.equal(randPhone).and.that.is.not.null.and.is.not.undefined;
+
+          const getTSAEmail = await cnctDataObject?.getFieldValue(
+            "TSAEmailCnct"
+          );
+          expect(getTSAEmail, "Failed on getTSAEmail")
+            .to.be.a("string")
+            .that.is.equal(userEmail).and.that.is.not.null.and.is.not.undefined;
+
+          const getTSALink = await cnctDataObject?.getFieldValue("TSALinkCnct");
+          expect(getTSALink, "Failed on getTSALink")
+            .to.be.a("string")
+            .that.is.equal(link).and.that.is.not.null.and.is.not.undefined;
+
+          const getTSAHTML = await cnctDataObject?.getFieldValue("TSAHTMLCnct");
+          expect(getTSAHTML, "Failed on getTSAHTML")
+            .to.be.a("string")
+            .that.is.equal(HTML).and.that.is.not.null.and.is.not.undefined;
+
+          const getTSADate = await cnctDataObject?.getFieldValue("TSADateCnct");
+          const formattedDate = dateFormatter(getTSADate);
+          expect(formattedDate, "Failed on getTSADate")
+            .to.be.a("string")
+            .that.is.equal(dateOnly).and.that.is.not.null.and.is.not.undefined;
+
+          const getTSADateTime = await cnctDataObject?.getFieldValue(
+            "TSADateTimeCnct"
+          );
+          const formattedDateTime = dateFormatter(getTSADateTime, true, true);
+          expect(formattedDateTime, "Failed on getTSADateTime")
+            .to.be.a("string")
+            .that.is.equal(dateTime).and.that.is.not.null.and.is.not.undefined;
+
+          //==============================================SystemFields========================================================
+          const getExID = await cnctDataObject?.getFieldValue("ExternalID");
+          expect(getExID, "Failed on getExID")
+            .to.be.a("string")
+            .that.is.equal(ExID).and.that.is.not.null.and.is.not.undefined;
+
+          const getEmail = await cnctDataObject?.getFieldValue("Email");
+          expect(getEmail, "Failed on getEmail")
+            .to.be.a("string")
+            .that.is.equal(userEmail).and.that.is.not.null.and.is.not.undefined;
+
+          const getEmail2 = await cnctDataObject?.getFieldValue("Email2");
+          expect(getEmail2, "Failed on getEmail2")
+            .to.be.a("string")
+            .that.is.equal(userEmail).and.that.is.not.null.and.is.not.undefined;
+
+          const getFName = await cnctDataObject?.getFieldValue("FirstName");
+          expect(getFName, "Failed on getFName")
+            .to.be.a("string")
+            .that.is.equal(name).and.that.is.not.null.and.is.not.undefined;
+
+          const getLName = await cnctDataObject?.getFieldValue("LastName");
+          expect(getLName, "Failed on getLName")
+            .to.be.a("string")
+            .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined;
+
+          const getPhone = await cnctDataObject?.getFieldValue("Phone");
+          expect(getPhone, "Failed on getPhone")
+            .to.be.a("string")
+            .that.is.equal(randPhone).and.that.is.not.null.and.is.not.undefined;
+
+          const getMobile = await cnctDataObject?.getFieldValue("Mobile");
+          expect(getMobile, "Failed on getMobile")
+            .to.be.a("string")
+            .that.is.equal(randPhone).and.that.is.not.null.and.is.not.undefined;
+
+          const getStatus = await cnctDataObject?.getFieldValue("Status");
+          expect(getStatus, "Failed on getMobile")
+            .to.be.a("number")
+            .that.is.equal(2).and.that.is.not.null.and.is.not.undefined;
+
+          const getBirthday = await cnctDataObject?.getFieldValue("Birthday");
+          const formattedBirthday = dateFormatter(getBirthday);
+          expect(formattedBirthday, "Failed on getMobile")
+            .to.be.a("string")
+            .that.is.equal(dateOnly).and.that.is.not.null.and.is.not.undefined;
+
+          console.log(
+            "Contact - Dataobject Finished Basic CRUD for SetFieldValue and GetFieldValue"
+          );
+        });
+        it("Basic CRUD for Accessors", async () => {
+          console.log("Contact - Dataobject Starting Basic CRUD for Accessors");
+
+          const internalID = cnctDataObject?.internalID;
+          const hidden = cnctDataObject?.hidden;
+          const resource = cnctDataObject?.resource;
+          const uuid = cnctDataObject?.uuid;
+          const typeDef = cnctDataObject?.typeDefinition;
+
+          expect(internalID, "Failed on internalID accessor")
+            .to.be.a("number")
+            .that.is.below(0).and.is.not.null.and.is.not.undefined;
+          expect(hidden, "Failed on hidden accessor").to.be.a("boolean").that.is
+            .false.and.is.not.null.and.is.not.undefined;
+          expect(resource, "Failed on resource accessor")
+            .to.be.a("string")
+            .that.is.equal("contacts").and.is.not.null.and.is.not.undefined;
+          expect(uuid, "Failed on resource accessor")
+            .to.be.a("string")
+            .that.lengthOf(36).and.is.not.null.and.is.not.undefined;
+          expect(typeDef, "Failed on TypeDef object").to.be.an("object").and.is
+            .not.empty,
+            expect(typeDef?.hidden, "Failed on TypeDef.hidden").to.be.a(
+              "boolean"
+            ).and.is.false.and.is.not.null.and.is.not.undefined,
+            expect(typeDef?.name, "Failed on TypeDef.name")
+              .to.be.a("string")
+              .that.is.equal("Default Contact Person").and.is.not.null.and.is
+              .not.undefined,
+            expect(typeDef?.uuid, "Failed on TypeDef.uuid")
+              .to.be.a("string")
+              .that.lengthOf(36).and.is.not.null.and.is.not.undefined,
+            expect(typeDef?.internalID, "Failed on TypeDef.internalID")
+              .to.be.a("number")
+              .that.is.above(0).and.is.not.null.and.is.not.undefined,
+            expect(typeDef?.resource, "Failed on TypeDef.resource")
+              .to.be.a("string")
+              .that.is.equal("contacts").and.is.not.null.and.is.not.undefined;
+
+          console.log("Contact - Dataobject Finished Basic CRUD for Accessors");
+        });
+      });
+      await initTestData(userDataObject!, "users");
+      describe("User DataObject Basic CRUD test", async () => {
+        it("Basic CRUD for SetFieldValue and GetFieldValue", async () => {
+          console.log(
+            "User - Dataobject Starting Basic CRUD for SetFieldValue and GetFieldValue"
+          );
+          //===============================GET=============================================
+          const getUUID = await userDataObject?.getFieldValue("UUID");
+          expect(getUUID, "Failed on getUUID")
+            .to.be.a("string")
+            .that.has.lengthOf(36).and.is.not.null.and.is.not.undefined;
+
+          const getInternalID = await userDataObject?.getFieldValue(
+            "InternalID"
+          );
+          expect(getInternalID, "Failed on getInternalID")
+            .to.be.a("number")
+            .that.is.above(0).and.is.not.null.and.is.not.undefined;
+
+          const getExID = await userDataObject?.getFieldValue("ExternalID");
+          expect(getExID, "Failed on getExID")
+            .to.be.a("string")
+            .that.is.equal("TEST").and.is.not.null.and.is.not.undefined;
+
+          const getEmail = await userDataObject?.getFieldValue("Email");
+          expect(getEmail, "Failed on getEmail")
+            .to.be.a("string")
+            .that.is.equal("test@cpinodetest.com").and.is.not.null.and.is.not
+            .undefined;
+
+          const getFName = await userDataObject?.getFieldValue("FirstName");
+          expect(getFName, "Failed on getFName")
+            .to.be.a("string")
+            .that.is.equal(name).and.is.not.null.and.is.not.undefined;
+
+          const getLName = await userDataObject?.getFieldValue("LastName");
+          expect(getLName, "Failed on getLName")
+            .to.be.a("string")
+            .that.is.equal(phrase).and.is.not.null.and.is.not.undefined;
+
+          const getHidden = await userDataObject?.getFieldValue("Hidden");
+          expect(getHidden, "Failed on getHidden").to.be.a("boolean").that.is
+            .false.and.is.not.null.and.is.not.undefined;
+
+          const getPhone = await userDataObject?.getFieldValue("Phone");
+          expect(getPhone, "Failed on getPhone")
+            .to.be.a("string")
+            .that.is.equal(randPhone).and.is.not.null.and.is.not.undefined;
+
+          const getMobile = await userDataObject?.getFieldValue("Mobile");
+          expect(getMobile, "Failed on getMobile")
+            .to.be.a("string")
+            .that.is.equal(randPhone).and.is.not.null.and.is.not.undefined;
+
+          console.log(
+            "User - Dataobject Finished Basic CRUD for SetFieldValue and GetFieldValue"
+          );
+        });
+
+        it("Basic CRUD for Accessors", async () => {
+          console.log("User - Dataobject Starting Basic CRUD for Accessors");
+          //==============================Accessors=================================
+          const email = userDataObject?.email;
+          const ExternalID = userDataObject?.externalID;
+          const fName = userDataObject?.firstName;
+          const lName = userDataObject?.lastName;
+          const hidden = userDataObject?.hidden;
+          const internalID = userDataObject?.internalID;
+          const res = userDataObject?.resource;
+          const uuid = userDataObject?.uuid;
+          const typeDef = userDataObject?.typeDefinition; //currently returns undefined
+
+          expect(email, "Failed on Email accessor")
+            .to.be.a("string")
+            .that.is.equal("test@cpinodetest.com").and.is.not.null.and.is.not
+            .undefined;
+          expect(ExternalID, "Failed on ExternalID accessor")
+            .to.be.a("string")
+            .that.is.equal("TEST").and.is.not.null.and.is.not.undefined;
+          expect(fName, "Failed on fName accessor")
+            .to.be.a("string")
+            .that.is.equal(name).and.is.not.null.and.is.not.undefined;
+          expect(lName, "Failed on lName accessor")
+            .to.be.a("string")
+            .that.is.equal(phrase).and.is.not.null.and.is.not.undefined;
+          expect(hidden, "Failed on hidden accessor").to.be.a("boolean").that.is
+            .false.and.is.not.null.and.is.not.undefined;
+          expect(internalID, "Failed on internalID accessor")
+            .to.be.a("number")
+            .that.is.above(0).and.is.not.null.and.is.not.undefined;
+          expect(res, "Failed on resource accessor")
+            .to.be.a("string")
+            .that.is.equal("users").and.is.not.null.and.is.not.undefined;
+          expect(uuid, "Failed on uuid accessor")
+            .to.be.a("string")
+            .that.has.lengthOf(36).and.is.not.null.and.is.not.undefined;
+
+          console.log("User - Dataobject Finished Basic CRUD for Accessors");
         });
       });
       break;
@@ -2082,7 +2677,12 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .that.is.equal(phrase).and.is.not.null;
-          //expect(uiHomePage.type, "Failed on uiHomePage.type being empty or null/wrong value - https://pepperi.atlassian.net/browse/DI-18307").to.be.a("string").that.is.equal("Home").and.is.not.null;
+          expect(
+            uiHomePage.type,
+            "Failed on uiHomePage.type being empty or null/wrong value - https://pepperi.atlassian.net/browse/DI-18307"
+          )
+            .to.be.a("string")
+            .that.is.equal("Home").and.is.not.null;
           expect(
             uiHomePage.quickAction.backgroundColor,
             "Failed on uiHomePage.quickAction.backgroundColor"
@@ -2297,7 +2897,12 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             TrnDetailsUIPage.dataObject,
             "failed on TrnDetailsUIPage.dataObject"
           ).to.be.an("object").that.is.not.null.and.is.not.empty,
-            //expect(TrnDetailsUIPage.type,"DI-18307 UIPage.Type returns wrong values").to.be.a("string").that.is.equal("Details").that.is.not.null.and.is.not.empty, https://pepperi.atlassian.net/browse/DI-18307
+            expect(
+              TrnDetailsUIPage.type,
+              "DI-18307 UIPage.Type returns wrong values"
+            )
+              .to.be.a("string")
+              .that.is.equal("Details").that.is.not.null.and.is.not.empty,
             expect(
               TrnDetailsUIPage.key,
               "failed on TrnDetailsUIPage.key"
@@ -4864,7 +5469,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             "color: #bada55"
           );
         });
-        it("CRUD testing on Transaction Details UIObject - SetFieldValue", async () => {
+        it("CRUD testing on Transaction Details UIObject - SetFieldValue - DI-18618 - FormattedValue returns value with currency sign - UIObject Transaction Details", async () => {
           //need to set the oringinal values as the first test and then test for those values
           //===========================SET=========================================
           console.log(
@@ -5011,7 +5616,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getTSADateTimeField = await uiObject?.getUIField(
             "TSADateTimeField"
           );
-          console.log(getTSADateTimeField);
           let formattedDateTime: any = dateFormatter(
             getTSADateTimeField!.value,
             true
@@ -5355,16 +5959,15 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
         let accUIObject = AccDetailsUIPage.uiObject;
         const status = 2;
 
-        it("CRUD testing on Transaction Details UIObject - Recalculate", async () => {
+        it("CRUD testing on Transaction Details UIObject - Recalculate (DI-18476) - ignore for now,might become a test for ReloadDataObject", async () => {
           console.log(
             "%cDetails - Recalculate - UIObject Starting CRUD testing!",
             "color: #bada55"
           );
           await initTestData(dataObject!, "transactions");
           await initTestData(accDataObject!, "accounts");
-          TrnDetailsUIPage.rebuild();
+          await TrnDetailsUIPage.rebuild();
           uiObject = TrnDetailsUIPage.uiObject;
-          console.log(uiObject);
           //===========================SET=========================================
           //========================TSA's===========================================
           //setting new values for the recalculate to work
@@ -5453,7 +6056,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           );
           //brings the data back to the point it was when was defined by the dataObject
           await uiObject.recalculate(); // possible bug,I see the function running and bringing back the correct values, but it doesn't update the UIObject
-          console.log(uiObject);
 
           //=============================GET======================================
           const getTSASingleLineText = await uiObject?.getUIField(
@@ -6134,7 +6736,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
 
           const getQuantitiesTotal = await dataObject?.getFieldValue(
             "QuantitiesTotal"
-          ); 
+          ); // negative
           expect(getQuantitiesTotal, "Failed on getQuantitiesTotal")
             .that.is.a("number")
             .and.is.equal(quantitiesTotal);
@@ -6150,7 +6752,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getStatus = await dataObject?.getFieldValue("Status");
           expect(getStatus, "Failed on getStatus")
             .to.be.a("number")
-            .and.is.equal(status);
+            .and.is.equal(status); //negative
 
           const getLat = await dataObject?.getFieldValue(
             "SubmissionGeoCodeLAT"
@@ -6196,7 +6798,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getSubTotal = await dataObject?.getFieldValue("SubTotal");
           expect(getSubTotal, "Failed on getSubTotal")
             .to.be.a("number")
-            .that.is.equal(+randZip.toFixed(2));
+            .that.is.equal(+randZip.toFixed(2)); //negative
 
           const getSubTotalAfterItemsDiscount = await dataObject?.getFieldValue(
             "SubTotalAfterItemsDiscount"
@@ -6206,14 +6808,14 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             "Failed on getSubTotalAfterItemsDiscount"
           )
             .to.be.a("number")
-            .that.is.equal(+(randZip * randDiscount).toFixed(4));
-
-          const getGrandTotal = await dataObject?.getFieldValue("GrandTotal");
-          expect(getGrandTotal, "Failed on getGrandTotal")
-            .to.be.a("number")
-            .that.is.equal(
-              +(randZip * randDiscount * quantitiesTotal).toFixed(4)
-            );
+            .that.is.equal(+(randZip * randDiscount).toFixed(4)); //negative
+          //due to lines data currently not in use - negative
+          //const getGrandTotal = await dataObject?.getFieldValue("GrandTotal");
+          // expect(getGrandTotal, "Failed on getGrandTotal")
+          //   .to.be.a("number")
+          //   .that.is.equal(
+          //     +(randZip * randDiscount * quantitiesTotal).toFixed(4)
+          //   );
 
           console.log(
             "%cDetails - Save - UIObject Finished CRUD testing!",
@@ -6222,16 +6824,12 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
         });
 
         it("CRUD testing on Account Details UIObject", async () => {
-
           console.log(
             "%cDetails - Accounts - UIObject Starting CRUD testing!",
             "color: #bada55"
           );
           AccDetailsUIPage.rebuild();
           accUIObject = AccDetailsUIPage.uiObject;
-          console.log("Acc ui details form");
-          console.log(AccDetailsUIPage);
-          console.log(accUIObject);
 
           //===========================SET===========================================
           await accUIObject?.setFieldValue(
@@ -6292,7 +6890,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getTSACheckboxAcc = await accUIObject?.getUIField(
             "TSACheckboxAcc"
           );
-          console.log(getTSACheckboxAcc);
           expect(getTSACheckboxAcc?.value, "Failed on getTSACheckboxAcc.value")
             .to.be.a("string")
             .that.is.equal((!randBool).toString()).and.is.not.null.and.is.not
@@ -6322,6 +6919,8 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal(resultCur).and.is.not.null.and.is.not.undefined;
 
           const getTSANumberAcc = await accUIObject?.getUIField("TSANumberAcc");
+          const formattedNumber = formatter.format(randZip);
+          const resultFormatted = formattedNumber.substr(1).split(".");
           expect(getTSANumberAcc?.value, "Failed on getTSANumberAcc.value")
             .to.be.a("string")
             .that.is.equal(randZip.toString()).and.is.not.null.and.is.not
@@ -6331,12 +6930,10 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               "Failed on getTSANumberAcc.formattedValue"
             )
               .to.be.a("string")
-              .that.is.equal(randZip.toString()).and.is.not.null.and.is.not
+              .that.is.equal(resultFormatted[0]).and.is.not.null.and.is.not
               .undefined;
 
           const getTSADateAcc = await accUIObject?.getUIField("TSADateAcc");
-          console.log(getTSADateAcc?.value);
-          console.log(getTSADateAcc?.formattedValue);
           const formattedDate = dateFormatter(getTSADateAcc!.value);
           expect(formattedDate).to.be.a("string").and.is.equal(dateOnly).and.is
             .not.null.and.is.not.undefined;
@@ -6344,15 +6941,14 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getTSADateTimeAcc = await accUIObject?.getUIField(
             "TSADateTimeAcc"
           );
-          console.log(getTSADateTimeAcc?.value);
-          console.log(getTSADateTimeAcc?.formattedValue);
           let formattedDateTime: any = dateFormatter(
             getTSADateTimeAcc!.value,
             true,
             true
           );
+          const formattedTrimmed = formattedDateTime.split(".");
           const expectedDateTimeValue = dateFormatter(dateTime, true);
-          expect(formattedDateTime, "Failed on getTSADateTimeAcc")
+          expect(formattedTrimmed[0], "Failed on getTSADateTimeAcc")
             .to.be.a("string")
             .and.is.equal(expectedDateTimeValue);
 
@@ -6453,14 +7049,15 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getTSALinkAcc = await accUIObject?.getUIField("TSALinkAcc");
           expect(getTSALinkAcc?.value, "fell on getTSALinkAcc.value")
             .to.be.a("string")
-            .and.is.equal("dor.s@pepperi.com").and.is.not.null.and.is.not
+            .and.is.equal("https://www.google.com").and.is.not.null.and.is.not
             .undefined,
             expect(
               getTSALinkAcc?.formattedValue,
               "fell on getTSALinkAcc.formattedValue"
             )
               .to.be.a("string")
-              .and.is.equal(link).and.is.not.null.and.is.not.undefined;
+              .and.is.equal("https://www.google.com").and.is.not.null.and.is.not
+              .undefined;
 
           const getTSAPhoneAcc = await accUIObject?.getUIField("TSAPhoneAcc");
           expect(getTSAPhoneAcc?.value, "fell on getTSAPhoneAcc.value")
@@ -6538,17 +7135,19 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .null.and.is.not.undefined;
 
           const getDiscount = await accUIObject?.getUIField("Discount");
-          expect(getDiscount?.value, "Failed on Discount.value")
+          const formattedDisc = parseFloat(getDiscount?.value!);
+          const newValue = randDiscount + 0.5;
+          expect(formattedDisc.toFixed(4), "Failed on Discount.value")
             .to.be.a("string")
-            .that.is.equal(randDiscount.toFixed(4)).and.is.not.null.and.is.not
+            .that.is.equal(newValue.toFixed(4)).and.is.not.null.and.is.not
             .undefined,
             expect(
               getDiscount?.formattedValue,
               "Failed on Discount.formattedValue"
             )
               .to.be.a("string")
-              .that.is.equal(randDiscount.toFixed(4)).and.is.not.null.and.is.not
-              .undefined;
+              .that.is.equal((randDiscount + 0.5).toFixed(2) + "%").and.is.not
+              .null.and.is.not.undefined;
 
           const getFax = await accUIObject?.getUIField("Fax");
           expect(getFax?.value, "Failed on Fax.value")
@@ -6580,24 +7179,353 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal(randZip.toString()).and.is.not.null.and.is.not
               .undefined;
 
+          console.log(
+            "%cDetails - Accounts - UIObject Finished CRUD testing!",
+            "color: #bada55"
+          );
+        }); // need to add UIObject account details for accessors
+      });
+      break;
+    }
+    //===========================Neagative==========================================
+    case "Negative": {
+      await initTestData(itemDataObject!, "items");
+      describe("Item DataObject Basic Negative CRUD test -  DI-18673 - SetFieldValue sets value/available for item DataObject", async () => {
+        it("Basic Negative CRUD for SetFieldValue and GetFieldValue", async () => {
+          //=================================GET=====================================
+          const getTSASingleLineText = await itemDataObject?.getFieldValue(
+            "TSASingleLineText"
+          );
 
-              console.log(
-                "%cDetails - Accounts - UIObject Finished CRUD testing!",
-                "color: #bada55"
-              );
+          expect(getTSASingleLineText, "Failed on getTSASingleLineText")
+            .to.be.a("string")
+            .that.is.not.equal(phrase + randDiscount);
+
+          const getTSALimitedLineText = await itemDataObject?.getFieldValue(
+            "TSALimitedLineText"
+          );
+
+          expect(getTSALimitedLineText, "Failed on getTSALimitedLineText")
+            .to.be.a("string")
+            .that.is.not.equal(phrase + randDiscount);
+
+          const getTSAParagrathText = await itemDataObject?.getFieldValue(
+            "TSAParagraphText"
+          );
+
+          expect(getTSAParagrathText, "Failed on getTSAParagrathText")
+            .to.be.a("string")
+            .that.is.not.equal(phrase + randDiscount);
+
+          const getTSADate = await itemDataObject?.getFieldValue("TSADate");
+
+          expect(getTSADate, "Failed on getTSADate")
+            .to.be.a("string")
+            .that.is.not.equal(dateOnly);
+
+          const getTSADT = await itemDataObject?.getFieldValue("TSADateTime");
+
+          expect(getTSADT, "Failed on getTSADateTime")
+            .to.be.a("string")
+            .that.is.not.equal(dateOnly);
+
+          const getTSADecimal = await itemDataObject?.getFieldValue(
+            "TSADecimal"
+          );
+
+          expect(getTSADecimal, "Failed on getTSADecimal")
+            .to.be.a("number")
+            .that.is.not.equal(+randDiscount.toFixed(3));
+
+          const getTSANumber = await itemDataObject?.getFieldValue("TSANumber");
+
+          expect(getTSANumber, "Failed on getTSANumber")
+            .to.be.a("number")
+            .that.is.not.equal(quantitiesTotal);
+
+          const getTSACurrency = await itemDataObject?.getFieldValue(
+            "TSACurrency"
+          );
+
+          expect(getTSACurrency, "Failed on getTSACurrency")
+            .to.be.a("number")
+            .that.is.not.equal(quantitiesTotal);
+
+          const getTSACheckbox = await itemDataObject?.getFieldValue(
+            "TSACheckbox"
+          );
+
+          expect(getTSACheckbox, "Failed on getTSACheckbox")
+            .to.be.a("boolean")
+            .that.is.not.equal(randBool);
+
+          const getTSAEmail = await itemDataObject?.getFieldValue("TSAEmail");
+
+          expect(getTSAEmail, "Failed on getTSAEmail")
+            .to.be.a("string")
+            .that.is.not.equal(userEmail);
+
+          const getTSAPhone = await itemDataObject?.getFieldValue("TSAPhone");
+
+          expect(getTSAPhone, "Failed on getTSAPhone")
+            .to.be.a("string")
+            .that.is.not.equal(randPhone);
+
+          const getTSALink = await itemDataObject?.getFieldValue("TSALink");
+
+          expect(getTSALink, "Failed on getTSALink")
+            .to.be.a("string")
+            .that.is.not.equal(link);
+
+          const getTSAHTML = await itemDataObject?.getFieldValue("TSAHTML");
+
+          expect(getTSAHTML, "Failed on getTSAHTML")
+            .to.be.a("string")
+            .that.is.not.equal(HTML);
+
+          const getUPC = await itemDataObject?.getFieldValue("UPC");
+
+          expect(getUPC, "Failed on getUPC")
+            .to.be.a("string")
+            .that.is.not.equal(ExID);
+
+          const getName = await itemDataObject?.getFieldValue("Name");
+
+          expect(getName, "Failed on getName")
+            .to.be.a("string")
+            .that.is.not.equal(name);
+
+          const getLngDesc = await itemDataObject?.getFieldValue(
+            "LongDescription"
+          );
+
+          expect(getLngDesc, "Failed on getLngDesc")
+            .to.be.a("string")
+            .that.is.not.equal(name);
+
+          const getPrice = await itemDataObject?.getFieldValue("Price");
+
+          expect(getPrice, "Failed on getPrice")
+            .to.be.a("number")
+            .that.is.not.equal(quantitiesTotal);
+        });
+        it("Basic CRUD for Items DataObject Accessors", async () => {
+          const ExternalID = itemDataObject?.externalID;
+          const hidden = itemDataObject?.hidden;
+          const internalID = itemDataObject?.internalID;
+          const resource = itemDataObject?.resource;
+          //const typeDef = itemDataObject?.typeDefinition;
+          const uuid = itemDataObject?.uuid;
+
+          expect(hidden, "Failed on hidden accessor").to.be.a("boolean").that.is
+            .false.and.is.not.null.and.is.not.undefined;
+
+          expect(ExternalID, "Failed on ExternalID accessor").to.be.a("string")
+            .and.is.not.null.and.is.not.undefined;
+
+          expect(resource, "Failed on resource accessor")
+            .to.be.a("string")
+            .that.is.equal("items").and.is.not.null.and.is.not.undefined;
+
+          expect(internalID, "Failed on internalID accessor")
+            .to.be.a("number")
+            .that.is.above(0).and.is.not.null.and.is.not.undefined;
+
+          expect(uuid, "Failed on uuid accessor")
+            .to.be.a("string")
+            .that.has.lengthOf(36).and.is.not.null.and.is.not.undefined;
         });
       });
       break;
     }
-
+    //===========================Error handling=====================================
     case "error": {
       console.log(
-        "%cThe test name you've inserted does not exist,try again with 'Data' or 'UI1/2'",
+        "%cThe test name you've inserted does not exist,try again with 'Data','UI1/2 or 'Negative'",
         "color: #FF0000"
       );
       break;
     }
   }
-  const testResult = await tester.run();
+  const testResult = await run();
+  res.json(testResult);
+});
+
+//setup routers for router automation tests
+router.get("/addon-api/get", (req, res) => {
+  console.log("AddonAPI test currently on CPISide - GET with query params");
+  const queryString = req.query.q;
+  if (
+    queryString === "queryParam" &&
+    queryString !== null &&
+    queryString !== undefined
+  ) {
+    res.json({
+      result: "success",
+      params: queryString,
+    });
+  }
+  res.json({ result: "failure" });
+});
+
+router.post("/addon-api/post", async (req, res) => {
+  console.log("AddonAPI test currently on CPISide - POST with body params");
+  const bodyParams = req.body.a;
+  if (
+    bodyParams === "bodyParam" &&
+    bodyParams !== null &&
+    bodyParams !== undefined
+  ) {
+    res.json({
+      result: "success",
+      params: bodyParams,
+    });
+  }
+  res.json({ result: "failure" });
+});
+
+router.use("/addon-api/:v/use", async (req, res, next) => {
+  console.log("AddonAPI test currently on CPISide - USE with params");
+  const params = req.params.v;
+  try {
+    if (params === "param" && params !== null && params !== undefined) {
+      res.json({
+        result: "success",
+        params: params,
+      });
+    }
+  } catch (err) {
+    console.log(err);
+  }
+  res.json({ result: "failure" });
+});
+//Recalculate trigger for interceptors test
+router.get("/recalculate/:UUID/trigger", async (req, res, next) => {
+  const accountUUID = req.params.UUID;
+  if (accountUUID === null || accountUUID === undefined || accountUUID === "") {
+    res.json({
+      result: "failure - no UUID was passed",
+    });
+  }
+  let accDataObject = await pepperi.DataObject.Get("accounts", accountUUID);
+  let accDetailsUIPage: UIDetailsPage;
+  if (accDataObject!) {
+    try {
+      accDetailsUIPage = await pepperi.UIPage.Create("Details", accDataObject!);
+      await accDetailsUIPage.rebuild();
+    } catch (err) {
+      console.log(err);
+      res.json({
+        result: "failure - failed on creating UIObject",
+      });
+    }
+  }
+  //can move the below and logic is ready
+  let uiObject = accDetailsUIPage!.uiObject;
+  await uiObject.recalculate();
+  console.log(uiObject);
+
+  res.json({
+    result: "success",
+  });
+});
+
+//router for Load function test -- dummy trigger
+// router.get("/load-test", async (req, res, next) => {
+//   loadTestActive = true;
+//   loadTestCounter = 0;
+//   console.log(new Date());
+// });
+
+//==============================/ClientAPI/ADAL=======================================
+router.get("/ClientAPI/ADAL", async (req, res, next) => {
+  const { describe, it, expect, run } = Tester("My test");
+
+  describe("ClientAPI/ADAL Automation Test", async () => {
+    it("Negative ADAL.get() test", async () => {
+      //negative with invalid key
+      try {
+      const negativeGet1 = await pepperi.api.adal.get({
+        addon: addonUUID,
+        table: adalTableName,
+        key: "negativeKey",
+      });} catch(err) {
+        if(err instanceof Error) {
+          expect(err.message,"Negative get1 returned the wrong message").to.be.equal("Could not find object with key: 'negativeKey' on table: 'Load_Test'").and.is.not.null;
+          expect(err.name,"Negative get1 returned the wrong exception name").to.be.equal("ClientApiError").and.is.not.null;
+        }
+      }
+      //negative with invalid table
+      try {
+      const negativeGet2 = await pepperi.api.adal.get({
+        addon: addonUUID,
+        table: "randomTableName",
+        key: "testKey1",
+      });} catch(err) {
+        if(err instanceof Error) {
+          expect(err.message,"Negative get2 returned the wrong message").to.be.equal("Could not find object with key: 'testKey1' on table: 'randomTableName'").and.is.not.null;
+          expect(err.name,"Negative get2 returned the wrong exception name").to.be.equal("ClientApiError").and.is.not.null;
+        }
+      }
+      
+      //negative with invalid  addonUUID
+      try {
+      const negativeGet3 = await pepperi.api.adal.get({
+        addon: "random-uuid-for-this-test",
+        table: adalTableName,
+        key: "testKey1",
+      });} catch(err) {
+        if(err instanceof Error) {
+          expect(err.message,"Negative get3 returned the wrong message").to.be.equal("Could not find object with key: 'testKey1' on table: 'Load_Test'").and.is.not.null;
+          expect(err.name,"Negative get3 returned the wrong exception name").to.be.equal("ClientApiError").and.is.not.null;
+        }
+      }
+
+    });
+    it("Positive ADAL.get() test", async () => {
+     //positive with valid key
+    const get = await pepperi.api.adal.get({
+      addon: addonUUID,
+      table: adalTableName,
+      key: "testKey2",
+    });
+
+    expect(get.object.Key,"ADAL returned the wrong key").that.is.equal("testKey2").and.is.not.null;
+    expect(get.object.Name,"ADAL string returned the wrong value").that.is.equal("Load_Test").and.is.not.null;
+    expect(get.object.object.Array,"ADAL returned the wrong array value").to.eql([1,2,3,4,5]).and.is.not.null;
+    expect(get.object.object.String,"ADAL string returned the wrong String value").that.is.equal("Red pill or Blue pill?").and.is.not.null;
+    expect(get.object.object.object.string,"ADAL returned the wrong object string value").that.is.equal("random string").and.is.not.null;
+    expect(get.object.object.object.number,"ADAL string returned the wrong object number value").that.is.equal(27).and.is.not.null;
+    expect(get.object.object.object.boolean,"ADAL string returned the wrong object boolean value").that.is.equal(true).and.is.not.null;
+    
+    });
+
+    it("Negative ADAL.getList() test", async () => {
+    //negative to a list that does not exist
+    //no addon uuid
+    const getListNegative1 = await pepperi.api.adal.getList({
+      addon: "random-uuid-for-this-test",
+      table: adalTableName,
+    });
+    expect(getListNegative1.objects,"getList Negative test returned the wrong number of values").that.is.an("Array").that.has.lengthOf(0);
+    //no tableName
+    const getListNegative2 = await pepperi.api.adal.getList({
+      addon: addonUUID,
+      table: "randomTableName",
+    });
+    expect(getListNegative2.objects,"getList Negative test returned the wrong number of values").that.is.an("Array").that.has.lengthOf(0);
+    });
+    it("Positive ADAL.getList() test", async () => {
+    //positive with correct list name
+    const getList = await pepperi.api.adal.getList({
+      addon: addonUUID,
+      table: adalTableName,
+    });
+
+    console.log(getList);
+  });
+  });
+  // mochsa tests
+  const testResult = await run();
   res.json(testResult);
 });
