@@ -10,7 +10,7 @@ export async function foo(client: Client, request: Request) {
   const res = await service.getAddons();
   return res;
 }
-//Load init by sync
+/** Load function test endpoint */
 export async function InitiateLoad(client: Client, request: Request) {
   const service = new MyService(client);
   const isLocal = false;
@@ -38,7 +38,7 @@ export async function InitiateLoad(client: Client, request: Request) {
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(5000);
   //need to add mocha and UDT get
-  const udtData = await service.getUDTValues("LoadUDT", 2);
+  const udtData = await service.getUDTValues("LoadUDT", 2, "DESC");
   //need to add test logic
   const removeLines: number[] | undefined = [];
   udtData.forEach(async (obj) => {
@@ -91,7 +91,7 @@ export async function InitiateLoad(client: Client, request: Request) {
   const testResults = await run();
   return testResults;
 }
-//AddonAPI testing function
+/** AddonAPI testing endpoint */
 export async function AddonAPITester(client: Client, request: Request) {
   const service = new MyService(client);
   const isLocal = false;
@@ -103,42 +103,53 @@ export async function AddonAPITester(client: Client, request: Request) {
     webAPIBaseURL = "http://localhost:8093";
   }
 
-  const routerTester = await service.routerTester(
-    webAPIBaseURL,
-    accessToken
-  );
+  const routerTester = await service.routerTester(webAPIBaseURL, accessToken);
 
   describe("AddonAPI automation test", async () => {
     it("Parsed test results", async () => {
       expect(
         routerTester,
         "There was an issue with the route test,the response did not include an object as expected"
-      ).to.be.an("Object").that.is.not.null.and.is.not.undefined.and.is.not.empty;
+      ).to.be.an("Object").that.is.not.null.and.is.not.undefined.and.is.not
+        .empty;
 
-      expect(routerTester.GET.result,"Failure on GET endpoint").to.be.a("string").that.is.equal("success"),
-      expect(routerTester.GET.param,"Failure on GET queryParams").to.be.a("string").that.is.equal("queryParam");
+      expect(routerTester.GET.result, "Failure on GET endpoint")
+        .to.be.a("string")
+        .that.is.equal("success"),
+        expect(routerTester.GET.param, "Failure on GET queryParams")
+          .to.be.a("string")
+          .that.is.equal("queryParam");
 
-      expect(routerTester.POST.result,"Failure on POST endpoint").to.be.a("string").that.is.equal("success"),
-      expect(routerTester.POST.param,"Failure on POST bodyParams").to.be.a("string").that.is.equal("bodyParam");
+      expect(routerTester.POST.result, "Failure on POST endpoint")
+        .to.be.a("string")
+        .that.is.equal("success"),
+        expect(routerTester.POST.param, "Failure on POST bodyParams")
+          .to.be.a("string")
+          .that.is.equal("bodyParam");
 
-      expect(routerTester.USE.result,"Failure on USE endpoint").to.be.a("string").that.is.equal("success"),
-      expect(routerTester.USE.param,"Failure on USE params").to.be.a("string").that.is.equal("param");
+      expect(routerTester.USE.result, "Failure on USE endpoint")
+        .to.be.a("string")
+        .that.is.equal("success"),
+        expect(routerTester.USE.param, "Failure on USE params")
+          .to.be.a("string")
+          .that.is.equal("param");
     });
   });
 
   const testResults = await run();
   return testResults;
 }
-//Interceptors test, need to finish after chasky fixed the recalculate bug
+/** Interceptors test */
 export async function InterceptorTester(client: Client, request: Request) {
   const service = new MyService(client);
   const atdID = 305697;
+  const { describe, it, expect, run } = Tester("My test");
   const isLocal = false;
-  await service.setTestFlag(false, true);
+  await service.setTestFlag(false, true, 0);
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   if (isLocal) {
-    accessToken = "db815429-b8dc-4c78-96de-840dbe668b57"; //fill in from CPINode debugger
+    accessToken = "54a7e16a-bb93-49d0-af7c-d49bd777b92d"; //fill in from CPINode debugger
     webAPIBaseURL = "http://localhost:8093";
   }
   const pepperiClientAPI = await service.getPepperiClientAPI(
@@ -151,6 +162,9 @@ export async function InterceptorTester(client: Client, request: Request) {
     pepperiClientAPI,
     atdID
   );
+  const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(7500);
   const triggerSet = await service.triggerEvent(
     accessToken,
     transactionUUID,
@@ -177,44 +191,58 @@ export async function InterceptorTester(client: Client, request: Request) {
     webAPIBaseURL,
     "Recalculate"
   );
-  await service.setTestFlag(false, false);
+  await service.setTestFlag(false, false, 0);
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
-  await service.sleep(5000);
-  const udtData = await service.getUDTValues("InterceptorsUDT", 1);
+  await service.sleep(10000);
+  const udtData = await service.getUDTValues("InterceptorsUDT", 1, "DESC");
   const removeLines: number[] | undefined = [];
   udtData.forEach(async (obj) => {
     if (obj.InternalID! && typeof obj.InternalID === "number") {
       removeLines.push(obj.InternalID);
     }
   });
-
-  //some logic to finish the test
-
-  // remove UDT lines after test
+  console.log(udtData);
+  // some logic to finish the test -- MOCHA
+  describe("Load function automation test", async () => {
+    it("Parsed test results", async () => {
+      expect(
+        udtData,
+        "UDT Logging Data returned undefined,please run the test again/check for sync issues"
+      )
+        .to.be.an("array")
+        .that.has.lengthOf(1).and.is.not.null;
+      expect(
+        udtData[0].Values,
+        "The sequence of the interceptors was not correct,please debug it"
+      )
+        .to.be.an("array")
+        .that.is.eql([
+          "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31",
+        ]).and.is.not.null;
+    });
+  });
+  //remove UDT lines after test
   removeLines.forEach(async (line) => {
     if (line! && typeof line === "number") {
       await service.removeUDTValues(line);
     }
   });
 
-  // return udtData;
-
-  //waits for the data to sync into the udt
-  //----------from here: get UDT values for all interceptor functions (4 total)
-  //need to add request to go to homepage for sync
-  //const sync = await service.initSync(accessToken, webAPIBaseURL);
-  //console.log(sync);
+  const testResults = await run();
+  return testResults;
 }
-
+/** runs CPISide tests */
 export async function runCPISideTests(client: Client, request: Request) {
   const service = new MyService(client);
   let testName = request.body.testName;
-  const tests = ["UI1", "UI2", "Data", "Negative","ClientAPI/ADAL"];
+  const tests = ["UI1", "UI2", "Data", "Negative", "ClientAPI/ADAL"];
   if (!tests.includes(testName)) {
     testName = "error";
   }
   if (testName === "error") {
-    const error = "Test Name is invalid,please try: UI1/UI2/Data/Negative or ClientAPI/ADAL";
+    const error =
+      "Test Name is invalid,please try: UI1/UI2/Data/Negative or ClientAPI/ADAL";
     throw new Error(error);
   }
   const isLocal = false;
@@ -234,7 +262,7 @@ export async function runCPISideTests(client: Client, request: Request) {
 
   return testResults;
 }
-//method to cleanse UDT lines in case one of the test goes wrong
+/**method to cleanse UDT lines in case one of the test goes wrong */
 export async function cleanseUDTLines(client: Client, request: Request) {
   const service = new MyService(client);
   const udtName = request.body.tableName;
@@ -250,7 +278,7 @@ export async function cleanseUDTLines(client: Client, request: Request) {
       "Could not find the specified UDT / Sent the wrong records number";
     throw new Error(error);
   }
-  const removeLines = await service.getUDTValues(udtName, numOfRecords);
+  const removeLines = await service.getUDTValues(udtName, numOfRecords, "DESC");
   console.log(removeLines);
 
   removeLines.forEach(async (line) => {
@@ -262,4 +290,43 @@ export async function cleanseUDTLines(client: Client, request: Request) {
       }
     }
   });
+}
+
+export async function PerformenceTester(client: Client, request: Request) {
+  const service = new MyService(client);
+  const { describe, it, expect, run } = Tester("My test");
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+
+  const testData = await service.PerformenceTester(webAPIBaseURL,accessToken);
+  const currentRes = testData.currentResults;
+  const adalObject = testData.adalObject;
+  //need to add to ADAL document
+  //bestRun = {
+  //Version,Duration
+  //}
+
+  const object =     {
+    Key: "testKey3",
+    Name: "Load_Test",
+    Duration: parseFloat(currentRes),
+    bestRun : {
+      cpasVersion: "16.60.83",
+      nodeVersion: "0.2.9",
+      Duration: 10000
+    }
+}
+
+// need to compare data for versions and duration from current run to best run
+// need to insert new object into same key on ADAL
+// after it is done - simple mocha test to parse the test results
+
+  describe("Performence automation test", async () => {
+    it("Parsed test results", async () => {
+      //need to add mocha test
+    });
+  });
+
+  // const testResults = await run();
+  return testData;
 }

@@ -16,13 +16,13 @@ import {
 } from "@pepperi-addons/cpi-node";
 
 /** A list of events */
-const EVENT_NAMES: string[] = [
-  "RecalculateUIObject",
-  "SetFieldValue",
-  "IncrementFieldValue",
-  "DecrementFieldValue",
-  "TSAButtonPressed",
-];
+enum OCEvents {
+  Recalculate = "RecalculateUIObject",
+  SetField = "SetFieldValue",
+  Increment = "IncrementFieldValue",
+  Decrement = "DecrementFieldValue",
+  Button = "TSAButtonPressed",
+}
 /** A list of Order Center Data Views */
 const OC_DATA_VIEWS: string[] = [
   "OrderCenterGrid", //gridview
@@ -42,7 +42,7 @@ const GENERIC_DATA_VIEWS: dataType = {
   ListView: "ListView",
   UserHomePage: "UserHomePage",
 };
-//account geo data for tests
+/** account geo data for tests */
 interface accountGeoData {
   City: string;
   Country: string;
@@ -93,15 +93,15 @@ const accounDataArr: accountGeoData[] = [
 interface dataType {
   [key: string]: string;
 }
-//Interface for dataAndFieldTypeMapObj
+/** Interface for dataAndFieldTypeMapObj */
 interface dataAndFieldTypeMap {
   [key: string]: string[];
 }
-//Interface for getUIFields func  -- not in use
+/** Interface for getFields func  -- not in use */
 interface fieldKVPair {
   [key: string]: UIField | string;
 }
-//Data and Field type aggregator
+/** Data and Field type aggregator */
 const dataAndFieldTypeMapObj: dataAndFieldTypeMap = {
   None: ["None"],
   String: [
@@ -141,7 +141,7 @@ const dataAndFieldTypeMapObj: dataAndFieldTypeMap = {
     "MapDataDropDown",
   ],
 };
-//DataType KVP object
+/**DataType KVP object --not in use */
 const dataTypeObj: dataType = {
   None: "None",
   Date: "Date",
@@ -215,14 +215,14 @@ const fieldTypeObj: dataType = {
   RelatedObjectsCards: "RelatedObjectsCards",
   BooleanText: "BooleanText",
 };
-//ScreenSize object
+/**ScreenSize object */
 const screenSize: dataType = {
   Tablet: "Tablet",
   Phablet: "Phablet",
   Landscape: "Landscape",
 };
 
-//Test data variables
+//**Test data variables */
 let accountGeoIndex: number;
 let randZip: number;
 let randDiscount: number;
@@ -247,32 +247,32 @@ let interceptorArr: number[];
 const addonUUID = "2b39d63e-0982-4ada-8cbb-737b03b9ee58";
 const adalTableName = "Load_Test";
 
-//randGenerator for numeric fields
+/**randGenerator for numeric fields */
 function randGenerator(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-//Data and field aggregator check -- not in use
+/**Data and field aggregator check -- not in use*/
 async function dataFieldTypeAggregator(dataType: string, fieldType: string) {
   if (dataType && fieldType) {
     return dataAndFieldTypeMapObj[dataType].includes(fieldType);
   }
 }
-//getUIFields in bulk -- not in use
-async function getUIFields(uiObject: UIObject) {
+/**getFields in bulk -- not in use */
+async function getFields(uiObject: UIObject) {
   let uiFieldsArr: UIField[] = uiObject.fields;
   let getArr = new Map<string, string>();
   uiFieldsArr.forEach(async (field) => {
     if (field.fieldID !== undefined) {
-      const getUIField = await uiObject.getUIField(field.fieldID!);
-      if (getUIField !== undefined) {
+      const getField = await uiObject.getField(field.fieldID!);
+      if (getField !== undefined) {
         getArr.set(
           field.fieldID,
           "type is:" +
-            getUIField.type +
+            getField.type +
             " and formattedValue is:" +
-            getUIField.formattedValue +
+            getField.formattedValue +
             " value:" +
-            getUIField.value
+            getField.value
         );
       }
     }
@@ -282,7 +282,7 @@ async function getUIFields(uiObject: UIObject) {
   }
   return undefined;
 }
-//initiates test data for all objects
+/**initiates test data for all objects */
 export async function initTestData(
   dataObject:
     | Transaction
@@ -558,9 +558,8 @@ export async function initTestData(
       await dataObject?.setFieldValue("Mobile", randPhone);
       break;
     }
-    //init items for automation test
+    //init items for automation test - not in use
     case "items": {
-      debugger;
       //SET for TSA's
       await dataObject?.setFieldValue(
         "TSASingleLineText",
@@ -596,10 +595,10 @@ export async function initTestData(
   }
   return dataObject;
 }
-
+/**initiates test data for all UIobjects -- not in use */
 async function initTestUIData(uiObject: UIObject, testResource: string) {} // need to see if its needed
 
-//formats date to ISO
+/**formats date to ISO */
 function dateFormatter(date: string, time?: boolean, removeChar?: boolean) {
   if (time) {
     let concatedDateTime = date.split(".");
@@ -611,7 +610,7 @@ function dateFormatter(date: string, time?: boolean, removeChar?: boolean) {
   const concatedDate = date.split("T");
   return concatedDate[0].toString();
 }
-
+/** Load function - setup for interceptors/load tests*/
 export async function load(configuration: any) {
   console.log("cpi side works!");
   console.log("Setting up test variables");
@@ -653,10 +652,10 @@ export async function load(configuration: any) {
       key: "testKey1",
     })
     .then((obj) => obj.object);
-  console.log(adalData);
-  console.log("loadTestActive: " + adalData.TestActive);
-  console.log("counter: " + adalData.TestRunCounter);
-  console.log("InterceptorTestActive: " + adalData.InterceptorsTestActive);
+  //console.log(adalData);
+  console.log("LoadTester::loadTestActive: " + adalData.TestActive);
+  console.log("LoadTester::counter: " + adalData.TestRunCounter);
+  console.log("LoadTester::InterceptorTestActive: " + adalData.InterceptorsTestActive);
   const loadTestActive = adalData.TestActive;
   const loadTestCounter = adalData.TestRunCounter;
   const InterceptorsTestActive = adalData.InterceptorsTestActive;
@@ -666,11 +665,11 @@ export async function load(configuration: any) {
     loadTestActive === true &&
     (loadTestCounter === 0 || loadTestCounter === 1)
   ) {
-    console.log("Inside load test if");
+    console.log("LoadTester::Inside load test if");
     //insert one line into UDT after the each load occured
     const date = new Date();
     console.log(
-      "write to UDT by the " +
+      "LoadTester::write to UDT by the " +
         loadTestCounter +
         " Index, TimeStamp: " +
         date.toISOString()
@@ -683,192 +682,208 @@ export async function load(configuration: any) {
         value: date.toISOString(),
       });
     } catch (err) {
-      console.log("issue detected on UDT insert.");
+      console.log("LoadTester::issue detected on UDT insert.");
       console.log(err);
     }
   }
   if (InterceptorsTestActive === true) {
     //=======================Interceptors test setup======================================
-    //Recalculate interceptors -- NEEDS WORK AFTER CHASKY FIXES DI-18619 Recalculate event triggers interceptor twice
-    // pepperi.events.intercept(
-    //   "RecalculateUIObject",
-    //   { UIObject: { context: { Name: "AccountForm" } } },
-    //   async (data, next, main) => {
-    //     console.log("Recalculate 1 - before main");
-    //     interceptorArr.push(1);
-    //     await next(main);
-    //     main = async (data) => {
-    //       console.log("Recalculate 1 - inside main");
-    //       interceptorArr.push(42);
-    //     }
-    //     console.log("Recalculate 1 - after main");
-    //     interceptorArr.push(7);
-    //     console.log(interceptorArr);
-    //   }
-    // );
-    // pepperi.events.intercept(
-    //   "RecalculateUIObject",
-    //   { UIObject: { context: { Name: "AccountForm" } } },
-    //   async (data, next, main) => {
-    //     console.log("Recalculate 2 - before main");
-    //     interceptorArr.push(2);
-    //     await next(main);
-    //     await next(async(data) => {
-    //       console.log("Recalculate 2 - inside main");
-    //       interceptorArr.push(43);
-    //     })
-    //     console.log("Recalculate 2 - after main");
-    //     interceptorArr.push(6);
-    //   }
-    // );
-    // pepperi.events.intercept(
-    //   "RecalculateUIObject",
-    //   { UIObject: { context: { Name: "AccountForm" } } },
-    //   async (data, next, main) => {
-    //     console.log("Recalculate 3 - before main");
-    //     interceptorArr.push(3);
-    //     await next(async(data) => {
-    //       console.log("Recalculate 3 - inside main");
-    //       interceptorArr.push(4);
-    //     });
-    //     console.log("Recalculate 3 - after main");
-    //     interceptorArr.push(5)
-    //   }
-    // );
+    //==================================Recalculate interceptors==========================
+    pepperi.events.intercept(
+      OCEvents.Recalculate,
+      { UIObject: { context: { Name: "AccountForm" } } },
+      async (data, next, main) => {
+        console.log("InterceptorsTester::Recalculate 1 - before main");
+        interceptorArr.push(22);
+        await next(main);
+        main = async (data) => {
+          console.log("InterceptorsTester::Recalculate 1 - inside main");
+          interceptorArr.push(42);
+        };
+        console.log("InterceptorsTester::Recalculate 1 - after main");
+        interceptorArr.push(31);
+        console.log(interceptorArr);
+        try {
+          const upsert = await pepperi.api.userDefinedTables.upsert({
+            table: "InterceptorsUDT",
+            mainKey: new Date().toISOString(),
+            secondaryKey: "TestResults",
+            value: interceptorArr.toString(),
+          });
+          console.log(upsert);
+        } catch (err) {
+          console.log(err);
+        }
+      }
+    );
+    pepperi.events.intercept(
+      OCEvents.Recalculate,
+      { UIObject: { context: { Name: "AccountForm" } } },
+      async (data, next, main) => {
+        console.log("InterceptorsTester::Recalculate 2 - before main");
+        interceptorArr.push(23);
+        await next(main);
+        await next(async (data) => {
+          console.log("InterceptorsTester::Recalculate 2 - inside main");
+          interceptorArr.push(43);
+        });
+        console.log("InterceptorsTester::Recalculate 2 - after main");
+        interceptorArr.push(30);
+      }
+    );
+    pepperi.events.intercept(
+      OCEvents.Recalculate,
+      { UIObject: { context: { Name: "AccountForm" } } },
+      async (data, next, main) => {
+        console.log("InterceptorsTester::Recalculate 3 - before main");
+        if (interceptorArr[interceptorArr.length - 1] === 23) {
+          interceptorArr.push(24);
+        } else {
+          interceptorArr.push(27);
+        }
+        await next(async (data) => {
+          console.log("InterceptorsTester::Recalculate 3 - inside main");
+          if (interceptorArr[interceptorArr.length - 1] === 24) {
+            interceptorArr.push(25);
+          } else {
+            interceptorArr.push(28);
+          }
+        });
+        console.log("InterceptorsTester::Recalculate 3 - after main");
+        if (interceptorArr[interceptorArr.length - 1] === 25) {
+          interceptorArr.push(26);
+        } else {
+          interceptorArr.push(29);
+        }
+      }
+    );
     //Lines
     //====================IncrementFieldValue - BELOW LOGIC FOR IncrementFieldValue IS READY========================
-    // pepperi.events.intercept(
-    //   "IncrementFieldValue",
-    //   { FieldID: "UnitsQuantity" },
-    //   async (data, next, main) => {
-    //     console.log("IncrementFieldValue 1 - before main");
-    //     interceptorArr.push(8);
-    //     main = async () => {
-    //       console.log("IncrementFieldValue 1 - main");
-    //       interceptorArr.push(11);
-    //     };
-    //     await next(main);
-    //     console.log("IncrementFieldValue 1 - after main");
-    //     interceptorArr.push(14);
-    //     console.log(interceptorArr);
-    //   }
-    // );
-    // pepperi.events.intercept(
-    //   "IncrementFieldValue",
-    //   { FieldID: "UnitsQuantity" },
-    //   async (data, next, main) => {
-    //     console.log("IncrementFieldValue 2 - before main");
-    //     interceptorArr.push(9);
-    //     await next(main);
-    //     main = async () => {
-    //       console.log("IncrementFieldValue 2 - main");
-    //       interceptorArr.push(10);
-    //     };
-    //     console.log("IncrementFieldValue 2 - after main");
-    //     interceptorArr.push(13);
-    //   }
-    // );
-    // pepperi.events.intercept(
-    //   "IncrementFieldValue",
-    //   { FieldID: "UnitsQuantity" },
-    //   async (data, next, main) => {
-    //     console.log("IncrementFieldValue 3 - before main");
-    //     interceptorArr.push(10);
-    //     await next(main);
-    //     console.log("IncrementFieldValue 3 - after main");
-    //     interceptorArr.push(12);
-    //   }
-    // );
-    //================================EXAMPLE FOR UDT IMPLEMENTATION=================================
-    // await pepperi.api.userDefinedTables.upsert({
-    //   table: "InterceptorsUDT",
-    //   mainKey: "DecrementFieldValue " + Date().toString(),
-    //   secondaryKey: "DecrementFieldValue",
-    //   value: Date().toString(),
-    // });
+    pepperi.events.intercept(
+      OCEvents.Increment,
+      { FieldID: "UnitsQuantity" },
+      async (data, next, main) => {
+        console.log("InterceptorsTester::IncrementFieldValue 1 - before main");
+        interceptorArr.push(8);
+        main = async () => {
+          console.log("InterceptorsTester::IncrementFieldValue 1 - main");
+          interceptorArr.push(11);
+        };
+        await next(main);
+        console.log("InterceptorsTester::IncrementFieldValue 1 - after main");
+        interceptorArr.push(14);
+        console.log(interceptorArr);
+      }
+    );
+    pepperi.events.intercept(
+      OCEvents.Increment,
+      { FieldID: "UnitsQuantity" },
+      async (data, next, main) => {
+        console.log("InterceptorsTester::IncrementFieldValue 2 - before main");
+        interceptorArr.push(9);
+        await next(main);
+        main = async () => {
+          console.log("InterceptorsTester::IncrementFieldValue 2 - main");
+          interceptorArr.push(10);
+        };
+        console.log("InterceptorsTester::IncrementFieldValue 2 - after main");
+        interceptorArr.push(13);
+      }
+    );
+    pepperi.events.intercept(
+      OCEvents.Increment,
+      { FieldID: "UnitsQuantity" },
+      async (data, next, main) => {
+        console.log("InterceptorsTester::IncrementFieldValue 3 - before main");
+        interceptorArr.push(10);
+        await next(main);
+        console.log("InterceptorsTester::IncrementFieldValue 3 - after main");
+        interceptorArr.push(12);
+      }
+    );
     //=====================DecrementFieldValue events==================================
-    // pepperi.events.intercept(
-    //   "DecrementFieldValue",
-    //   { FieldID: "UnitsQuantity" },
-    //   async (data, next, main) => {
-    //     console.log("DecrementFieldValue 1 - before main");
-    //     interceptorArr.push(15);
-    //     await next(main);
-    //     console.log("DecrementFieldValue 1 - after main");
-    //     interceptorArr.push(21);
-    //     console.log(interceptorArr);
-    //   }
-    // );
-    // pepperi.events.intercept(
-    //   "DecrementFieldValue",
-    //   { FieldID: "UnitsQuantity" },
-    //   async (data, next, main) => {
-    //     console.log("DecrementFieldValue 2 - before main");
-    //     interceptorArr.push(16);
-    //     await next(async (data) => {
-    //       console.log("DecrementFieldValue 2 - main");
-    //       interceptorArr.push(19);
-    //     });
-    //     console.log("DecrementFieldValue 2 - after main");
-    //     interceptorArr.push(20);
-    //   }
-    // );
-    // pepperi.events.intercept(
-    //   "DecrementFieldValue",
-    //   { FieldID: "UnitsQuantity" },
-    //   async (data, next, main) => {
-    //     console.log("DecrementFieldValue 3 - before main");
-    //     interceptorArr.push(17);
-    //     main = async () => {
-    //       console.log("DecrementFieldValue 3 - main");
-    //       interceptorArr.push(77);
-    //     };
-    //     console.log("DecrementFieldValue 3 - after main");
-    //     interceptorArr.push(18);
-    //   }
-    // );
+    pepperi.events.intercept(
+      OCEvents.Decrement,
+      { FieldID: "UnitsQuantity" },
+      async (data, next, main) => {
+        console.log("InterceptorsTester::DecrementFieldValue 1 - before main");
+        interceptorArr.push(15);
+        await next(main);
+        console.log("InterceptorsTester::DecrementFieldValue 1 - after main");
+        interceptorArr.push(21);
+        console.log(interceptorArr);
+      }
+    );
+    pepperi.events.intercept(
+      OCEvents.Decrement,
+      { FieldID: "UnitsQuantity" },
+      async (data, next, main) => {
+        console.log("InterceptorsTester::DecrementFieldValue 2 - before main");
+        interceptorArr.push(16);
+        await next(async (data) => {
+          console.log("InterceptorsTester::DecrementFieldValue 2 - main");
+          interceptorArr.push(19);
+        });
+        console.log("InterceptorsTester::DecrementFieldValue 2 - after main");
+        interceptorArr.push(20);
+      }
+    );
+    pepperi.events.intercept(
+      OCEvents.Decrement,
+      { FieldID: "UnitsQuantity" },
+      async (data, next, main) => {
+        console.log("InterceptorsTester::DecrementFieldValue 3 - before main");
+        interceptorArr.push(17);
+        main = async () => {
+          console.log("InterceptorsTester::DecrementFieldValue 3 - main");
+          interceptorArr.push(77);
+        };
+        console.log("InterceptorsTester::DecrementFieldValue 3 - after main");
+        interceptorArr.push(18);
+      }
+    );
     //header -- BELOW LOGIC FOR SETFIELDVALUE IS READY
-    // pepperi.events.intercept(
-    //   "SetFieldValue",
-    //   { FieldID: "TSAInterceptorTrigger" },
-    //   async (data, next, main) => {
-    //     console.log("SetFieldValue 1 - before main");
-    //     interceptorArr.push(1);
-    //     await next(main);
-    //     main = async () => {
-    //       console.log("SetFieldValue 1 - inside main");
-    //       interceptorArr.push(42);
-    //     };
-    //     console.log("SetFieldValue 1 - after main");
-    //     interceptorArr.push(7);
-    //     console.log(interceptorArr);
-    //   }
-    // );
-    // pepperi.events.intercept(
-    //   "SetFieldValue",
-    //   { FieldID: "TSAInterceptorTrigger" },
-    //   async (data, next, main) => {
-    //     console.log("SetFieldValue 2 - before main");
-    //     interceptorArr.push(2);
-    //     await next(main);
-    //     console.log("SetFieldValue 2 - after main");
-    //     interceptorArr.push(6);
-    //   }
-    // );
-    // pepperi.events.intercept(
-    //   "SetFieldValue",
-    //   { FieldID: "TSAInterceptorTrigger" },
-    //   async (data, next, main) => {
-    //     console.log("SetFieldValue 3 - before main");
-    //     interceptorArr.push(3);
-    //     await next(async () => {
-    //       console.log("SetFieldValue 3 - inside main");
-    //       interceptorArr.push(4);
-    //     });
-    //     console.log("SetFieldValue 3 - after main");
-    //     interceptorArr.push(5);
-    //   }
-    // );
+    pepperi.events.intercept(
+      OCEvents.SetField,
+      { FieldID: "TSAInterceptorTrigger" },
+      async (data, next, main) => {
+        console.log("InterceptorsTester::SetFieldValue 1 - before main");
+        interceptorArr.push(1);
+        await next(main);
+        main = async () => {
+          console.log("InterceptorsTester::SetFieldValue 1 - inside main");
+          interceptorArr.push(42);
+        };
+        console.log("InterceptorsTester::SetFieldValue 1 - after main");
+        interceptorArr.push(7);
+        console.log(interceptorArr);
+      }
+    );
+    pepperi.events.intercept(
+      OCEvents.SetField,
+      { FieldID: "TSAInterceptorTrigger" },
+      async (data, next, main) => {
+        console.log("InterceptorsTester::SetFieldValue 2 - before main");
+        interceptorArr.push(2);
+        await next(main);
+        console.log("InterceptorsTester::SetFieldValue 2 - after main");
+        interceptorArr.push(6);
+      }
+    );
+    pepperi.events.intercept(
+      OCEvents.SetField,
+      { FieldID: "TSAInterceptorTrigger" },
+      async (data, next, main) => {
+        console.log("InterceptorsTester::SetFieldValue 3 - before main");
+        interceptorArr.push(3);
+        await next(async () => {
+          console.log("InterceptorsTester::SetFieldValue 3 - inside main");
+          interceptorArr.push(4);
+        });
+        console.log("InterceptorsTester::SetFieldValue 3 - after main");
+        interceptorArr.push(5);
+      }
+    );
   }
 }
 
@@ -941,12 +956,8 @@ router.use("/debug-tester", async (req, res) => {
 
   //console.log(typeDef?.resource); // returns "None" instead of the objects resource
 });
-//Automation tests for CPINode
+/**Automation tests for CPINode */
 router.use("/automation-tests/:v/tests", async (req, res) => {
-  //const tester = Tester("My test");
-  // const describe = tester.describe;
-  // const it = tester.it;
-  // const expect = tester.expect;
   const { describe, it, expect, run } = Tester("My test");
   const bgColor: string = "#659DBD";
   const color: string = "#FBEEC1";
@@ -958,6 +969,10 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
     currency: "EUR",
     minimumFractionDigits: 2, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
     //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
+  });
+
+  let formatterUS = new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: 6, // (this suffices for whole numbers, but will print 2500.10 as $2,500.100000)
   });
 
   const uiHomePage = await pepperi.UIPage.Create("Home");
@@ -981,6 +996,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
       catalog: { Name: "Default Catalog" },
     },
   });
+
   let activityApiRes = await pepperi.app.activities.add({
     type: { Name: "CPINode Test Activity" },
     references: {
@@ -1236,6 +1252,8 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const uuid = lineDataObject?.uuid;
           const transaction = lineDataObject?.transaction;
           const typeDef = lineDataObject?.typeDefinition;
+          const parent = lineDataObject?.parent;
+
           expect(children, "Failed on Children accessor")
             .to.be.an("array")
             .that.has.lengthOf(0);
@@ -1274,6 +1292,9 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.above(0).and.is.not.null.and.is.not.undefined,
             expect(typeDef?.resource, "Failed on typeDef?.resource accessor")
               .to.be.a("string")
+              .that.is.equal("types").and.is.not.null.and.is.not.undefined,
+            expect(typeDef?.type, "Failed on typeDef?.type")
+              .to.be.a("string")
               .that.is.equal("transactions").and.is.not.null.and.is.not
               .undefined,
             expect(typeDef?.uuid, "Failed on typeDef?.UUID accessor")
@@ -1283,69 +1304,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .to.be.a("string")
               .that.is.equal("DorS CPINode Sales Order").and.is.not.null.and.is
               .not.undefined;
-          // expect(
-          //   cpiOrderItem?.hidden,
-          //   "Failed on cpiOrderItem?.hidden accessor"
-          // ).to.be.a("boolean").that.is.false.and.is.not.null.and.is.not
-          //   .undefined,
-          //   expect(
-          //     cpiOrderItem?.wrntyID,
-          //     "Failed on cpiOrderItem?.wrntyID accessor"
-          //   )
-          //     .to.be.a("number")
-          //     .that.is.below(0).and.is.not.null.and.is.not.undefined;
-          // expect(
-          //   cpiOrderItem?.children,
-          //   "Failed on cpiOrderItem?.resource accessor"
-          // )
-          //   .to.be.a("array")
-          //   .that.has.lengthOf(0).and.is.not.null.and.is.not.undefined,
-          //   expect(cpiOrderItem?.uuid, "Failed on cpiOrderItem?.UUID accessor")
-          //     .to.be.a("string")
-          //     .and.to.have.lengthOf(36).and.that.is.not.null,
-          //   expect(
-          //     cpiOrderItem?.dbObjectType,
-          //     "Failed on cpiOrderItem?.dbObjectType accessor"
-          //   )
-          //     .to.be.a("number")
-          //     .that.is.equal(34).and.is.not.null.and.is.not.undefined,
-          //   expect(
-          //     cpiOrderItem?.activityTypeDefinition.activityType,
-          //     "Failed on cpiOrderItem?.activityTypeDefinition.activityType accessor"
-          //   )
-          //     .to.be.a("number")
-          //     .that.is.equal(2).and.is.not.null.and.is.not.undefined,
-          //   expect(
-          //     cpiOrderItem?.activityTypeDefinition.dbObjectType,
-          //     "Failed on cpiOrderItem?.activityTypeDefinition.dbObjectType accessor"
-          //   )
-          //     .to.be.a("number")
-          //     .that.is.equal(39).and.is.not.null.and.is.not.undefined;
-          // expect(
-          //   cpiOrderItem?.activityTypeDefinition.hidden,
-          //   "Failed on cpiOrderItem?.activityTypeDefinition.hidden accessor"
-          // ).to.be.a("boolean").that.is.false.and.is.not.null.and.is.not
-          //   .undefined,
-          //   expect(
-          //     cpiOrderItem?.activityTypeDefinition.wrntyID,
-          //     "Failed on cpiOrderItem?.activityTypeDefinition.wrntyID accessor"
-          //   )
-          //     .to.be.a("number")
-          //     .that.is.above(0).and.is.not.null.and.is.not.undefined,
-          //   expect(
-          //     cpiOrderItem?.activityTypeDefinition.uuid,
-          //     "Failed on cpiOrderItem?.activityTypeDefinition.UUID accessor"
-          //   )
-          //     .to.be.a("string")
-          //     .and.to.have.lengthOf(36).and.that.is.not.null,
-          //   expect(
-          //     cpiOrderItem?.activityTypeDefinition.name,
-          //     "Failed on cpiOrderItem?.activityTypeDefinition.name accessor"
-          //   )
-          //     .to.be.a("string")
-          //     .that.is.equal("DorS CPINode Sales Order").and.is.not.null.and.is
-          //     .not.undefined;
-
           expect(
             transaction?.hidden,
             "Failed on transaction?.hidden accessor"
@@ -1716,6 +1674,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const asignee = dataObject?.assignee;
           const status = dataObject?.status;
 
+
           expect(ExternalID, "Failed on ExID accessor")
             .to.be.a("string")
             .that.is.equal(ExID).and.is.not.null.and.is.not.undefined;
@@ -1728,6 +1687,8 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .to.be.a("string")
               .that.is.equal("test@cpinodetest.com").and.is.not.null.and.is.not
               .undefined;
+
+          expect(actionDT,"Failed on actionDateTime accessor").to.be.a("string").that.is.not.null.and.is.not.undefined;    
 
           expect(hidden, "Failed on Hidden Accessor")
             .to.be.a("boolean")
@@ -1750,7 +1711,13 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .and.to.have.lengthOf(36).and.that.is.not.null,
             expect(typeDef?.internalID, "Failed on typeDef.InternalID")
               .to.be.a("number")
-              .that.is.above(0).and.that.is.not.null;
+              .that.is.above(0).and.that.is.not.null,
+            expect(typeDef?.type, "Failed on typeDef.type")
+              .to.be.a("string")
+              .and.to.equal("transactions").and.that.is.not.null,
+            expect(typeDef?.resource, "Failed on typeDef.resource")
+              .to.be.a("string")
+              .and.to.equal("types").and.that.is.not.null;
 
           expect(acc, "Failed on Account object").to.be.an("object").that.is.not
             .null.and.is.not.undefined,
@@ -1781,8 +1748,12 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .and.to.be.above(0).and.that.is.not.null.and.is.not.undefined,
             expect(
               acc?.typeDefinition?.resource,
-              "Failed on typeDefinition.resource (DI-18630)"
+              "Failed on typeDefinition.resource"
             )
+              .to.be.a("string")
+              .and.to.be.equal("types").and.that.is.not.null.and.is.not
+              .undefined,
+            expect(acc?.typeDefinition?.type, "Failed on typeDefinition.type")
               .to.be.a("string")
               .and.to.be.equal("accounts").and.that.is.not.null.and.is.not
               .undefined,
@@ -1827,20 +1798,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             expect(creator?.resource, "Failed on creator.resource")
               .to.be.a("string")
               .that.is.equal("users").and.that.is.not.null.and.is.not.undefined;
-          // expect(perf, "Failed on perf object").to.be.an("object").that.is.not
-          //   .null.and.is.not.undefined,
-          // expect(perf?.hidden, "Failed on perf.hidden").to.be.a("boolean")
-          //   .that.is.false.and.that.is.not.null.and.is.not.undefined,
-          // expect(perf?.internalID, "Failed on perf.internalID")
-          //   .to.be.a("number")
-          //   .that.is.above(0).and.that.is.not.null.and.is.not.undefined,
-          // expect(perf?.uuid, "Failed on perf.uuid")
-          //   .to.be.a("string")
-          //   .and.to.have.lengthOf(36).and.that.is.not.null.and.is.not
-          //   .undefined,
-          // expect(perf?.resource, "Failed on perf.resource")
-          //   .to.be.a("string")
-          //   .that.is.equal("users").and.that.is.not.null.and.is.not.undefined,
           console.log(
             "Transaciton - DataObject Finished Basic CRUD for Accessors"
           );
@@ -2072,7 +2029,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const uuid = accDataObject?.uuid;
           const cntcs = accDataObject?.contacts;
           const name = accDataObject?.name;
-
+          // need to add const parent = accDataObject?.parent; -- returns undefined
           expect(hidden, "Failed on Hidden Accessor")
             .to.be.a("boolean")
             .that.is.equal(false).and.is.not.null,
@@ -2092,7 +2049,10 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.a("string")
               .and.to.be.equal("Customer")
               .and.length.is.above(0).and.that.is.not.null,
-            expect(typeDef?.resource)
+            expect(typeDef?.resource, "Failed on typeDef.resource")
+              .to.be.a("string")
+              .and.to.be.equal("types").and.that.is.not.null.and.not.undefined,
+            expect(typeDef?.type, "Failed on typeDef.type")
               .to.be.a("string")
               .and.to.be.equal("accounts").and.that.is.not.null.and.not
               .undefined,
@@ -2275,6 +2235,9 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal("test@cpinodetest.com").and.is.not.null.and.is.not
               .undefined;
 
+              expect(actionDT,"Failed on actionDateTime accessor").to.be.a("string").that.is.not.null.and.is.not.undefined;    
+
+
           expect(hidden, "Failed on Hidden Accessor")
             .to.be.a("boolean")
             .that.is.equal(false).and.is.not.null,
@@ -2294,6 +2257,12 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             expect(typeDef?.uuid, "Failed on typeDef.uuid")
               .to.be.a("string")
               .and.to.have.lengthOf(36).and.that.is.not.null,
+            expect(typeDef?.type, "Failed on typeDef.type")
+              .to.be.a("string")
+              .and.to.equal("activities").and.that.is.not.null,
+            expect(typeDef?.resource, "Failed on typeDef.resource")
+              .to.be.a("string")
+              .and.to.equal("types").and.that.is.not.null,
             expect(typeDef?.internalID, "Failed on typeDef.InternalID")
               .to.be.a("number")
               .that.is.above(0).and.that.is.not.null;
@@ -2494,7 +2463,28 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const resource = cnctDataObject?.resource;
           const uuid = cnctDataObject?.uuid;
           const typeDef = cnctDataObject?.typeDefinition;
-
+          const account = cnctDataObject?.account;
+          expect(account?.uuid, "Failed on account.UUID accessor")
+            .to.be.a("string")
+            .that.lengthOf(36).and.is.not.null.and.is.not.undefined;
+          expect(account?.resource, "Failed on account.resource accessor")
+            .to.be.a("string")
+            .that.is.equal("accounts").and.is.not.null.and.is.not.undefined;
+          expect(account?.name, "Failed on account.name accessor")
+            .to.be.a("string")
+            .that.is.equal(name).and.is.not.null.and.is.not.undefined;
+          expect(account?.internalID, "Failed on account.internalID accessor")
+            .to.be.a("number")
+            .that.is.below(0).and.is.not.null.and.is.not.undefined;
+          expect(account?.contacts, "failed on account.contacts")
+            .to.be.an("array")
+            .that.has.lengthOf(1).and.is.not.undefined;
+          expect(account?.contacts[0], "failed on account.contacts").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined;
+          expect(account?.hidden, "Failed on account.hidden accessor").to.be.a(
+            "boolean"
+          ).that.is.false.and.is.not.null.and.is.not.undefined;
           expect(internalID, "Failed on internalID accessor")
             .to.be.a("number")
             .that.is.below(0).and.is.not.null.and.is.not.undefined;
@@ -2503,7 +2493,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           expect(resource, "Failed on resource accessor")
             .to.be.a("string")
             .that.is.equal("contacts").and.is.not.null.and.is.not.undefined;
-          expect(uuid, "Failed on resource accessor")
+          expect(uuid, "Failed on UUID accessor")
             .to.be.a("string")
             .that.lengthOf(36).and.is.not.null.and.is.not.undefined;
           expect(typeDef, "Failed on TypeDef object").to.be.an("object").and.is
@@ -2522,6 +2512,9 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .to.be.a("number")
               .that.is.above(0).and.is.not.null.and.is.not.undefined,
             expect(typeDef?.resource, "Failed on TypeDef.resource")
+              .to.be.a("string")
+              .that.is.equal("types").and.is.not.null.and.is.not.undefined,
+            expect(typeDef?.type, "Failed on TypeDef.type")
               .to.be.a("string")
               .that.is.equal("contacts").and.is.not.null.and.is.not.undefined;
 
@@ -2600,6 +2593,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const uuid = userDataObject?.uuid;
           const typeDef = userDataObject?.typeDefinition; //currently returns undefined
 
+
           expect(email, "Failed on Email accessor")
             .to.be.a("string")
             .that.is.equal("test@cpinodetest.com").and.is.not.null.and.is.not
@@ -2645,7 +2639,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             uiHomePage.title = phrase;
             uiHomePage.subTitle = phrase;
             uiHomePage.quickAction.backgroundColor = bgColor;
-            uiHomePage.quickAction.highlighted = false;
             uiHomePage.quickAction.readonly = false;
           } catch (err) {
             console.log(err);
@@ -2689,12 +2682,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           )
             .to.be.a("string")
             .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              uiHomePage.quickAction.highlighted,
-              "Failed on uiHomePage.quickAction.highlighted"
-            )
-              .to.be.a("boolean")
-              .that.is.equal(false).and.that.is.not.null.and.is.not.undefined,
             expect(
               uiHomePage.quickAction.readonly,
               "Failed on uiHomePage.quickAction.readonly"
@@ -2752,7 +2739,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             ).that.is.not.empty.and.that.is.not.null;
           try {
             uiObjectHP.readonly = false;
-            uiObjectHP.highlighted = false;
             uiObjectHP.backgroundColor = bgColor;
           } catch (err) {
             console.log(err);
@@ -2765,10 +2751,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             uiObjectHP.readonly,
             "Failed on uiObject.readonly being null/true"
           ).to.be.a("boolean").that.is.false.and.is.not.null,
-            expect(
-              uiObjectHP.highlighted,
-              "Failed on uiObject.highlighted being null/true"
-            ).to.be.a("boolean").that.is.false.and.is.not.null,
             expect(
               uiObjectHP.backgroundColor,
               "Failed on uiObject.backgroundColor being null/wrong value"
@@ -2864,2614 +2846,12 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .to.be.a("boolean")
               .that.is.equal(true).and.is.not.null;
         });
-        it("CRUD testing on Transaction Details UIObject - UIField Accessors", async () => {
-          console.log(
-            "%cDetails - Accessors - UIObject Starting CRUD testing!",
-            "color: #bada55"
-          );
-          //init
+        it("CRUD testing on Transaction Details UIObject - SetFieldValue", async () => {
+          //need to set the oringinal values as the first test and then test for those values
+          //===========================SET=========================================
           await initTestData(dataObject!, "transactions");
           await initTestData(accDataObject!, "accounts");
           TrnDetailsUIPage.rebuild();
-          //=================================UIDetailsPage=======================================
-          try {
-            TrnDetailsUIPage.subTitle = phrase;
-            TrnDetailsUIPage.title = phrase;
-          } catch (err) {
-            console.log(err);
-            console.log(
-              `%uiDetails CRUD test failed! error: ${err}`,
-              "color: #FF0000"
-            );
-          }
-          expect(
-            TrnDetailsUIPage.subTitle,
-            "failed on TrnDetailsUIPage.subTitle"
-          )
-            .to.be.a("string")
-            .that.is.equal(phrase).and.is.not.null.and.is.not.empty,
-            expect(TrnDetailsUIPage.title, "failed on TrnDetailsUIPage.title")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.is.not.null.and.is.not.empty;
-          expect(
-            TrnDetailsUIPage.dataObject,
-            "failed on TrnDetailsUIPage.dataObject"
-          ).to.be.an("object").that.is.not.null.and.is.not.empty,
-            expect(
-              TrnDetailsUIPage.type,
-              "DI-18307 UIPage.Type returns wrong values"
-            )
-              .to.be.a("string")
-              .that.is.equal("Details").that.is.not.null.and.is.not.empty,
-            expect(
-              TrnDetailsUIPage.key,
-              "failed on TrnDetailsUIPage.key"
-            ).to.be.a("string").that.is.not.null.and.is.not.empty;
-          //===============================UIObject================================
-          //===============================Accessors===============================
-          try {
-            uiObject.backgroundColor = bgColor;
-            uiObject.highlighted = false;
-            uiObject.readonly = false;
-          } catch (err) {
-            console.log(err);
-          }
-          const highlighted = uiObject.highlighted;
-          const readonly = uiObject.readonly;
-          expect(uiObject.backgroundColor, "failed on uiObject.backgroundColor")
-            .to.be.a("string")
-            .and.to.be.equal(bgColor).and.is.not.null.and.is.not.empty,
-            expect(highlighted, "failed on uiObject.highlighted")
-              .to.be.a("boolean")
-              .and.to.be.equal(false).and.is.not.null.and.is.not.undefined,
-            expect(readonly, "failed on uiObject.readonly")
-              .to.be.a("boolean")
-              .and.to.be.equal(false).and.is.not.null.and.is.not.undefined,
-            expect(
-              uiObject.dataObject,
-              "failed on uiObject.dataObject"
-            ).to.be.an("object").and.is.not.null.and.is.not.empty.and.is.not
-              .undefined,
-            expect(uiObject.key, "failed on uiObject.key").to.be.a("string").and
-              .is.not.null.and.is.not.empty.and.is.not.undefined,
-            expect(uiObject.context, "failed on uiObject.context").to.be.an(
-              "object"
-            ).and.is.not.null.and.is.not.empty.and.is.not.undefined,
-            expect(uiObject.context.Name, "failed on uiObject.context.Name")
-              .to.be.a("string")
-              .and.is.equal("OrderForm").and.is.not.null.and.is.not.empty.and.is
-              .not.undefined,
-            expect(
-              uiObject.context.ScreenSize,
-              "failed on uiObject.context.ScreenSize"
-            )
-              .to.be.a("string")
-              .and.is.equal(screenSize[uiObject.context.ScreenSize]).and.is.not
-              .null.and.is.not.empty.and.is.not.undefined,
-            expect(
-              uiObject.context.Object?.InternalID,
-              "failed on uiObject.Object?.InternalID"
-            )
-              .to.be.a("number")
-              .that.is.above(0).and.is.not.null.and.is.not.undefined,
-            expect(
-              uiObject.context.Object?.Resource,
-              "failed on uiObject.Object?.Resource"
-            )
-              .to.be.a("string")
-              .that.is.equal("transactions").and.is.not.null.and.is.not.empty
-              .and.is.not.undefined,
-            expect(
-              uiObject.context.Profile.InternalID,
-              "failed on uiObject.Profile?.InternalID"
-            )
-              .to.be.a("number")
-              .that.is.above(-0.1).and.is.not.null.and.is.not.undefined;
-          //===============================UIFields======================================
-          //===============================getUIField=================================
-          //let emptyObject: boolean = false;
-          //const uiFieldsMap = await getUIFields(uiObject);
-          //console.log(uiFieldsMap);
-          // if (uiFieldsMap === undefined) {
-          //   emptyObject = true;
-          // }
-          // expect(emptyObject, "Failed getting UIFields from getUIFields function")
-          //   .to.be.false;
-          //===========================SystemFields================================
-          let setExternalID = await uiObject.getUIField("ExternalID");
-          try {
-            setExternalID!.accessory = randAcessory;
-            setExternalID!.backgroundColor = bgColor;
-            setExternalID!.decimalDigits = 3;
-            setExternalID!.highlighted = true;
-            setExternalID!.mandatory = true;
-            setExternalID!.readonly = false;
-            setExternalID!.textColor = color;
-            setExternalID!.title = phrase;
-            setExternalID!.visible = true;
-            setExternalID!.value = ExID + name + randPhone;
-          } catch (err) {
-            console.log(err);
-          }
-          let getExternalID = await uiObject.getUIField("ExternalID");
-          expect(getExternalID!, "failed on ExternalID field object").to.be.an(
-            "object"
-          ).that.is.not.null.and.is.not.undefined,
-            expect(getExternalID!.type, "failed on ExternalID.type field")
-              .to.be.a("string")
-              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
-            expect(getExternalID!.value, "failed on ExternalID.value field")
-              .to.be.a("string")
-              .and.to.be.equal(ExID + name + randPhone).that.is.not.null.and.is
-              .not.undefined,
-            expect(
-              getExternalID!.accessory,
-              "failed on ExternalID.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getExternalID!.backgroundColor,
-              "failed on ExternalID.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getExternalID!.decimalDigits,
-              "failed on ExternalID.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getExternalID!.highlighted,
-              "failed on ExternalID.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getExternalID!.mandatory,
-              "failed on ExternalID.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getExternalID!.readonly,
-              "failed on ExternalID.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getExternalID!.textColor,
-              "failed on ExternalID.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getExternalID!.title, "failed on ExternalID.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getExternalID!.visible,
-              "failed on ExternalID.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setDiscountPercentage = await uiObject.getUIField(
-            "DiscountPercentage"
-          );
-          try {
-            setDiscountPercentage!.accessory = randAcessory;
-            setDiscountPercentage!.backgroundColor = bgColor;
-            setDiscountPercentage!.decimalDigits = 3;
-            setDiscountPercentage!.highlighted = true;
-            setDiscountPercentage!.mandatory = true;
-            setDiscountPercentage!.readonly = false;
-            setDiscountPercentage!.textColor = color;
-            setDiscountPercentage!.title = phrase;
-            setDiscountPercentage!.visible = true;
-            setDiscountPercentage!.value = randDiscount.toString();
-          } catch (err) {
-            console.log(err);
-          }
-          let getDiscountPercentage = await uiObject.getUIField(
-            "DiscountPercentage"
-          );
-          expect(
-            getDiscountPercentage!,
-            "failed on DiscountPercentage field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getDiscountPercentage!.type,
-              "failed on DiscountPercentage.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("Percentage").that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getDiscountPercentage!.value,
-              "failed on DiscountPercentage.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal(randDiscount.toString()).that.is.not.null.and.is
-              .not.undefined,
-            expect(
-              getDiscountPercentage!.accessory,
-              "failed on DiscountPercentage.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getDiscountPercentage!.backgroundColor,
-              "failed on DiscountPercentage.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getDiscountPercentage!.decimalDigits,
-              "failed on DiscountPercentage.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getDiscountPercentage!.highlighted,
-              "failed on DiscountPercentage.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getDiscountPercentage!.mandatory,
-              "failed on DiscountPercentage.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getDiscountPercentage!.readonly,
-              "failed on DiscountPercentage.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getDiscountPercentage!.textColor,
-              "failed on DiscountPercentage.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getDiscountPercentage!.title,
-              "failed on DiscountPercentage.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getDiscountPercentage!.visible,
-              "failed on DiscountPercentage.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setAccExID = await uiObject.getUIField("AccountExternalID");
-          try {
-            setAccExID!.accessory = randAcessory;
-            setAccExID!.backgroundColor = bgColor;
-            setAccExID!.decimalDigits = 3;
-            setAccExID!.highlighted = true;
-            setAccExID!.mandatory = true;
-            setAccExID!.readonly = false;
-            setAccExID!.textColor = color;
-            setAccExID!.title = phrase;
-            setAccExID!.visible = true;
-            setAccExID!.value = ExID + name + randPhone;
-          } catch (err) {
-            console.log(err);
-          }
-          let getAccExID = await uiObject.getUIField("AccountExternalID");
-          expect(getAccExID!, "failed on AccExID field object").to.be.an(
-            "object"
-          ).that.is.not.null.and.is.not.undefined,
-            expect(getAccExID!.type, "failed on AccExID.type field")
-              .to.be.a("string")
-              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
-            expect(getAccExID!.value, "failed on AccExID.value field")
-              .to.be.a("string")
-              .and.to.be.equal(ExID + name + randPhone).that.is.not.null.and.is
-              .not.undefined,
-            expect(getAccExID!.accessory, "failed on AccExID.accessory field")
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getAccExID!.backgroundColor,
-              "failed on AccExID.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getAccExID!.decimalDigits,
-              "failed on AccExID.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getAccExID!.highlighted,
-              "failed on AccExID.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getAccExID!.mandatory,
-              "failed on AccExID.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getAccExID!.readonly,
-              "failed on AccExID.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(getAccExID!.textColor, "failed on AccExID.textColor field")
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getAccExID!.title, "failed on AccExID.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getAccExID!.visible,
-              "failed on AccExID.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setAccountName = await uiObject.getUIField("AccountName");
-          try {
-            setAccountName!.accessory = randAcessory;
-            setAccountName!.backgroundColor = bgColor;
-            setAccountName!.decimalDigits = 3;
-            setAccountName!.highlighted = true;
-            setAccountName!.mandatory = true;
-            setAccountName!.readonly = false;
-            setAccountName!.textColor = color;
-            setAccountName!.title = phrase;
-            setAccountName!.visible = true;
-            setAccountName!.value = ExID + name;
-          } catch (err) {
-            console.log(err);
-          }
-          let getAccountName = await uiObject.getUIField("AccountName");
-          expect(
-            getAccountName!,
-            "failed on AccountName field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(getAccountName?.type, "failed on AccountName.type field")
-              .to.be.a("string")
-              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
-            expect(getAccountName!.value, "failed on AccountName.value field")
-              .to.be.a("string")
-              .and.to.be.equal(ExID + name).that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getAccountName!.accessory,
-              "failed on AccountName.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getAccountName!.backgroundColor,
-              "failed on AccountName.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getAccountName!.decimalDigits,
-              "failed on AccountName.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getAccountName!.highlighted,
-              "failed on AccountName.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getAccountName!.mandatory,
-              "failed on AccountName.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getAccountName!.readonly,
-              "failed on AccountName.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getAccountName!.textColor,
-              "failed on AccountName.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getAccountName!.title, "failed on AccountName.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getAccountName!.visible,
-              "failed on AccountName.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setWrntyID = await uiObject.getUIField("WrntyID");
-          try {
-            setWrntyID!.accessory = randAcessory;
-            setWrntyID!.backgroundColor = bgColor;
-            setWrntyID!.decimalDigits = 3;
-            setWrntyID!.highlighted = true;
-            setWrntyID!.mandatory = true;
-            setWrntyID!.readonly = false;
-            setWrntyID!.textColor = color;
-            setWrntyID!.title = phrase;
-            setWrntyID!.visible = true;
-            setWrntyID!.value = randPhone;
-          } catch (err) {
-            console.log(err);
-          }
-          let getWrntyID = await uiObject.getUIField("WrntyID");
-          expect(getWrntyID!, "failed on WrntyID field object").to.be.an(
-            "object"
-          ).that.is.not.null.and.is.not.undefined,
-            expect(getWrntyID?.type, "failed on WrntyID.type field")
-              .to.be.a("string")
-              .that.is.equal("LimitedLengthTextBox").that.is.not.null.and.is.not
-              .undefined,
-            expect(getWrntyID!.value, "failed on WrntyID.value field")
-              .to.be.a("string")
-              .and.to.be.equal(randPhone).that.is.not.null.and.is.not.undefined,
-            expect(getWrntyID!.accessory, "failed on WrntyID.accessory field")
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getWrntyID!.backgroundColor,
-              "failed on WrntyID.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getWrntyID!.decimalDigits,
-              "failed on WrntyID.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getWrntyID!.highlighted,
-              "failed on WrntyID.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getWrntyID!.mandatory,
-              "failed on WrntyID.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getWrntyID!.readonly,
-              "failed on WrntyID.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(getWrntyID!.textColor, "failed on WrntyID.textColor field")
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getWrntyID!.title, "failed on WrntyID.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getWrntyID!.visible,
-              "failed on WrntyID.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setActionDateTime = await uiObject.getUIField("ActionDateTime");
-          try {
-            setActionDateTime!.accessory = randAcessory;
-            setActionDateTime!.backgroundColor = bgColor;
-            setActionDateTime!.decimalDigits = 3;
-            setActionDateTime!.highlighted = true;
-            setActionDateTime!.mandatory = true;
-            setActionDateTime!.readonly = false;
-            setActionDateTime!.textColor = color;
-            setActionDateTime!.title = phrase;
-            setActionDateTime!.visible = true;
-            setActionDateTime!.value = "1990-07-27:00:00:00";
-          } catch (err) {
-            console.log(err);
-          }
-          let getActionDateTime = await uiObject.getUIField("ActionDateTime");
-          expect(
-            getActionDateTime!,
-            "failed on ActionDateTime field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getActionDateTime?.type,
-              "failed on ActionDateTime.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("DateAndTime").that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getActionDateTime!.value,
-              "failed on ActionDateTime.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal("1990-07-27:00:00:00").that.is.not.null.and.is
-              .not.undefined,
-            expect(
-              getActionDateTime!.accessory,
-              "failed on ActionDateTime.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getActionDateTime!.backgroundColor,
-              "failed on ActionDateTime.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getActionDateTime!.decimalDigits,
-              "failed on ActionDateTime.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getActionDateTime!.highlighted,
-              "failed on ActionDateTime.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getActionDateTime!.mandatory,
-              "failed on ActionDateTime.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getActionDateTime!.readonly,
-              "failed on ActionDateTime.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getActionDateTime!.textColor,
-              "failed on ActionDateTime.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getActionDateTime!.title,
-              "failed on ActionDateTime.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getActionDateTime!.visible,
-              "failed on ActionDateTime.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setAgentName = await uiObject.getUIField("AgentName");
-          try {
-            setAgentName!.accessory = randAcessory;
-            setAgentName!.backgroundColor = bgColor;
-            setAgentName!.decimalDigits = 3;
-            setAgentName!.highlighted = true;
-            setAgentName!.mandatory = true;
-            setAgentName!.readonly = false;
-            setAgentName!.textColor = color;
-            setAgentName!.title = phrase;
-            setAgentName!.visible = true;
-            setAgentName!.value = name;
-          } catch (err) {
-            console.log(err);
-          }
-          let getAgentName = await uiObject.getUIField("AgentName");
-          expect(getAgentName!, "failed on AgentName field object").to.be.an(
-            "object"
-          ).that.is.not.null.and.is.not.undefined,
-            expect(getAgentName?.type, "failed on AgentName.type field")
-              .to.be.a("string")
-              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
-            expect(getAgentName!.value, "failed on AgentName.value field")
-              .to.be.a("string")
-              .and.to.be.equal(name).that.is.not.null.and.is.not.undefined,
-            expect(
-              getAgentName!.accessory,
-              "failed on AgentName.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getAgentName!.backgroundColor,
-              "failed on AgentName.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getAgentName!.decimalDigits,
-              "failed on AgentName.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getAgentName!.highlighted,
-              "failed on AgentName.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getAgentName!.mandatory,
-              "failed on AgentName.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getAgentName!.readonly,
-              "failed on AgentName.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getAgentName!.textColor,
-              "failed on AgentName.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getAgentName!.title, "failed on AgentName.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getAgentName!.visible,
-              "failed on AgentName.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setCurrency = await uiObject.getUIField("Currency");
-          try {
-            setCurrency!.accessory = randAcessory;
-            setCurrency!.backgroundColor = bgColor;
-            setCurrency!.decimalDigits = 3;
-            setCurrency!.highlighted = true;
-            setCurrency!.mandatory = true;
-            setCurrency!.readonly = false;
-            setCurrency!.textColor = color;
-            setCurrency!.title = phrase;
-            setCurrency!.visible = true;
-            setCurrency!.value = randAcessory;
-          } catch (err) {
-            console.log(err);
-          }
-          let getCurrency = await uiObject.getUIField("Currency");
-          expect(getCurrency!, "failed on Currency field object").to.be.an(
-            "object"
-          ).that.is.not.null.and.is.not.undefined,
-            expect(getCurrency?.type, "failed on Currency.type field")
-              .to.be.a("string")
-              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
-            expect(getCurrency!.value, "failed on Currency.value field")
-              .to.be.a("string")
-              .and.to.be.equal(randAcessory).that.is.not.null.and.is.not
-              .undefined,
-            expect(getCurrency!.accessory, "failed on Currency.accessory field")
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getCurrency!.backgroundColor,
-              "failed on Currency.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getCurrency!.decimalDigits,
-              "failed on Currency.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getCurrency!.highlighted,
-              "failed on Currency.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getCurrency!.mandatory,
-              "failed on Currency.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getCurrency!.readonly,
-              "failed on Currency.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(getCurrency!.textColor, "failed on Currency.textColor field")
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getCurrency!.title, "failed on Currency.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getCurrency!.visible,
-              "failed on Currency.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setDeliveryDate = await uiObject.getUIField("DeliveryDate");
-          try {
-            setDeliveryDate!.accessory = randAcessory;
-            setDeliveryDate!.backgroundColor = bgColor;
-            setDeliveryDate!.decimalDigits = 3;
-            setDeliveryDate!.highlighted = true;
-            setDeliveryDate!.mandatory = true;
-            setDeliveryDate!.readonly = false;
-            setDeliveryDate!.textColor = color;
-            setDeliveryDate!.title = phrase;
-            setDeliveryDate!.visible = true;
-            setDeliveryDate!.value = "1990-07-27";
-          } catch (err) {
-            console.log(err);
-          }
-          let getDeliveryDate = await uiObject.getUIField("DeliveryDate");
-          expect(
-            getDeliveryDate!,
-            "failed on DeliveryDate field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(getDeliveryDate?.type, "failed on DeliveryDate.type field")
-              .to.be.a("string")
-              .that.is.equal("Date").that.is.not.null.and.is.not.undefined,
-            expect(getDeliveryDate!.value, "failed on DeliveryDate.value field")
-              .to.be.a("string")
-              .and.to.be.equal("1990-07-27").that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getDeliveryDate!.accessory,
-              "failed on DeliveryDate.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getDeliveryDate!.backgroundColor,
-              "failed on DeliveryDate.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getDeliveryDate!.decimalDigits,
-              "failed on DeliveryDate.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getDeliveryDate!.highlighted,
-              "failed on DeliveryDate.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getDeliveryDate!.mandatory,
-              "failed on DeliveryDate.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getDeliveryDate!.readonly,
-              "failed on DeliveryDate.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getDeliveryDate!.textColor,
-              "failed on DeliveryDate.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getDeliveryDate!.title, "failed on DeliveryDate.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getDeliveryDate!.visible,
-              "failed on DeliveryDate.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setRemark = await uiObject.getUIField("Remark");
-          try {
-            setRemark!.accessory = randAcessory;
-            setRemark!.backgroundColor = bgColor;
-            setRemark!.decimalDigits = 3;
-            setRemark!.highlighted = true;
-            setRemark!.mandatory = true;
-            setRemark!.readonly = false;
-            setRemark!.textColor = color;
-            setRemark!.title = phrase;
-            setRemark!.visible = true;
-            setRemark!.value = phrase + name;
-          } catch (err) {
-            console.log(err);
-          }
-          let getRemark = await uiObject.getUIField("Remark");
-          expect(getRemark!, "failed on Remark field object").to.be.an("object")
-            .that.is.not.null.and.is.not.undefined,
-            expect(getRemark?.type, "failed on Remark.type field")
-              .to.be.a("string")
-              .that.is.equal("TextArea").that.is.not.null.and.is.not.undefined,
-            expect(getRemark!.value, "failed on Remark.value field")
-              .to.be.a("string")
-              .and.to.be.equal(phrase + name).that.is.not.null.and.is.not
-              .undefined,
-            expect(getRemark!.accessory, "failed on Remark.accessory field")
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getRemark!.backgroundColor,
-              "failed on Remark.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getRemark!.decimalDigits,
-              "failed on Remark.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getRemark!.highlighted,
-              "failed on Remark.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getRemark!.mandatory,
-              "failed on Remark.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getRemark!.readonly,
-              "failed on Remark.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(getRemark!.textColor, "failed on Remark.textColor field")
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getRemark!.title, "failed on Remark.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getRemark!.visible,
-              "failed on Remark.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setBillToPhone = await uiObject.getUIField("BillToPhone");
-          try {
-            setBillToPhone!.accessory = randAcessory;
-            setBillToPhone!.backgroundColor = bgColor;
-            setBillToPhone!.decimalDigits = 3;
-            setBillToPhone!.highlighted = true;
-            setBillToPhone!.mandatory = true;
-            setBillToPhone!.readonly = false;
-            setBillToPhone!.textColor = color;
-            setBillToPhone!.title = phrase;
-            setBillToPhone!.visible = true;
-            setBillToPhone!.value = randPhone + randPhone;
-          } catch (err) {
-            console.log(err);
-          }
-          let getBillToPhone = await uiObject.getUIField("BillToPhone");
-          expect(
-            getBillToPhone!,
-            "failed on BillToPhone field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(getBillToPhone?.type, "failed on BillToPhone.type field")
-              .to.be.a("string")
-              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
-            expect(getBillToPhone!.value, "failed on BillToPhone.value field")
-              .to.be.a("string")
-              .and.to.be.equal(randPhone + randPhone).that.is.not.null.and.is
-              .not.undefined,
-            expect(
-              getBillToPhone!.accessory,
-              "failed on BillToPhone.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToPhone!.backgroundColor,
-              "failed on BillToPhone.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToPhone!.decimalDigits,
-              "failed on BillToPhone.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToPhone!.highlighted,
-              "failed on BillToPhone.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToPhone!.mandatory,
-              "failed on BillToPhone.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToPhone!.readonly,
-              "failed on BillToPhone.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToPhone!.textColor,
-              "failed on BillToPhone.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getBillToPhone!.title, "failed on BillToPhone.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToPhone!.visible,
-              "failed on BillToPhone.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setBillToCountryIso = await uiObject.getUIField(
-            "BillToCountryIso"
-          );
-          try {
-            setBillToCountryIso!.accessory = randAcessory;
-            setBillToCountryIso!.backgroundColor = bgColor;
-            setBillToCountryIso!.decimalDigits = 3;
-            setBillToCountryIso!.highlighted = true;
-            setBillToCountryIso!.mandatory = true;
-            setBillToCountryIso!.readonly = false;
-            setBillToCountryIso!.textColor = color;
-            setBillToCountryIso!.title = phrase;
-            setBillToCountryIso!.visible = true;
-            setBillToCountryIso!.value = "IL";
-          } catch (err) {
-            console.log(err);
-          }
-          let getBillToCountryIso = await uiObject.getUIField(
-            "BillToCountryIso"
-          );
-          expect(
-            getBillToCountryIso!,
-            "failed on BillToCountryIso field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToCountryIso?.type,
-              "failed on BillToCountryIso.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("EmptyComboBox").that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToCountryIso!.value,
-              "failed on BillToCountryIso.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal("IL").that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToCountryIso!.accessory,
-              "failed on BillToCountryIso.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToCountryIso!.backgroundColor,
-              "failed on BillToCountryIso.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToCountryIso!.decimalDigits,
-              "failed on BillToCountryIso.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToCountryIso!.highlighted,
-              "failed on BillToCountryIso.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToCountryIso!.mandatory,
-              "failed on BillToCountryIso.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToCountryIso!.readonly,
-              "failed on BillToCountryIso.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToCountryIso!.textColor,
-              "failed on BillToCountryIso.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToCountryIso!.title,
-              "failed on BillToCountryIso.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToCountryIso!.visible,
-              "failed on BillToCountryIso.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setBillToStreet = await uiObject.getUIField("BillToStreet");
-          try {
-            setBillToStreet!.accessory = randAcessory;
-            setBillToStreet!.backgroundColor = bgColor;
-            setBillToStreet!.decimalDigits = 3;
-            setBillToStreet!.highlighted = true;
-            setBillToStreet!.mandatory = true;
-            setBillToStreet!.readonly = false;
-            setBillToStreet!.textColor = color;
-            setBillToStreet!.title = phrase;
-            setBillToStreet!.visible = true;
-            setBillToStreet!.value = "Dizingoff";
-          } catch (err) {
-            console.log(err);
-          }
-          let getBillToStreet = await uiObject.getUIField("BillToStreet");
-          expect(
-            getBillToStreet!,
-            "failed on BillToStreet field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(getBillToStreet?.type, "failed on BillToStreet.type field")
-              .to.be.a("string")
-              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
-            expect(getBillToStreet!.value, "failed on BillToStreet.value field")
-              .to.be.a("string")
-              .and.to.be.equal("Dizingoff").that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToStreet!.accessory,
-              "failed on BillToStreet.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToStreet!.backgroundColor,
-              "failed on BillToStreet.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToStreet!.decimalDigits,
-              "failed on BillToStreet.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToStreet!.highlighted,
-              "failed on BillToStreet.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToStreet!.mandatory,
-              "failed on BillToStreet.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToStreet!.readonly,
-              "failed on BillToStreet.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToStreet!.textColor,
-              "failed on BillToStreet.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getBillToStreet!.title, "failed on BillToStreet.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToStreet!.visible,
-              "failed on BillToStreet.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setBillToCity = await uiObject.getUIField("BillToCity");
-          try {
-            setBillToCity!.accessory = randAcessory;
-            setBillToCity!.backgroundColor = bgColor;
-            setBillToCity!.decimalDigits = 3;
-            setBillToCity!.highlighted = true;
-            setBillToCity!.mandatory = true;
-            setBillToCity!.readonly = false;
-            setBillToCity!.textColor = color;
-            setBillToCity!.title = phrase;
-            setBillToCity!.visible = true;
-            setBillToCity!.value = "Tel-Aviv";
-          } catch (err) {
-            console.log(err);
-          }
-          let getBillToCity = await uiObject.getUIField("BillToCity");
-          expect(getBillToCity!, "failed on BillToCity field object").to.be.an(
-            "object"
-          ).that.is.not.null.and.is.not.undefined,
-            expect(getBillToCity?.type, "failed on BillToCity.type field")
-              .to.be.a("string")
-              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
-            expect(getBillToCity!.value, "failed on BillToCity.value field")
-              .to.be.a("string")
-              .and.to.be.equal("Tel-Aviv").that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToCity!.accessory,
-              "failed on BillToCity.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToCity!.backgroundColor,
-              "failed on BillToCity.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToCity!.decimalDigits,
-              "failed on BillToCity.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToCity!.highlighted,
-              "failed on BillToCity.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToCity!.mandatory,
-              "failed on BillToCity.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToCity!.readonly,
-              "failed on BillToCity.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToCity!.textColor,
-              "failed on BillToCity.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getBillToCity!.title, "failed on BillToCity.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToCity!.visible,
-              "failed on BillToCity.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setBillToZipCode = await uiObject.getUIField("BillToZipCode");
-          try {
-            setBillToZipCode!.accessory = randAcessory;
-            setBillToZipCode!.backgroundColor = bgColor;
-            setBillToZipCode!.decimalDigits = 3;
-            setBillToZipCode!.highlighted = true;
-            setBillToZipCode!.mandatory = true;
-            setBillToZipCode!.readonly = false;
-            setBillToZipCode!.textColor = color;
-            setBillToZipCode!.title = phrase;
-            setBillToZipCode!.visible = true;
-            setBillToZipCode!.value = (randZip + randZip).toString();
-          } catch (err) {
-            console.log(err);
-          }
-          let getBillToZipCode = await uiObject.getUIField("BillToZipCode");
-          expect(
-            getBillToZipCode!,
-            "failed on BillToZipCode field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(getBillToZipCode?.type, "failed on BillToZipCode.type field")
-              .to.be.a("string")
-              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToZipCode!.value,
-              "failed on BillToZipCode.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal((randZip + randZip).toString()).that.is.not.null
-              .and.is.not.undefined,
-            expect(
-              getBillToZipCode!.accessory,
-              "failed on BillToZipCode.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToZipCode!.backgroundColor,
-              "failed on BillToZipCode.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToZipCode!.decimalDigits,
-              "failed on BillToZipCode.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToZipCode!.highlighted,
-              "failed on BillToZipCode.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToZipCode!.mandatory,
-              "failed on BillToZipCode.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToZipCode!.readonly,
-              "failed on BillToZipCode.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToZipCode!.textColor,
-              "failed on BillToZipCode.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToZipCode!.title,
-              "failed on BillToZipCode.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToZipCode!.visible,
-              "failed on BillToZipCode.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setBillToName = await uiObject.getUIField("BillToName");
-          try {
-            setBillToName!.accessory = randAcessory;
-            setBillToName!.backgroundColor = bgColor;
-            setBillToName!.decimalDigits = 3;
-            setBillToName!.highlighted = true;
-            setBillToName!.mandatory = true;
-            setBillToName!.readonly = false;
-            setBillToName!.textColor = color;
-            setBillToName!.title = phrase;
-            setBillToName!.visible = true;
-            setBillToName!.value = name + ExID;
-          } catch (err) {
-            console.log(err);
-          }
-          let getBillToName = await uiObject.getUIField("BillToName");
-          expect(getBillToName!, "failed on BillToName field object").to.be.an(
-            "object"
-          ).that.is.not.null.and.is.not.undefined,
-            expect(getBillToName?.type, "failed on BillToName.type field")
-              .to.be.a("string")
-              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
-            expect(getBillToName!.value, "failed on BillToName.value field")
-              .to.be.a("string")
-              .and.to.be.equal(name + ExID).that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToName!.accessory,
-              "failed on BillToName.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToName!.backgroundColor,
-              "failed on BillToName.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToName!.decimalDigits,
-              "failed on BillToName.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToName!.highlighted,
-              "failed on BillToName.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToName!.mandatory,
-              "failed on BillToName.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToName!.readonly,
-              "failed on BillToName.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getBillToName!.textColor,
-              "failed on BillToName.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getBillToName!.title, "failed on BillToName.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getBillToName!.visible,
-              "failed on BillToName.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setSubTotalAfterItemsDiscount = await uiObject.getUIField(
-            "SubTotalAfterItemsDiscount"
-          );
-          try {
-            setSubTotalAfterItemsDiscount!.accessory = randAcessory;
-            setSubTotalAfterItemsDiscount!.backgroundColor = bgColor;
-            setSubTotalAfterItemsDiscount!.decimalDigits = 3;
-            setSubTotalAfterItemsDiscount!.highlighted = true;
-            setSubTotalAfterItemsDiscount!.mandatory = true;
-            setSubTotalAfterItemsDiscount!.readonly = false;
-            setSubTotalAfterItemsDiscount!.textColor = color;
-            setSubTotalAfterItemsDiscount!.title = phrase;
-            setSubTotalAfterItemsDiscount!.visible = true;
-            setSubTotalAfterItemsDiscount!.value = (
-              randZip * randDiscount +
-              1
-            ).toString();
-          } catch (err) {
-            console.log(err);
-          }
-          let getSubTotalAfterItemsDiscount = await uiObject.getUIField(
-            "SubTotalAfterItemsDiscount"
-          );
-          expect(
-            getSubTotalAfterItemsDiscount!,
-            "failed on SubTotalAfterItemsDiscount field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getSubTotalAfterItemsDiscount?.type,
-              "failed on SubTotalAfterItemsDiscount.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("Currency").that.is.not.null.and.is.not.undefined,
-            expect(
-              getSubTotalAfterItemsDiscount!.value,
-              "failed on SubTotalAfterItemsDiscount.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal((randZip * randDiscount + 1).toString()).that.is
-              .not.null.and.is.not.undefined,
-            expect(
-              getSubTotalAfterItemsDiscount!.accessory,
-              "failed on SubTotalAfterItemsDiscount.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getSubTotalAfterItemsDiscount!.backgroundColor,
-              "failed on SubTotalAfterItemsDiscount.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getSubTotalAfterItemsDiscount!.decimalDigits,
-              "failed on SubTotalAfterItemsDiscount.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getSubTotalAfterItemsDiscount!.highlighted,
-              "failed on SubTotalAfterItemsDiscount.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getSubTotalAfterItemsDiscount!.mandatory,
-              "failed on SubTotalAfterItemsDiscount.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getSubTotalAfterItemsDiscount!.readonly,
-              "failed on SubTotalAfterItemsDiscount.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getSubTotalAfterItemsDiscount!.textColor,
-              "failed on SubTotalAfterItemsDiscount.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getSubTotalAfterItemsDiscount!.title,
-              "failed on SubTotalAfterItemsDiscount.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getSubTotalAfterItemsDiscount!.visible,
-              "failed on SubTotalAfterItemsDiscount.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setQuantitiesTotal = await uiObject.getUIField("QuantitiesTotal");
-          try {
-            setQuantitiesTotal!.accessory = randAcessory;
-            setQuantitiesTotal!.backgroundColor = bgColor;
-            setQuantitiesTotal!.decimalDigits = 3;
-            setQuantitiesTotal!.highlighted = true;
-            setQuantitiesTotal!.mandatory = true;
-            setQuantitiesTotal!.readonly = false;
-            setQuantitiesTotal!.textColor = color;
-            setQuantitiesTotal!.title = phrase;
-            setQuantitiesTotal!.visible = true;
-            setQuantitiesTotal!.value = (quantitiesTotal * 2).toString();
-          } catch (err) {
-            console.log(err);
-          }
-          let getQuantitiesTotal = await uiObject.getUIField("QuantitiesTotal");
-          expect(
-            getQuantitiesTotal!,
-            "failed on QuantitiesTotal field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getQuantitiesTotal?.type,
-              "failed on QuantitiesTotal.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("NumberReal").that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getQuantitiesTotal!.value,
-              "failed on QuantitiesTotal.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal((quantitiesTotal * 2).toString()).that.is.not
-              .null.and.is.not.undefined,
-            expect(
-              getQuantitiesTotal!.accessory,
-              "failed on QuantitiesTotal.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getQuantitiesTotal!.backgroundColor,
-              "failed on QuantitiesTotal.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getQuantitiesTotal!.decimalDigits,
-              "failed on QuantitiesTotal.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getQuantitiesTotal!.highlighted,
-              "failed on QuantitiesTotal.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getQuantitiesTotal!.mandatory,
-              "failed on QuantitiesTotal.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getQuantitiesTotal!.readonly,
-              "failed on QuantitiesTotal.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getQuantitiesTotal!.textColor,
-              "failed on QuantitiesTotal.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getQuantitiesTotal!.title,
-              "failed on QuantitiesTotal.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getQuantitiesTotal!.visible,
-              "failed on QuantitiesTotal.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          //================================TSA's=============================================
-          let setTSASingleLineText = await uiObject.getUIField(
-            "TSASingleLineText"
-          );
-          try {
-            setTSASingleLineText!.accessory = randAcessory;
-            setTSASingleLineText!.backgroundColor = bgColor;
-            setTSASingleLineText!.decimalDigits = 3;
-            setTSASingleLineText!.highlighted = true;
-            setTSASingleLineText!.mandatory = true;
-            setTSASingleLineText!.readonly = false;
-            setTSASingleLineText!.textColor = color;
-            setTSASingleLineText!.title = phrase;
-            setTSASingleLineText!.visible = true;
-            setTSASingleLineText!.value = phrase + randDiscount + name;
-          } catch (err) {
-            console.log(err);
-          }
-          let getTSASingleLineText = await uiObject.getUIField(
-            "TSASingleLineText"
-          );
-          expect(
-            getTSASingleLineText!,
-            "failed on TSASingleLineText field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSASingleLineText?.type,
-              "failed on TSASingleLineText.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSASingleLineText!.value,
-              "failed on TSASingleLineText.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal(phrase + randDiscount + name).that.is.not.null
-              .and.is.not.undefined,
-            expect(
-              getTSASingleLineText?.accessory,
-              "failed on TSASingleLineText.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSASingleLineText!.backgroundColor,
-              "failed on TSASingleLineText.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSASingleLineText!.decimalDigits,
-              "failed on TSASingleLineText.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSASingleLineText!.highlighted,
-              "failed on TSASingleLineText.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSASingleLineText!.mandatory,
-              "failed on TSASingleLineText.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSASingleLineText!.readonly,
-              "failed on TSASingleLineText.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSASingleLineText!.textColor,
-              "failed on TSASingleLineText.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSASingleLineText!.title,
-              "failed on TSASingleLineText.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSASingleLineText!.visible,
-              "failed on TSASingleLineText.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setTSALimitedLineText = await uiObject.getUIField(
-            "TSALimitedLineText"
-          );
-          try {
-            setTSALimitedLineText!.accessory = randAcessory;
-            setTSALimitedLineText!.backgroundColor = bgColor;
-            setTSALimitedLineText!.decimalDigits = 3;
-            setTSALimitedLineText!.highlighted = true;
-            setTSALimitedLineText!.mandatory = true;
-            setTSALimitedLineText!.readonly = false;
-            setTSALimitedLineText!.textColor = color;
-            setTSALimitedLineText!.title = phrase;
-            setTSALimitedLineText!.visible = true;
-            setTSALimitedLineText!.value = phrase + randDiscount + name;
-          } catch (err) {
-            console.log(err);
-          }
-          let getTSALimitedLineText = await uiObject.getUIField(
-            "TSALimitedLineText"
-          );
-          expect(
-            getTSALimitedLineText!,
-            "failed on TSALimitedLineText field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSALimitedLineText?.type,
-              "failed on getTSALimitedLineText.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("LimitedLengthTextBox").that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSALimitedLineText!.value,
-              "failed on TSALimitedLineText.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal(phrase + randDiscount + name).that.is.not.null
-              .and.is.not.undefined,
-            expect(
-              getTSALimitedLineText!.accessory,
-              "failed on TSALimitedLineText.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSALimitedLineText!.backgroundColor,
-              "failed on TSALimitedLineText.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSALimitedLineText!.decimalDigits,
-              "failed on TSALimitedLineText.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSALimitedLineText!.highlighted,
-              "failed on TSALimitedLineText.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSALimitedLineText!.mandatory,
-              "failed on TSALimitedLineText.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSALimitedLineText!.readonly,
-              "failed on TSALimitedLineText.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSALimitedLineText!.textColor,
-              "failed on TSALimitedLineText.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSALimitedLineText!.title,
-              "failed on TSALimitedLineText.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSALimitedLineText!.visible,
-              "failed on TSALimitedLineText.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setTSAParagraphText = await uiObject.getUIField(
-            "TSAParagraphText"
-          );
-          try {
-            setTSAParagraphText!.accessory = randAcessory;
-            setTSAParagraphText!.backgroundColor = bgColor;
-            setTSAParagraphText!.decimalDigits = 3;
-            setTSAParagraphText!.highlighted = true;
-            setTSAParagraphText!.mandatory = true;
-            setTSAParagraphText!.readonly = false;
-            setTSAParagraphText!.textColor = color;
-            setTSAParagraphText!.title = phrase;
-            setTSAParagraphText!.visible = true;
-            setTSAParagraphText!.value = phrase + randDiscount + name;
-          } catch (err) {
-            console.log(err);
-          }
-          let getTSAParagraphText = await uiObject.getUIField(
-            "TSAParagraphText"
-          );
-          expect(
-            getTSAParagraphText!,
-            "failed on TSAParagraphText field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAParagraphText?.type,
-              "failed on getTSAParagraphText.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("TextArea").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAParagraphText!.value,
-              "failed on TSAParagraphText.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal(phrase + randDiscount + name).that.is.not.null
-              .and.is.not.undefined,
-            expect(
-              getTSAParagraphText!.accessory,
-              "failed on TSAParagraphText.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAParagraphText!.backgroundColor,
-              "failed on TSAParagraphText.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAParagraphText!.decimalDigits,
-              "failed on TSAParagraphText.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAParagraphText!.highlighted,
-              "failed on TSAParagraphText.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAParagraphText!.mandatory,
-              "failed on TSAParagraphText.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAParagraphText!.readonly,
-              "failed on TSAParagraphText.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAParagraphText!.textColor,
-              "failed on TSAParagraphText.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAParagraphText!.title,
-              "failed on TSAParagraphText.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAParagraphText!.visible,
-              "failed on TSAParagraphText.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setTSADateField = await uiObject.getUIField("TSADateField");
-          try {
-            setTSADateField!.accessory = randAcessory;
-            setTSADateField!.backgroundColor = bgColor;
-            setTSADateField!.decimalDigits = 3;
-            setTSADateField!.highlighted = true;
-            setTSADateField!.mandatory = true;
-            setTSADateField!.readonly = false;
-            setTSADateField!.textColor = color;
-            setTSADateField!.title = phrase;
-            setTSADateField!.visible = true;
-            setTSADateField!.value = "1990-07-27";
-          } catch (err) {
-            console.log(err);
-          }
-          let getTSADateField = await uiObject.getUIField("TSADateField");
-          expect(
-            getTSADateField!,
-            "failed on TSADateField field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADateField?.type,
-              "failed on getTSADateField.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("Date").that.is.not.null.and.is.not.undefined,
-            expect(getTSADateField!.value, "failed on TSADateField.value field")
-              .to.be.a("string")
-              .and.to.be.equal("1990-07-27").that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADateField!.accessory,
-              "failed on TSADateField.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADateField!.backgroundColor,
-              "failed on TSADateField.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADateField!.decimalDigits,
-              "failed on TSADateField.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADateField!.highlighted,
-              "failed on TSADateField.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADateField!.mandatory,
-              "failed on TSADateField.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADateField!.readonly,
-              "failed on TSADateField.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADateField!.textColor,
-              "failed on TSADateField.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getTSADateField!.title, "failed on TSADateField.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADateField!.visible,
-              "failed on TSADateField.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setTSADateTimeField = await uiObject.getUIField(
-            "TSADateTimeField"
-          );
-          try {
-            setTSADateTimeField!.accessory = randAcessory;
-            setTSADateTimeField!.backgroundColor = bgColor;
-            setTSADateTimeField!.decimalDigits = 3;
-            setTSADateTimeField!.highlighted = true;
-            setTSADateTimeField!.mandatory = true;
-            setTSADateTimeField!.readonly = false;
-            setTSADateTimeField!.textColor = color;
-            setTSADateTimeField!.title = phrase;
-            setTSADateTimeField!.visible = true;
-            setTSADateTimeField!.value = "1990-07-27:00:00:00";
-          } catch (err) {
-            console.log(err);
-          }
-          let getTSADateTimeField = await uiObject.getUIField(
-            "TSADateTimeField"
-          );
-          expect(
-            getTSADateTimeField!,
-            "failed on TSADateTimeField field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADateTimeField?.type,
-              "failed on getTSADateTimeField.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("DateAndTime").that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADateTimeField!.value,
-              "failed on TSADateTimeField.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal("1990-07-27:00:00:00").that.is.not.null.and.is
-              .not.undefined,
-            expect(
-              getTSADateTimeField!.accessory,
-              "failed on TSADateTimeField.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADateTimeField!.backgroundColor,
-              "failed on TSADateTimeField.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADateTimeField!.decimalDigits,
-              "failed on TSADateTimeField.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADateTimeField!.highlighted,
-              "failed on TSADateTimeField.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADateTimeField!.mandatory,
-              "failed on TSADateTimeField.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADateTimeField!.readonly,
-              "failed on TSADateTimeField.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADateTimeField!.textColor,
-              "failed on TSADateTimeField.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADateTimeField!.title,
-              "failed on TSADateTimeField.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADateTimeField!.visible,
-              "failed on TSADateTimeField.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setTSACheckboxField = await uiObject.getUIField(
-            "TSACheckboxField"
-          );
-          try {
-            setTSACheckboxField!.accessory = randAcessory;
-            setTSACheckboxField!.backgroundColor = bgColor;
-            setTSACheckboxField!.decimalDigits = 3;
-            setTSACheckboxField!.highlighted = true;
-            setTSACheckboxField!.mandatory = true;
-            setTSACheckboxField!.readonly = false;
-            setTSACheckboxField!.textColor = color;
-            setTSACheckboxField!.title = phrase;
-            setTSACheckboxField!.visible = true;
-            setTSACheckboxField!.value = (!randBool).toString();
-          } catch (err) {
-            console.log(err);
-          }
-          let getTSACheckboxField = await uiObject.getUIField(
-            "TSACheckboxField"
-          );
-          expect(
-            getTSACheckboxField!,
-            "failed on TSACheckboxField field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSACheckboxField?.type,
-              "failed on getTSACheckboxField.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("BooleanText").that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSACheckboxField!.value,
-              "failed on TSACheckboxField.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal((!randBool).toString()).that.is.not.null.and.is
-              .not.undefined,
-            expect(
-              getTSACheckboxField!.accessory,
-              "failed on TSACheckboxField.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSACheckboxField!.backgroundColor,
-              "failed on TSACheckboxField.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSACheckboxField!.decimalDigits,
-              "failed on TSACheckboxField.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSACheckboxField!.highlighted,
-              "failed on TSACheckboxField.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSACheckboxField!.mandatory,
-              "failed on TSACheckboxField.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSACheckboxField!.readonly,
-              "failed on TSACheckboxField.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSACheckboxField!.textColor,
-              "failed on TSACheckboxField.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSACheckboxField!.title,
-              "failed on TSACheckboxField.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSACheckboxField!.visible,
-              "failed on TSACheckboxField.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setTSACurrencyField = await uiObject.getUIField(
-            "TSACurrencyField"
-          );
-          try {
-            setTSACurrencyField!.accessory = randAcessory;
-            setTSACurrencyField!.backgroundColor = bgColor;
-            setTSACurrencyField!.decimalDigits = 3;
-            setTSACurrencyField!.highlighted = true;
-            setTSACurrencyField!.mandatory = true;
-            setTSACurrencyField!.readonly = false;
-            setTSACurrencyField!.textColor = color;
-            setTSACurrencyField!.title = phrase;
-            setTSACurrencyField!.visible = true;
-            setTSACurrencyField!.value = (randDiscount * 2).toString();
-          } catch (err) {
-            console.log(err);
-          }
-          let getTSACurrencyField = await uiObject.getUIField(
-            "TSACurrencyField"
-          );
-          expect(
-            getTSACurrencyField!,
-            "failed on TSACurrencyField field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSACurrencyField?.type,
-              "failed on getTSACurrencyField.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("Currency").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSACurrencyField!.value,
-              "failed on TSACurrencyField.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal((randDiscount * 2).toString()).that.is.not.null
-              .and.is.not.undefined,
-            expect(
-              getTSACurrencyField!.accessory,
-              "failed on TSACurrencyField.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSACurrencyField!.backgroundColor,
-              "failed on TSACurrencyField.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSACurrencyField!.decimalDigits,
-              "failed on TSACurrencyField.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSACurrencyField!.highlighted,
-              "failed on TSACurrencyField.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSACurrencyField!.mandatory,
-              "failed on TSACurrencyField.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSACurrencyField!.readonly,
-              "failed on TSACurrencyField.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSACurrencyField!.textColor,
-              "failed on TSACurrencyField.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSACurrencyField!.title,
-              "failed on TSACurrencyField.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSACurrencyField!.visible,
-              "failed on TSACurrencyField.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setTSADecimalField = await uiObject.getUIField("TSADecimalField");
-          try {
-            setTSADecimalField!.accessory = randAcessory;
-            setTSADecimalField!.backgroundColor = bgColor;
-            setTSADecimalField!.decimalDigits = 3;
-            setTSADecimalField!.highlighted = true;
-            setTSADecimalField!.mandatory = true;
-            setTSADecimalField!.readonly = false;
-            setTSADecimalField!.textColor = color;
-            setTSADecimalField!.title = phrase;
-            setTSADecimalField!.visible = true;
-            setTSADecimalField!.value = (!randBool).toString();
-          } catch (err) {
-            console.log(err);
-          }
-          let getTSADecimalField = await uiObject.getUIField("TSADecimalField");
-          expect(
-            getTSADecimalField!,
-            "failed on TSADecimalField field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADecimalField?.type,
-              "failed on getTSADecimalField.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("NumberReal").that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADecimalField!.value,
-              "failed on TSADecimalField.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal((!randBool).toString()).that.is.not.null.and.is
-              .not.undefined,
-            expect(
-              getTSADecimalField!.accessory,
-              "failed on TSADecimalField.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADecimalField!.backgroundColor,
-              "failed on TSADecimalField.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADecimalField!.decimalDigits,
-              "failed on TSADecimalField.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADecimalField!.highlighted,
-              "failed on TSADecimalField.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADecimalField!.mandatory,
-              "failed on TSADecimalField.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADecimalField!.readonly,
-              "failed on TSADecimalField.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSADecimalField!.textColor,
-              "failed on TSADecimalField.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADecimalField!.title,
-              "failed on TSADecimalField.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSADecimalField!.visible,
-              "failed on TSADecimalField.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setTSANumberField = await uiObject.getUIField("TSANumberField");
-          try {
-            setTSANumberField!.accessory = randAcessory;
-            setTSANumberField!.backgroundColor = bgColor;
-            setTSANumberField!.decimalDigits = 3;
-            setTSANumberField!.highlighted = true;
-            setTSANumberField!.mandatory = true;
-            setTSANumberField!.readonly = false;
-            setTSANumberField!.textColor = color;
-            setTSANumberField!.title = phrase;
-            setTSANumberField!.visible = true;
-            setTSANumberField!.value = (quantitiesTotal * 2).toString();
-          } catch (err) {
-            console.log(err);
-          }
-          let getTSANumberField = await uiObject.getUIField("TSANumberField");
-          expect(
-            getTSANumberField!,
-            "failed on TSANumberField field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSANumberField?.type,
-              "failed on getTSANumberField.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("NumberInteger").that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSANumberField!.value,
-              "failed on TSANumberField.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal((quantitiesTotal * 2).toString()).that.is.not
-              .null.and.is.not.undefined,
-            expect(
-              getTSANumberField!.accessory,
-              "failed on TSANumberField.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSANumberField!.backgroundColor,
-              "failed on TSANumberField.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSANumberField!.decimalDigits,
-              "failed on TSANumberField.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSANumberField!.highlighted,
-              "failed on TSANumberField.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSANumberField!.mandatory,
-              "failed on TSANumberField.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSANumberField!.readonly,
-              "failed on TSANumberField.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSANumberField!.textColor,
-              "failed on TSANumberField.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSANumberField!.title,
-              "failed on TSANumberField.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSANumberField!.visible,
-              "failed on TSANumberField.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setTSAEmailField = await uiObject.getUIField("TSAEmailField");
-          try {
-            setTSAEmailField!.accessory = randAcessory;
-            setTSAEmailField!.backgroundColor = bgColor;
-            setTSAEmailField!.decimalDigits = 3;
-            setTSAEmailField!.highlighted = true;
-            setTSAEmailField!.mandatory = true;
-            setTSAEmailField!.readonly = false;
-            setTSAEmailField!.textColor = color;
-            setTSAEmailField!.title = phrase;
-            setTSAEmailField!.visible = true;
-            setTSAEmailField!.value = randDiscount + userEmail;
-          } catch (err) {
-            console.log(err);
-          }
-          let getTSAEmailField = await uiObject.getUIField("TSAEmailField");
-          expect(
-            getTSAEmailField!,
-            "failed on TSAEmailField field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAEmailField?.type,
-              "failed on getTSAEmailField.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("Email").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAEmailField!.value,
-              "failed on TSAEmailField.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal(randDiscount + userEmail).that.is.not.null.and.is
-              .not.undefined,
-            expect(
-              getTSAEmailField!.accessory,
-              "failed on TSAEmailField.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAEmailField!.backgroundColor,
-              "failed on TSAEmailField.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAEmailField!.decimalDigits,
-              "failed on TSAEmailField.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAEmailField!.highlighted,
-              "failed on TSAEmailField.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAEmailField!.mandatory,
-              "failed on TSAEmailField.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAEmailField!.readonly,
-              "failed on TSAEmailField.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAEmailField!.textColor,
-              "failed on TSAEmailField.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAEmailField!.title,
-              "failed on TSAEmailField.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAEmailField!.visible,
-              "failed on TSAEmailField.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setTSAPhoneField = await uiObject.getUIField("TSAPhoneField");
-          try {
-            setTSAPhoneField!.accessory = randAcessory;
-            setTSAPhoneField!.backgroundColor = bgColor;
-            setTSAPhoneField!.decimalDigits = 3;
-            setTSAPhoneField!.highlighted = true;
-            setTSAPhoneField!.mandatory = true;
-            setTSAPhoneField!.readonly = false;
-            setTSAPhoneField!.textColor = color;
-            setTSAPhoneField!.title = phrase;
-            setTSAPhoneField!.visible = true;
-            setTSAPhoneField!.value = (randPhone + randPhone).toString();
-          } catch (err) {
-            console.log(err);
-          }
-          let getTSAPhoneField = await uiObject.getUIField("TSAPhoneField");
-          expect(
-            getTSAPhoneField!,
-            "failed on TSAPhoneField field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAPhoneField?.type,
-              "failed on getTSAPhoneField.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("Phone").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAPhoneField!.value,
-              "failed on TSAPhoneField.value field"
-            )
-              .to.be.a("string")
-              .and.to.be.equal((randPhone + randPhone).toString()).that.is.not
-              .null.and.is.not.undefined,
-            expect(
-              getTSAPhoneField!.accessory,
-              "failed on TSAPhoneField.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAPhoneField!.backgroundColor,
-              "failed on TSAPhoneField.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAPhoneField!.decimalDigits,
-              "failed on TSAPhoneField.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAPhoneField!.highlighted,
-              "failed on TSAPhoneField.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAPhoneField!.mandatory,
-              "failed on TSAPhoneField.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAPhoneField!.readonly,
-              "failed on TSAPhoneField.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAPhoneField!.textColor,
-              "failed on TSAPhoneField.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAPhoneField!.title,
-              "failed on TSAPhoneField.title field"
-            )
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAPhoneField!.visible,
-              "failed on TSAPhoneField.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setTSALinkField = await uiObject.getUIField("TSALinkField");
-          try {
-            setTSALinkField!.accessory = randAcessory;
-            setTSALinkField!.backgroundColor = bgColor;
-            setTSALinkField!.decimalDigits = 3;
-            setTSALinkField!.highlighted = true;
-            setTSALinkField!.mandatory = true;
-            setTSALinkField!.readonly = false;
-            setTSALinkField!.textColor = color;
-            setTSALinkField!.title = phrase;
-            setTSALinkField!.visible = true;
-            setTSALinkField!.value = userEmail + userEmail;
-          } catch (err) {
-            console.log(err);
-          }
-          let getTSALinkField = await uiObject.getUIField("TSALinkField");
-          expect(
-            getTSALinkField!,
-            "failed on TSALinkField field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSALinkField?.type,
-              "failed on getTSALinkField.type field"
-            )
-              .to.be.a("string")
-              .that.is.equal("Link").that.is.not.null.and.is.not.undefined,
-            expect(getTSALinkField!.value, "failed on TSALinkField.value field")
-              .to.be.a("string")
-              .and.to.be.equal(userEmail + userEmail).that.is.not.null.and.is
-              .not.undefined,
-            expect(
-              getTSALinkField!.accessory,
-              "failed on TSALinkField.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSALinkField!.backgroundColor,
-              "failed on TSALinkField.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSALinkField!.decimalDigits,
-              "failed on TSALinkField.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSALinkField!.highlighted,
-              "failed on TSALinkField.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSALinkField!.mandatory,
-              "failed on TSALinkField.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSALinkField!.readonly,
-              "failed on TSALinkField.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSALinkField!.textColor,
-              "failed on TSALinkField.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getTSALinkField!.title, "failed on TSALinkField.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSALinkField!.visible,
-              "failed on TSALinkField.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          let setTSAHTMLField = await uiObject.getUIField("TSAHTMLField");
-          try {
-            setTSAHTMLField!.accessory = randAcessory;
-            setTSAHTMLField!.backgroundColor = bgColor;
-            setTSAHTMLField!.decimalDigits = 3;
-            setTSAHTMLField!.highlighted = true;
-            setTSAHTMLField!.mandatory = true;
-            setTSAHTMLField!.readonly = false;
-            setTSAHTMLField!.textColor = color;
-            setTSAHTMLField!.title = phrase;
-            setTSAHTMLField!.visible = true;
-            setTSAHTMLField!.value = HTML + HTML;
-          } catch (err) {
-            console.log(err);
-          }
-          let getTSAHTMLField = await uiObject.getUIField("TSAHTMLField");
-          expect(
-            getTSAHTMLField!,
-            "failed on TSAHTMLField field object"
-          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
-            expect(getTSAHTMLField?.type, "failed on TSAHTMLField.type field")
-              .to.be.a("string")
-              .that.is.equal("None").that.is.not.null.and.is.not.undefined,
-            expect(getTSAHTMLField!.value, "failed on TSAHTMLField.value field")
-              .to.be.a("string")
-              .and.to.be.equal(HTML + HTML).that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAHTMLField!.accessory,
-              "failed on TSAHTMLField.accessory field"
-            )
-              .to.be.a("string")
-              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAHTMLField!.backgroundColor,
-              "failed on TSAHTMLField.backgroundColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAHTMLField!.decimalDigits,
-              "failed on TSAHTMLField.decimalDigits field"
-            )
-              .to.be.a("number")
-              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAHTMLField!.highlighted,
-              "failed on TSAHTMLField.highlighted field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAHTMLField!.mandatory,
-              "failed on TSAHTMLField.mandatory field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAHTMLField!.readonly,
-              "failed on TSAHTMLField.readonly field"
-            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
-              .undefined,
-            expect(
-              getTSAHTMLField!.textColor,
-              "failed on TSAHTMLField.textColor field"
-            )
-              .to.be.a("string")
-              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
-            expect(getTSAHTMLField!.title, "failed on TSAHTMLField.title field")
-              .to.be.a("string")
-              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
-            expect(
-              getTSAHTMLField!.visible,
-              "failed on TSAHTMLField.visible field"
-            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
-              .undefined;
-          console.log(
-            "%cDetails - Accessors - UIObject Finished CRUD testing!",
-            "color: #bada55"
-          );
-        });
-        it("CRUD testing on Transaction Details UIObject - SetFieldValue - DI-18618 - FormattedValue returns value with currency sign - UIObject Transaction Details", async () => {
-          //need to set the oringinal values as the first test and then test for those values
-          //===========================SET=========================================
           console.log(
             "%cDetails - SetFieldValue - UIObject Starting CRUD testing!",
             "color: #bada55"
@@ -5565,7 +2945,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             (randZip * randDiscount * quantitiesTotal).toString()
           );
           //=============================GET======================================
-          const getTSASingleLineText = await uiObject?.getUIField(
+          const getTSASingleLineText = await uiObject?.getField(
             "TSASingleLineText"
           );
           expect(getTSASingleLineText?.value, "fell on TSASingleLineText.value")
@@ -5577,7 +2957,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .that.is.a("string")
               .and.is.equal(phrase + randDiscount);
-          const getTSALimitedLineText = await uiObject?.getUIField(
+          const getTSALimitedLineText = await uiObject?.getField(
             "TSALimitedLineText"
           );
           expect(
@@ -5592,7 +2972,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .that.is.a("string")
               .and.is.equal(phrase + randDiscount);
-          const getTSAParagraphText = await uiObject?.getUIField(
+          const getTSAParagraphText = await uiObject?.getField(
             "TSAParagraphText"
           );
           expect(
@@ -5608,12 +2988,12 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.a("string")
               .and.is.equal(phrase + randDiscount);
           //need to go back to here
-          const getTSADateField = await uiObject?.getUIField("TSADateField");
+          const getTSADateField = await uiObject?.getField("TSADateField");
           let formattedDate = dateFormatter(getTSADateField!.value);
           expect(formattedDate, "fell on getTSADateField")
             .to.be.a("string")
             .and.is.equal(dateOnly);
-          const getTSADateTimeField = await uiObject?.getUIField(
+          const getTSADateTimeField = await uiObject?.getField(
             "TSADateTimeField"
           );
           let formattedDateTime: any = dateFormatter(
@@ -5624,7 +3004,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           expect(formattedDateTime, "Failed on getTSADateTimeField")
             .to.be.a("string")
             .and.is.equal(expectedDateTimeValue);
-          const getTSADecimalField = await uiObject?.getUIField(
+          const getTSADecimalField = await uiObject?.getField(
             "TSADecimalField"
           );
           expect(getTSADecimalField?.value, "fell on getTSADecimalField.value")
@@ -5636,9 +3016,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .and.is.equal(randDiscount.toFixed(6));
-          const getTSANumberField = await uiObject?.getUIField(
-            "TSANumberField"
-          );
+          const getTSANumberField = await uiObject?.getField("TSANumberField");
           expect(getTSANumberField?.value, "fell on getTSANumberField.value")
             .to.be.a("string")
             .and.is.equal(quantitiesTotal.toString()),
@@ -5648,7 +3026,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .and.is.equal(quantitiesTotal.toString());
-          const getTSACurrencyField = await uiObject?.getUIField(
+          const getTSACurrencyField = await uiObject?.getField(
             "TSACurrencyField"
           );
           const strCur = formatter.format(quantitiesTotal);
@@ -5665,7 +3043,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           )
             .to.be.a("string")
             .and.is.equal(resultCur);
-          const getTSACheckboxField = await uiObject?.getUIField(
+          const getTSACheckboxField = await uiObject?.getField(
             "TSACheckboxField"
           );
           expect(
@@ -5680,7 +3058,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .and.is.equal(randBool.toString());
-          const getTSAEmailField = await uiObject?.getUIField("TSAEmailField");
+          const getTSAEmailField = await uiObject?.getField("TSAEmailField");
           expect(getTSAEmailField?.value, "fell on getTSAEmailField.value")
             .to.be.a("string")
             .and.is.equal(userEmail),
@@ -5690,7 +3068,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .and.is.equal(userEmail);
-          const getTSAPhoneField = await uiObject?.getUIField("TSAPhoneField");
+          const getTSAPhoneField = await uiObject?.getField("TSAPhoneField");
           expect(getTSAPhoneField?.value, "fell on getTSAPhoneField.value")
             .to.be.a("string")
             .and.is.equal(randPhone.toString()),
@@ -5700,7 +3078,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .and.is.equal(randPhone.toString());
-          const getTSALinkField = await uiObject?.getUIField("TSALinkField");
+          const getTSALinkField = await uiObject?.getField("TSALinkField");
           expect(getTSALinkField?.value, "fell on getTSALinkField.value")
             .to.be.a("string")
             .and.is.equal(link),
@@ -5710,7 +3088,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .and.is.equal(link);
-          const getTSAHTMLField = await uiObject?.getUIField("TSAHTMLField");
+          const getTSAHTMLField = await uiObject?.getField("TSAHTMLField");
           expect(getTSAHTMLField?.value, "fell on getTSAHTMLField.value")
             .to.be.a("string")
             .and.is.equal(HTML),
@@ -5720,14 +3098,14 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .and.is.equal(HTML);
-          const getExID = await uiObject?.getUIField("ExternalID");
+          const getExID = await uiObject?.getField("ExternalID");
           expect(getExID?.value, "Failed on getExID.value")
             .that.is.a("string")
             .and.is.equal(ExID),
             expect(getExID?.formattedValue, "Failed on getExID.formattedValue")
               .that.is.a("string")
               .and.is.equal(ExID);
-          const getRemark = await uiObject?.getUIField("Remark");
+          const getRemark = await uiObject?.getField("Remark");
           expect(getRemark?.value, "Failed on getRemark.value")
             .that.is.a("string")
             .and.is.equal(phrase),
@@ -5737,7 +3115,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .that.is.a("string")
               .and.is.equal(phrase);
-          const getBillToName = await uiObject?.getUIField("BillToName");
+          const getBillToName = await uiObject?.getField("BillToName");
           expect(getBillToName?.value, "Failed on getBillToName.value")
             .that.is.a("string")
             .and.is.equal(name),
@@ -5747,7 +3125,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .that.is.a("string")
               .and.is.equal(name);
-          const getBillToStreet = await uiObject?.getUIField("BillToStreet");
+          const getBillToStreet = await uiObject?.getField("BillToStreet");
           expect(getBillToStreet?.value, "Failed on getBillToStreet.value")
             .that.is.a("string")
             .and.is.equal(accounDataArr[accountGeoIndex].Street),
@@ -5757,7 +3135,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .that.is.a("string")
               .and.is.equal(accounDataArr[accountGeoIndex].Street);
-          const getBillToZipCode = await uiObject?.getUIField("BillToZipCode");
+          const getBillToZipCode = await uiObject?.getField("BillToZipCode");
           expect(getBillToZipCode?.value, "Failed on getBillToZipCode.value")
             .that.is.a("string")
             .and.is.equal(randZip.toString()),
@@ -5767,7 +3145,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .that.is.a("string")
               .and.is.equal(randZip.toString());
-          const getBillToPhone = await uiObject?.getUIField("BillToPhone");
+          const getBillToPhone = await uiObject?.getField("BillToPhone");
           expect(getBillToPhone?.value, "Failed on getBillToPhone.value")
             .that.is.a("string")
             .and.is.equal(randPhone),
@@ -5777,7 +3155,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .that.is.a("string")
               .and.is.equal(randPhone);
-          const getBillToCity = await uiObject?.getUIField("BillToCity");
+          const getBillToCity = await uiObject?.getField("BillToCity");
           expect(getBillToCity?.value, "Failed on getBillToCity.value")
             .that.is.a("string")
             .and.is.equal(accounDataArr[accountGeoIndex].City),
@@ -5787,7 +3165,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .that.is.a("string")
               .and.is.equal(accounDataArr[accountGeoIndex].City);
-          const getDiscountPercentage = await uiObject?.getUIField(
+          const getDiscountPercentage = await uiObject?.getField(
             "DiscountPercentage"
           );
           expect(
@@ -5802,7 +3180,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .that.is.a("string")
               .and.is.equal(randDiscount.toFixed(2) + "%");
-          const getQuantitiesTotal = await uiObject?.getUIField(
+          const getQuantitiesTotal = await uiObject?.getField(
             "QuantitiesTotal"
           );
           expect(
@@ -5818,12 +3196,12 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             .that.is.a("string")
             .and.is.equal(quantitiesTotal.toFixed(2));
 
-          const getDeliveryDate = await uiObject?.getUIField("DeliveryDate");
+          const getDeliveryDate = await uiObject?.getField("DeliveryDate");
           let formattedDateSystem = dateFormatter(getDeliveryDate!.value);
           expect(formattedDateSystem, "Fell on getDeliveryDate")
             .to.be.a("string")
             .and.is.equal(dateOnly);
-          const getStatus = await uiObject?.getUIField("Status");
+          const getStatus = await uiObject?.getField("Status");
           expect(getStatus?.value, "Failed on getStatus.value")
             .to.be.a("string")
             .and.is.equal(status.toString());
@@ -5833,7 +3211,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           )
             .to.be.a("string")
             .and.is.equal("Submitted");
-          const getLat = await uiObject?.getUIField("SubmissionGeoCodeLAT");
+          const getLat = await uiObject?.getField("SubmissionGeoCodeLAT");
           const latToNum = +accounDataArr[accountGeoIndex].Latitude!.toFixed(4);
           expect(getLat?.value, "Failed on getLat.value")
             .to.be.a("string")
@@ -5841,7 +3219,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           expect(getLat?.formattedValue, "Failed on getLat.formattedValue")
             .to.be.a("string")
             .and.is.equal(latToNum.toFixed(2));
-          const getLng = await uiObject?.getUIField("SubmissionGeoCodeLNG");
+          const getLng = await uiObject?.getField("SubmissionGeoCodeLNG");
           const lngToNum =
             +accounDataArr[accountGeoIndex].Longtitude!.toFixed(3);
           expect(parseFloat(getLng!.value).toFixed(3), "Failed on getLng.value")
@@ -5853,7 +3231,8 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           )
             .to.be.a("string")
             .and.is.equal(lngToNum.toFixed(2));
-          const getShipToName = await uiObject?.getUIField("ShipToName");
+
+          const getShipToName = await uiObject?.getField("ShipToName");
           expect(getShipToName?.value, "Failed on getShipToName.value")
             .to.be.a("string")
             .and.is.equal(name),
@@ -5863,7 +3242,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .and.is.equal(name);
-          const getShipToStreet = await uiObject?.getUIField("ShipToStreet");
+          const getShipToStreet = await uiObject?.getField("ShipToStreet");
           expect(getShipToStreet?.value, "Failed on getShipToStreet.value")
             .to.be.a("string")
             .and.is.equal(accounDataArr[accountGeoIndex].Street),
@@ -5873,7 +3252,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .and.is.equal(accounDataArr[accountGeoIndex].Street);
-          const getShipToCity = await uiObject?.getUIField("ShipToCity");
+          const getShipToCity = await uiObject?.getField("ShipToCity");
           expect(getShipToCity?.value, "Failed on getShipToCity.value")
             .to.be.a("string")
             .and.is.equal(accounDataArr[accountGeoIndex].City),
@@ -5883,7 +3262,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .and.is.equal(accounDataArr[accountGeoIndex].City);
-          const getShipToZipCode = await uiObject?.getUIField("ShipToZipCode");
+          const getShipToZipCode = await uiObject?.getField("ShipToZipCode");
           expect(getShipToZipCode?.value, "Failed on getShipToZipCode.value")
             .to.be.a("string")
             .and.is.equal(randZip.toString()),
@@ -5893,7 +3272,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .and.is.equal(randZip.toString());
-          const getSubTotal = await uiObject?.getUIField("SubTotal");
+          const getSubTotal = await uiObject?.getField("SubTotal");
           const strST = formatter.format(randZip);
           const resultST = strST.substr(1) + strST.substr(0, 1);
           expect(
@@ -5908,7 +3287,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           )
             .to.be.a("string")
             .that.is.equal(resultST);
-          const getSubTotalAfterItemsDiscount = await uiObject?.getUIField(
+          const getSubTotalAfterItemsDiscount = await uiObject?.getField(
             "SubTotalAfterItemsDiscount"
           );
           const strSTAD = formatter.format(randZip * randDiscount);
@@ -5925,7 +3304,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .that.is.equal(resultSTAD);
-          const getGrandTotal = await uiObject?.getUIField("GrandTotal");
+          const getGrandTotal = await uiObject?.getField("GrandTotal");
           const strGT = formatter.format(
             randZip * randDiscount * quantitiesTotal
           );
@@ -5949,6 +3328,2584 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               "color: #bada55"
             );
         });
+        it("CRUD testing on Transaction Details UIObject - UIField Accessors", async () => {
+          console.log(
+            "%cDetails - Accessors - UIObject Starting CRUD testing!",
+            "color: #bada55"
+          );
+          //need to add uiobject.dataviews
+          //=================================UIDetailsPage=======================================
+          try {
+            TrnDetailsUIPage.subTitle = phrase;
+            TrnDetailsUIPage.title = phrase;
+          } catch (err) {
+            console.log(err);
+            console.log(
+              `%uiDetails CRUD test failed! error: ${err}`,
+              "color: #FF0000"
+            );
+          }
+          expect(
+            TrnDetailsUIPage.subTitle,
+            "failed on TrnDetailsUIPage.subTitle"
+          )
+            .to.be.a("string")
+            .that.is.equal(phrase).and.is.not.null.and.is.not.empty,
+            expect(TrnDetailsUIPage.title, "failed on TrnDetailsUIPage.title")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.is.not.null.and.is.not.empty;
+          expect(
+            TrnDetailsUIPage.dataObject,
+            "failed on TrnDetailsUIPage.dataObject"
+          ).to.be.an("object").that.is.not.null.and.is.not.empty,
+            expect(
+              TrnDetailsUIPage.type,
+              "DI-18307 UIPage.Type returns wrong values"
+            )
+              .to.be.a("string")
+              .that.is.equal("Details").that.is.not.null.and.is.not.empty,
+            expect(
+              TrnDetailsUIPage.key,
+              "failed on TrnDetailsUIPage.key"
+            ).to.be.a("string").that.is.not.null.and.is.not.empty;
+          //===============================UIObject================================
+          //===============================Accessors===============================
+          try {
+            uiObject.backgroundColor = bgColor;
+            uiObject.readonly = false;
+          } catch (err) {
+            console.log(err);
+          }
+          const readonly = uiObject.readonly;
+          expect(uiObject.backgroundColor, "failed on uiObject.backgroundColor")
+            .to.be.a("string")
+            .and.to.be.equal(bgColor).and.is.not.null.and.is.not.empty,
+            expect(readonly, "failed on uiObject.readonly")
+              .to.be.a("boolean")
+              .and.to.be.equal(false).and.is.not.null.and.is.not.undefined,
+            expect(
+              uiObject.dataObject,
+              "failed on uiObject.dataObject"
+            ).to.be.an("object").and.is.not.null.and.is.not.empty.and.is.not
+              .undefined,
+            expect(uiObject.key, "failed on uiObject.key").to.be.a("string").and
+              .is.not.null.and.is.not.empty.and.is.not.undefined,
+            expect(uiObject.context, "failed on uiObject.context").to.be.an(
+              "object"
+            ).and.is.not.null.and.is.not.empty.and.is.not.undefined,
+            expect(uiObject.context.Name, "failed on uiObject.context.Name")
+              .to.be.a("string")
+              .and.is.equal("OrderForm").and.is.not.null.and.is.not.empty.and.is
+              .not.undefined,
+            expect(
+              uiObject.context.ScreenSize,
+              "failed on uiObject.context.ScreenSize"
+            )
+              .to.be.a("string")
+              .and.is.equal(screenSize[uiObject.context.ScreenSize]).and.is.not
+              .null.and.is.not.empty.and.is.not.undefined,
+            expect(
+              uiObject.context.Object?.InternalID,
+              "failed on uiObject.Object?.InternalID"
+            )
+              .to.be.a("number")
+              .that.is.above(0).and.is.not.null.and.is.not.undefined,
+            expect(
+              uiObject.context.Object?.Resource,
+              "failed on uiObject.Object?.Resource"
+            )
+              .to.be.a("string")
+              .that.is.equal("transactions").and.is.not.null.and.is.not.empty
+              .and.is.not.undefined,
+            expect(
+              uiObject.context.Profile.InternalID,
+              "failed on uiObject.Profile?.InternalID"
+            )
+              .to.be.a("number")
+              .that.is.above(-0.1).and.is.not.null.and.is.not.undefined;
+          //===============================UIFields======================================
+          //===============================getField=================================
+          //let emptyObject: boolean = false;
+          //const uiFieldsMap = await getFields(uiObject);
+          //console.log(uiFieldsMap);
+          // if (uiFieldsMap === undefined) {
+          //   emptyObject = true;
+          // }
+          // expect(emptyObject, "Failed getting UIFields from getFields function")
+          //   .to.be.false;
+          //===========================SystemFields================================
+          let setExternalID = await uiObject.getField("ExternalID");
+          try {
+            setExternalID!.accessory = randAcessory;
+            setExternalID!.backgroundColor = bgColor;
+            setExternalID!.decimalDigits = 3;
+            setExternalID!.highlighted = true;
+            setExternalID!.mandatory = true;
+            setExternalID!.readonly = false;
+            setExternalID!.textColor = color;
+            setExternalID!.title = phrase;
+            setExternalID!.visible = true;
+            setExternalID!.value = ExID + name + randPhone;
+          } catch (err) {
+            console.log(err);
+          }
+          let getExternalID = await uiObject.getField("ExternalID");
+          expect(getExternalID!, "failed on ExternalID field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getExternalID!.type, "failed on ExternalID.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getExternalID!.value, "failed on ExternalID.value field")
+              .to.be.a("string")
+              .and.to.be.equal(ExID + name + randPhone).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getExternalID!.accessory,
+              "failed on ExternalID.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getExternalID!.backgroundColor,
+              "failed on ExternalID.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getExternalID!.decimalDigits,
+              "failed on ExternalID.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getExternalID!.highlighted,
+              "failed on ExternalID.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getExternalID!.mandatory,
+              "failed on ExternalID.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getExternalID!.readonly,
+              "failed on ExternalID.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getExternalID!.textColor,
+              "failed on ExternalID.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getExternalID!.title, "failed on ExternalID.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getExternalID!.visible,
+              "failed on ExternalID.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setDiscountPercentage = await uiObject.getField(
+            "DiscountPercentage"
+          );
+          try {
+            setDiscountPercentage!.accessory = randAcessory;
+            setDiscountPercentage!.backgroundColor = bgColor;
+            setDiscountPercentage!.decimalDigits = 3;
+            setDiscountPercentage!.highlighted = true;
+            setDiscountPercentage!.mandatory = true;
+            setDiscountPercentage!.readonly = false;
+            setDiscountPercentage!.textColor = color;
+            setDiscountPercentage!.title = phrase;
+            setDiscountPercentage!.visible = true;
+            setDiscountPercentage!.value = randDiscount.toString();
+          } catch (err) {
+            console.log(err);
+          }
+          let getDiscountPercentage = await uiObject.getField(
+            "DiscountPercentage"
+          );
+          expect(
+            getDiscountPercentage!,
+            "failed on DiscountPercentage field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getDiscountPercentage!.type,
+              "failed on DiscountPercentage.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("Percentage").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getDiscountPercentage!.value,
+              "failed on DiscountPercentage.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(randDiscount.toString()).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getDiscountPercentage!.accessory,
+              "failed on DiscountPercentage.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getDiscountPercentage!.backgroundColor,
+              "failed on DiscountPercentage.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getDiscountPercentage!.decimalDigits,
+              "failed on DiscountPercentage.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getDiscountPercentage!.highlighted,
+              "failed on DiscountPercentage.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getDiscountPercentage!.mandatory,
+              "failed on DiscountPercentage.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getDiscountPercentage!.readonly,
+              "failed on DiscountPercentage.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getDiscountPercentage!.textColor,
+              "failed on DiscountPercentage.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getDiscountPercentage!.title,
+              "failed on DiscountPercentage.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getDiscountPercentage!.visible,
+              "failed on DiscountPercentage.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setAccExID = await uiObject.getField("AccountExternalID");
+          try {
+            setAccExID!.accessory = randAcessory;
+            setAccExID!.backgroundColor = bgColor;
+            setAccExID!.decimalDigits = 3;
+            setAccExID!.highlighted = true;
+            setAccExID!.mandatory = true;
+            setAccExID!.readonly = false;
+            setAccExID!.textColor = color;
+            setAccExID!.title = phrase;
+            setAccExID!.visible = true;
+            setAccExID!.value = ExID + name + randPhone;
+          } catch (err) {
+            console.log(err);
+          }
+          let getAccExID = await uiObject.getField("AccountExternalID");
+          expect(getAccExID!, "failed on AccExID field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getAccExID!.type, "failed on AccExID.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getAccExID!.value, "failed on AccExID.value field")
+              .to.be.a("string")
+              .and.to.be.equal(ExID + name + randPhone).that.is.not.null.and.is
+              .not.undefined,
+            expect(getAccExID!.accessory, "failed on AccExID.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getAccExID!.backgroundColor,
+              "failed on AccExID.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getAccExID!.decimalDigits,
+              "failed on AccExID.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getAccExID!.highlighted,
+              "failed on AccExID.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getAccExID!.mandatory,
+              "failed on AccExID.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getAccExID!.readonly,
+              "failed on AccExID.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getAccExID!.textColor, "failed on AccExID.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getAccExID!.title, "failed on AccExID.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getAccExID!.visible,
+              "failed on AccExID.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setAccountName = await uiObject.getField("AccountName");
+          try {
+            setAccountName!.accessory = randAcessory;
+            setAccountName!.backgroundColor = bgColor;
+            setAccountName!.decimalDigits = 3;
+            setAccountName!.highlighted = true;
+            setAccountName!.mandatory = true;
+            setAccountName!.readonly = false;
+            setAccountName!.textColor = color;
+            setAccountName!.title = phrase;
+            setAccountName!.visible = true;
+            setAccountName!.value = ExID + name;
+          } catch (err) {
+            console.log(err);
+          }
+          let getAccountName = await uiObject.getField("AccountName");
+          expect(
+            getAccountName!,
+            "failed on AccountName field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(getAccountName?.type, "failed on AccountName.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getAccountName!.value, "failed on AccountName.value field")
+              .to.be.a("string")
+              .and.to.be.equal(ExID + name).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getAccountName!.accessory,
+              "failed on AccountName.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getAccountName!.backgroundColor,
+              "failed on AccountName.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getAccountName!.decimalDigits,
+              "failed on AccountName.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getAccountName!.highlighted,
+              "failed on AccountName.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getAccountName!.mandatory,
+              "failed on AccountName.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getAccountName!.readonly,
+              "failed on AccountName.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getAccountName!.textColor,
+              "failed on AccountName.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getAccountName!.title, "failed on AccountName.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getAccountName!.visible,
+              "failed on AccountName.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setWrntyID = await uiObject.getField("WrntyID");
+          try {
+            setWrntyID!.accessory = randAcessory;
+            setWrntyID!.backgroundColor = bgColor;
+            setWrntyID!.decimalDigits = 3;
+            setWrntyID!.highlighted = true;
+            setWrntyID!.mandatory = true;
+            setWrntyID!.readonly = false;
+            setWrntyID!.textColor = color;
+            setWrntyID!.title = phrase;
+            setWrntyID!.visible = true;
+            setWrntyID!.value = randPhone;
+          } catch (err) {
+            console.log(err);
+          }
+          let getWrntyID = await uiObject.getField("WrntyID");
+          expect(getWrntyID!, "failed on WrntyID field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getWrntyID?.type, "failed on WrntyID.type field")
+              .to.be.a("string")
+              .that.is.equal("LimitedLengthTextBox").that.is.not.null.and.is.not
+              .undefined,
+            expect(getWrntyID!.value, "failed on WrntyID.value field")
+              .to.be.a("string")
+              .and.to.be.equal(randPhone).that.is.not.null.and.is.not.undefined,
+            expect(getWrntyID!.accessory, "failed on WrntyID.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getWrntyID!.backgroundColor,
+              "failed on WrntyID.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getWrntyID!.decimalDigits,
+              "failed on WrntyID.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getWrntyID!.highlighted,
+              "failed on WrntyID.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getWrntyID!.mandatory,
+              "failed on WrntyID.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getWrntyID!.readonly,
+              "failed on WrntyID.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getWrntyID!.textColor, "failed on WrntyID.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getWrntyID!.title, "failed on WrntyID.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getWrntyID!.visible,
+              "failed on WrntyID.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setActionDateTime = await uiObject.getField("ActionDateTime");
+          try {
+            setActionDateTime!.accessory = randAcessory;
+            setActionDateTime!.backgroundColor = bgColor;
+            setActionDateTime!.decimalDigits = 3;
+            setActionDateTime!.highlighted = true;
+            setActionDateTime!.mandatory = true;
+            setActionDateTime!.readonly = false;
+            setActionDateTime!.textColor = color;
+            setActionDateTime!.title = phrase;
+            setActionDateTime!.visible = true;
+            setActionDateTime!.value = "1990-07-27:00:00:00";
+          } catch (err) {
+            console.log(err);
+          }
+          let getActionDateTime = await uiObject.getField("ActionDateTime");
+          expect(
+            getActionDateTime!,
+            "failed on ActionDateTime field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getActionDateTime?.type,
+              "failed on ActionDateTime.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("DateAndTime").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getActionDateTime!.value,
+              "failed on ActionDateTime.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal("1990-07-27:00:00:00").that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getActionDateTime!.accessory,
+              "failed on ActionDateTime.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getActionDateTime!.backgroundColor,
+              "failed on ActionDateTime.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getActionDateTime!.decimalDigits,
+              "failed on ActionDateTime.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getActionDateTime!.highlighted,
+              "failed on ActionDateTime.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getActionDateTime!.mandatory,
+              "failed on ActionDateTime.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getActionDateTime!.readonly,
+              "failed on ActionDateTime.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getActionDateTime!.textColor,
+              "failed on ActionDateTime.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getActionDateTime!.title,
+              "failed on ActionDateTime.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getActionDateTime!.visible,
+              "failed on ActionDateTime.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setAgentName = await uiObject.getField("AgentName");
+          try {
+            setAgentName!.accessory = randAcessory;
+            setAgentName!.backgroundColor = bgColor;
+            setAgentName!.decimalDigits = 3;
+            setAgentName!.highlighted = true;
+            setAgentName!.mandatory = true;
+            setAgentName!.readonly = false;
+            setAgentName!.textColor = color;
+            setAgentName!.title = phrase;
+            setAgentName!.visible = true;
+            setAgentName!.value = name;
+          } catch (err) {
+            console.log(err);
+          }
+          let getAgentName = await uiObject.getField("AgentName");
+          expect(getAgentName!, "failed on AgentName field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getAgentName?.type, "failed on AgentName.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getAgentName!.value, "failed on AgentName.value field")
+              .to.be.a("string")
+              .and.to.be.equal(name).that.is.not.null.and.is.not.undefined,
+            expect(
+              getAgentName!.accessory,
+              "failed on AgentName.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getAgentName!.backgroundColor,
+              "failed on AgentName.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getAgentName!.decimalDigits,
+              "failed on AgentName.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getAgentName!.highlighted,
+              "failed on AgentName.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getAgentName!.mandatory,
+              "failed on AgentName.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getAgentName!.readonly,
+              "failed on AgentName.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getAgentName!.textColor,
+              "failed on AgentName.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getAgentName!.title, "failed on AgentName.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getAgentName!.visible,
+              "failed on AgentName.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setCurrency = await uiObject.getField("Currency");
+          try {
+            setCurrency!.accessory = randAcessory;
+            setCurrency!.backgroundColor = bgColor;
+            setCurrency!.decimalDigits = 3;
+            setCurrency!.highlighted = true;
+            setCurrency!.mandatory = true;
+            setCurrency!.readonly = false;
+            setCurrency!.textColor = color;
+            setCurrency!.title = phrase;
+            setCurrency!.visible = true;
+            setCurrency!.value = randAcessory;
+          } catch (err) {
+            console.log(err);
+          }
+          let getCurrency = await uiObject.getField("Currency");
+          expect(getCurrency!, "failed on Currency field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getCurrency?.type, "failed on Currency.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getCurrency!.value, "failed on Currency.value field")
+              .to.be.a("string")
+              .and.to.be.equal(randAcessory).that.is.not.null.and.is.not
+              .undefined,
+            expect(getCurrency!.accessory, "failed on Currency.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getCurrency!.backgroundColor,
+              "failed on Currency.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getCurrency!.decimalDigits,
+              "failed on Currency.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getCurrency!.highlighted,
+              "failed on Currency.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getCurrency!.mandatory,
+              "failed on Currency.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getCurrency!.readonly,
+              "failed on Currency.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getCurrency!.textColor, "failed on Currency.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getCurrency!.title, "failed on Currency.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getCurrency!.visible,
+              "failed on Currency.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setDeliveryDate = await uiObject.getField("DeliveryDate");
+          try {
+            setDeliveryDate!.accessory = randAcessory;
+            setDeliveryDate!.backgroundColor = bgColor;
+            setDeliveryDate!.decimalDigits = 3;
+            setDeliveryDate!.highlighted = true;
+            setDeliveryDate!.mandatory = true;
+            setDeliveryDate!.readonly = false;
+            setDeliveryDate!.textColor = color;
+            setDeliveryDate!.title = phrase;
+            setDeliveryDate!.visible = true;
+            setDeliveryDate!.value = "1990-07-27";
+          } catch (err) {
+            console.log(err);
+          }
+          let getDeliveryDate = await uiObject.getField("DeliveryDate");
+          expect(
+            getDeliveryDate!,
+            "failed on DeliveryDate field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(getDeliveryDate?.type, "failed on DeliveryDate.type field")
+              .to.be.a("string")
+              .that.is.equal("Date").that.is.not.null.and.is.not.undefined,
+            expect(getDeliveryDate!.value, "failed on DeliveryDate.value field")
+              .to.be.a("string")
+              .and.to.be.equal("1990-07-27").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getDeliveryDate!.accessory,
+              "failed on DeliveryDate.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getDeliveryDate!.backgroundColor,
+              "failed on DeliveryDate.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getDeliveryDate!.decimalDigits,
+              "failed on DeliveryDate.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getDeliveryDate!.highlighted,
+              "failed on DeliveryDate.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getDeliveryDate!.mandatory,
+              "failed on DeliveryDate.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getDeliveryDate!.readonly,
+              "failed on DeliveryDate.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getDeliveryDate!.textColor,
+              "failed on DeliveryDate.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getDeliveryDate!.title, "failed on DeliveryDate.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getDeliveryDate!.visible,
+              "failed on DeliveryDate.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setRemark = await uiObject.getField("Remark");
+          try {
+            setRemark!.accessory = randAcessory;
+            setRemark!.backgroundColor = bgColor;
+            setRemark!.decimalDigits = 3;
+            setRemark!.highlighted = true;
+            setRemark!.mandatory = true;
+            setRemark!.readonly = false;
+            setRemark!.textColor = color;
+            setRemark!.title = phrase;
+            setRemark!.visible = true;
+            setRemark!.value = phrase + name;
+          } catch (err) {
+            console.log(err);
+          }
+          let getRemark = await uiObject.getField("Remark");
+          expect(getRemark!, "failed on Remark field object").to.be.an("object")
+            .that.is.not.null.and.is.not.undefined,
+            expect(getRemark?.type, "failed on Remark.type field")
+              .to.be.a("string")
+              .that.is.equal("TextArea").that.is.not.null.and.is.not.undefined,
+            expect(getRemark!.value, "failed on Remark.value field")
+              .to.be.a("string")
+              .and.to.be.equal(phrase + name).that.is.not.null.and.is.not
+              .undefined,
+            expect(getRemark!.accessory, "failed on Remark.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getRemark!.backgroundColor,
+              "failed on Remark.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getRemark!.decimalDigits,
+              "failed on Remark.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getRemark!.highlighted,
+              "failed on Remark.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getRemark!.mandatory,
+              "failed on Remark.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getRemark!.readonly,
+              "failed on Remark.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getRemark!.textColor, "failed on Remark.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getRemark!.title, "failed on Remark.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getRemark!.visible,
+              "failed on Remark.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setBillToPhone = await uiObject.getField("BillToPhone");
+          try {
+            setBillToPhone!.accessory = randAcessory;
+            setBillToPhone!.backgroundColor = bgColor;
+            setBillToPhone!.decimalDigits = 3;
+            setBillToPhone!.highlighted = true;
+            setBillToPhone!.mandatory = true;
+            setBillToPhone!.readonly = false;
+            setBillToPhone!.textColor = color;
+            setBillToPhone!.title = phrase;
+            setBillToPhone!.visible = true;
+            setBillToPhone!.value = randPhone + randPhone;
+          } catch (err) {
+            console.log(err);
+          }
+          let getBillToPhone = await uiObject.getField("BillToPhone");
+          expect(
+            getBillToPhone!,
+            "failed on BillToPhone field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(getBillToPhone?.type, "failed on BillToPhone.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getBillToPhone!.value, "failed on BillToPhone.value field")
+              .to.be.a("string")
+              .and.to.be.equal(randPhone + randPhone).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getBillToPhone!.accessory,
+              "failed on BillToPhone.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToPhone!.backgroundColor,
+              "failed on BillToPhone.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToPhone!.decimalDigits,
+              "failed on BillToPhone.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToPhone!.highlighted,
+              "failed on BillToPhone.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToPhone!.mandatory,
+              "failed on BillToPhone.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToPhone!.readonly,
+              "failed on BillToPhone.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToPhone!.textColor,
+              "failed on BillToPhone.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getBillToPhone!.title, "failed on BillToPhone.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToPhone!.visible,
+              "failed on BillToPhone.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setBillToCountryIso = await uiObject.getField("BillToCountryIso");
+          try {
+            setBillToCountryIso!.accessory = randAcessory;
+            setBillToCountryIso!.backgroundColor = bgColor;
+            setBillToCountryIso!.decimalDigits = 3;
+            setBillToCountryIso!.highlighted = true;
+            setBillToCountryIso!.mandatory = true;
+            setBillToCountryIso!.readonly = false;
+            setBillToCountryIso!.textColor = color;
+            setBillToCountryIso!.title = phrase;
+            setBillToCountryIso!.visible = true;
+            setBillToCountryIso!.value = "IL";
+          } catch (err) {
+            console.log(err);
+          }
+          let getBillToCountryIso = await uiObject.getField("BillToCountryIso");
+          expect(
+            getBillToCountryIso!,
+            "failed on BillToCountryIso field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToCountryIso?.type,
+              "failed on BillToCountryIso.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("EmptyComboBox").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToCountryIso!.value,
+              "failed on BillToCountryIso.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal("IL").that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToCountryIso!.accessory,
+              "failed on BillToCountryIso.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToCountryIso!.backgroundColor,
+              "failed on BillToCountryIso.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToCountryIso!.decimalDigits,
+              "failed on BillToCountryIso.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToCountryIso!.highlighted,
+              "failed on BillToCountryIso.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToCountryIso!.mandatory,
+              "failed on BillToCountryIso.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToCountryIso!.readonly,
+              "failed on BillToCountryIso.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToCountryIso!.textColor,
+              "failed on BillToCountryIso.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToCountryIso!.title,
+              "failed on BillToCountryIso.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToCountryIso!.visible,
+              "failed on BillToCountryIso.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setBillToStreet = await uiObject.getField("BillToStreet");
+          try {
+            setBillToStreet!.accessory = randAcessory;
+            setBillToStreet!.backgroundColor = bgColor;
+            setBillToStreet!.decimalDigits = 3;
+            setBillToStreet!.highlighted = true;
+            setBillToStreet!.mandatory = true;
+            setBillToStreet!.readonly = false;
+            setBillToStreet!.textColor = color;
+            setBillToStreet!.title = phrase;
+            setBillToStreet!.visible = true;
+            setBillToStreet!.value = "Dizingoff";
+          } catch (err) {
+            console.log(err);
+          }
+          let getBillToStreet = await uiObject.getField("BillToStreet");
+          expect(
+            getBillToStreet!,
+            "failed on BillToStreet field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(getBillToStreet?.type, "failed on BillToStreet.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getBillToStreet!.value, "failed on BillToStreet.value field")
+              .to.be.a("string")
+              .and.to.be.equal("Dizingoff").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToStreet!.accessory,
+              "failed on BillToStreet.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToStreet!.backgroundColor,
+              "failed on BillToStreet.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToStreet!.decimalDigits,
+              "failed on BillToStreet.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToStreet!.highlighted,
+              "failed on BillToStreet.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToStreet!.mandatory,
+              "failed on BillToStreet.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToStreet!.readonly,
+              "failed on BillToStreet.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToStreet!.textColor,
+              "failed on BillToStreet.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getBillToStreet!.title, "failed on BillToStreet.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToStreet!.visible,
+              "failed on BillToStreet.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setBillToCity = await uiObject.getField("BillToCity");
+          try {
+            setBillToCity!.accessory = randAcessory;
+            setBillToCity!.backgroundColor = bgColor;
+            setBillToCity!.decimalDigits = 3;
+            setBillToCity!.highlighted = true;
+            setBillToCity!.mandatory = true;
+            setBillToCity!.readonly = false;
+            setBillToCity!.textColor = color;
+            setBillToCity!.title = phrase;
+            setBillToCity!.visible = true;
+            setBillToCity!.value = "Tel-Aviv";
+          } catch (err) {
+            console.log(err);
+          }
+          let getBillToCity = await uiObject.getField("BillToCity");
+          expect(getBillToCity!, "failed on BillToCity field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getBillToCity?.type, "failed on BillToCity.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getBillToCity!.value, "failed on BillToCity.value field")
+              .to.be.a("string")
+              .and.to.be.equal("Tel-Aviv").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToCity!.accessory,
+              "failed on BillToCity.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToCity!.backgroundColor,
+              "failed on BillToCity.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToCity!.decimalDigits,
+              "failed on BillToCity.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToCity!.highlighted,
+              "failed on BillToCity.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToCity!.mandatory,
+              "failed on BillToCity.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToCity!.readonly,
+              "failed on BillToCity.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToCity!.textColor,
+              "failed on BillToCity.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getBillToCity!.title, "failed on BillToCity.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToCity!.visible,
+              "failed on BillToCity.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setBillToZipCode = await uiObject.getField("BillToZipCode");
+          try {
+            setBillToZipCode!.accessory = randAcessory;
+            setBillToZipCode!.backgroundColor = bgColor;
+            setBillToZipCode!.decimalDigits = 3;
+            setBillToZipCode!.highlighted = true;
+            setBillToZipCode!.mandatory = true;
+            setBillToZipCode!.readonly = false;
+            setBillToZipCode!.textColor = color;
+            setBillToZipCode!.title = phrase;
+            setBillToZipCode!.visible = true;
+            setBillToZipCode!.value = (randZip + randZip).toString();
+          } catch (err) {
+            console.log(err);
+          }
+          let getBillToZipCode = await uiObject.getField("BillToZipCode");
+          expect(
+            getBillToZipCode!,
+            "failed on BillToZipCode field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(getBillToZipCode?.type, "failed on BillToZipCode.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToZipCode!.value,
+              "failed on BillToZipCode.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal((randZip + randZip).toString()).that.is.not.null
+              .and.is.not.undefined,
+            expect(
+              getBillToZipCode!.accessory,
+              "failed on BillToZipCode.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToZipCode!.backgroundColor,
+              "failed on BillToZipCode.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToZipCode!.decimalDigits,
+              "failed on BillToZipCode.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToZipCode!.highlighted,
+              "failed on BillToZipCode.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToZipCode!.mandatory,
+              "failed on BillToZipCode.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToZipCode!.readonly,
+              "failed on BillToZipCode.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToZipCode!.textColor,
+              "failed on BillToZipCode.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToZipCode!.title,
+              "failed on BillToZipCode.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToZipCode!.visible,
+              "failed on BillToZipCode.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setBillToName = await uiObject.getField("BillToName");
+          try {
+            setBillToName!.accessory = randAcessory;
+            setBillToName!.backgroundColor = bgColor;
+            setBillToName!.decimalDigits = 3;
+            setBillToName!.highlighted = true;
+            setBillToName!.mandatory = true;
+            setBillToName!.readonly = false;
+            setBillToName!.textColor = color;
+            setBillToName!.title = phrase;
+            setBillToName!.visible = true;
+            setBillToName!.value = name + ExID;
+          } catch (err) {
+            console.log(err);
+          }
+          let getBillToName = await uiObject.getField("BillToName");
+          expect(getBillToName!, "failed on BillToName field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getBillToName?.type, "failed on BillToName.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getBillToName!.value, "failed on BillToName.value field")
+              .to.be.a("string")
+              .and.to.be.equal(name + ExID).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToName!.accessory,
+              "failed on BillToName.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToName!.backgroundColor,
+              "failed on BillToName.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToName!.decimalDigits,
+              "failed on BillToName.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToName!.highlighted,
+              "failed on BillToName.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToName!.mandatory,
+              "failed on BillToName.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToName!.readonly,
+              "failed on BillToName.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getBillToName!.textColor,
+              "failed on BillToName.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getBillToName!.title, "failed on BillToName.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getBillToName!.visible,
+              "failed on BillToName.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setSubTotalAfterItemsDiscount = await uiObject.getField(
+            "SubTotalAfterItemsDiscount"
+          );
+          try {
+            setSubTotalAfterItemsDiscount!.accessory = randAcessory;
+            setSubTotalAfterItemsDiscount!.backgroundColor = bgColor;
+            setSubTotalAfterItemsDiscount!.decimalDigits = 3;
+            setSubTotalAfterItemsDiscount!.highlighted = true;
+            setSubTotalAfterItemsDiscount!.mandatory = true;
+            setSubTotalAfterItemsDiscount!.readonly = false;
+            setSubTotalAfterItemsDiscount!.textColor = color;
+            setSubTotalAfterItemsDiscount!.title = phrase;
+            setSubTotalAfterItemsDiscount!.visible = true;
+            setSubTotalAfterItemsDiscount!.value = (
+              randZip * randDiscount +
+              1
+            ).toString();
+          } catch (err) {
+            console.log(err);
+          }
+          let getSubTotalAfterItemsDiscount = await uiObject.getField(
+            "SubTotalAfterItemsDiscount"
+          );
+          expect(
+            getSubTotalAfterItemsDiscount!,
+            "failed on SubTotalAfterItemsDiscount field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getSubTotalAfterItemsDiscount?.type,
+              "failed on SubTotalAfterItemsDiscount.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("Currency").that.is.not.null.and.is.not.undefined,
+            expect(
+              getSubTotalAfterItemsDiscount!.value,
+              "failed on SubTotalAfterItemsDiscount.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal((randZip * randDiscount + 1).toString()).that.is
+              .not.null.and.is.not.undefined,
+            expect(
+              getSubTotalAfterItemsDiscount!.accessory,
+              "failed on SubTotalAfterItemsDiscount.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getSubTotalAfterItemsDiscount!.backgroundColor,
+              "failed on SubTotalAfterItemsDiscount.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getSubTotalAfterItemsDiscount!.decimalDigits,
+              "failed on SubTotalAfterItemsDiscount.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getSubTotalAfterItemsDiscount!.highlighted,
+              "failed on SubTotalAfterItemsDiscount.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getSubTotalAfterItemsDiscount!.mandatory,
+              "failed on SubTotalAfterItemsDiscount.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getSubTotalAfterItemsDiscount!.readonly,
+              "failed on SubTotalAfterItemsDiscount.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getSubTotalAfterItemsDiscount!.textColor,
+              "failed on SubTotalAfterItemsDiscount.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getSubTotalAfterItemsDiscount!.title,
+              "failed on SubTotalAfterItemsDiscount.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getSubTotalAfterItemsDiscount!.visible,
+              "failed on SubTotalAfterItemsDiscount.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setQuantitiesTotal = await uiObject.getField("QuantitiesTotal");
+          try {
+            setQuantitiesTotal!.accessory = randAcessory;
+            setQuantitiesTotal!.backgroundColor = bgColor;
+            setQuantitiesTotal!.decimalDigits = 3;
+            setQuantitiesTotal!.highlighted = true;
+            setQuantitiesTotal!.mandatory = true;
+            setQuantitiesTotal!.readonly = false;
+            setQuantitiesTotal!.textColor = color;
+            setQuantitiesTotal!.title = phrase;
+            setQuantitiesTotal!.visible = true;
+            setQuantitiesTotal!.value = (quantitiesTotal * 2).toString();
+          } catch (err) {
+            console.log(err);
+          }
+          let getQuantitiesTotal = await uiObject.getField("QuantitiesTotal");
+          expect(
+            getQuantitiesTotal!,
+            "failed on QuantitiesTotal field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getQuantitiesTotal?.type,
+              "failed on QuantitiesTotal.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("NumberReal").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getQuantitiesTotal!.value,
+              "failed on QuantitiesTotal.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal((quantitiesTotal * 2).toString()).that.is.not
+              .null.and.is.not.undefined,
+            expect(
+              getQuantitiesTotal!.accessory,
+              "failed on QuantitiesTotal.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getQuantitiesTotal!.backgroundColor,
+              "failed on QuantitiesTotal.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getQuantitiesTotal!.decimalDigits,
+              "failed on QuantitiesTotal.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getQuantitiesTotal!.highlighted,
+              "failed on QuantitiesTotal.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getQuantitiesTotal!.mandatory,
+              "failed on QuantitiesTotal.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getQuantitiesTotal!.readonly,
+              "failed on QuantitiesTotal.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getQuantitiesTotal!.textColor,
+              "failed on QuantitiesTotal.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getQuantitiesTotal!.title,
+              "failed on QuantitiesTotal.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getQuantitiesTotal!.visible,
+              "failed on QuantitiesTotal.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          //================================TSA's=============================================
+          let setTSASingleLineText = await uiObject.getField(
+            "TSASingleLineText"
+          );
+          try {
+            setTSASingleLineText!.accessory = randAcessory;
+            setTSASingleLineText!.backgroundColor = bgColor;
+            setTSASingleLineText!.decimalDigits = 3;
+            setTSASingleLineText!.highlighted = true;
+            setTSASingleLineText!.mandatory = true;
+            setTSASingleLineText!.readonly = false;
+            setTSASingleLineText!.textColor = color;
+            setTSASingleLineText!.title = phrase;
+            setTSASingleLineText!.visible = true;
+            setTSASingleLineText!.value = phrase + randDiscount + name;
+          } catch (err) {
+            console.log(err);
+          }
+          let getTSASingleLineText = await uiObject.getField(
+            "TSASingleLineText"
+          );
+          expect(
+            getTSASingleLineText!,
+            "failed on TSASingleLineText field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSASingleLineText?.type,
+              "failed on TSASingleLineText.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSASingleLineText!.value,
+              "failed on TSASingleLineText.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(phrase + randDiscount + name).that.is.not.null
+              .and.is.not.undefined,
+            expect(
+              getTSASingleLineText?.accessory,
+              "failed on TSASingleLineText.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSASingleLineText!.backgroundColor,
+              "failed on TSASingleLineText.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSASingleLineText!.decimalDigits,
+              "failed on TSASingleLineText.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSASingleLineText!.highlighted,
+              "failed on TSASingleLineText.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSASingleLineText!.mandatory,
+              "failed on TSASingleLineText.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSASingleLineText!.readonly,
+              "failed on TSASingleLineText.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSASingleLineText!.textColor,
+              "failed on TSASingleLineText.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSASingleLineText!.title,
+              "failed on TSASingleLineText.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSASingleLineText!.visible,
+              "failed on TSASingleLineText.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setTSALimitedLineText = await uiObject.getField(
+            "TSALimitedLineText"
+          );
+          try {
+            setTSALimitedLineText!.accessory = randAcessory;
+            setTSALimitedLineText!.backgroundColor = bgColor;
+            setTSALimitedLineText!.decimalDigits = 3;
+            setTSALimitedLineText!.highlighted = true;
+            setTSALimitedLineText!.mandatory = true;
+            setTSALimitedLineText!.readonly = false;
+            setTSALimitedLineText!.textColor = color;
+            setTSALimitedLineText!.title = phrase;
+            setTSALimitedLineText!.visible = true;
+            setTSALimitedLineText!.value = phrase + randDiscount + name;
+          } catch (err) {
+            console.log(err);
+          }
+          let getTSALimitedLineText = await uiObject.getField(
+            "TSALimitedLineText"
+          );
+          expect(
+            getTSALimitedLineText!,
+            "failed on TSALimitedLineText field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALimitedLineText?.type,
+              "failed on getTSALimitedLineText.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("LimitedLengthTextBox").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALimitedLineText!.value,
+              "failed on TSALimitedLineText.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(phrase + randDiscount + name).that.is.not.null
+              .and.is.not.undefined,
+            expect(
+              getTSALimitedLineText!.accessory,
+              "failed on TSALimitedLineText.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALimitedLineText!.backgroundColor,
+              "failed on TSALimitedLineText.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALimitedLineText!.decimalDigits,
+              "failed on TSALimitedLineText.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALimitedLineText!.highlighted,
+              "failed on TSALimitedLineText.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALimitedLineText!.mandatory,
+              "failed on TSALimitedLineText.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALimitedLineText!.readonly,
+              "failed on TSALimitedLineText.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALimitedLineText!.textColor,
+              "failed on TSALimitedLineText.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALimitedLineText!.title,
+              "failed on TSALimitedLineText.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALimitedLineText!.visible,
+              "failed on TSALimitedLineText.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setTSAParagraphText = await uiObject.getField("TSAParagraphText");
+          try {
+            setTSAParagraphText!.accessory = randAcessory;
+            setTSAParagraphText!.backgroundColor = bgColor;
+            setTSAParagraphText!.decimalDigits = 3;
+            setTSAParagraphText!.highlighted = true;
+            setTSAParagraphText!.mandatory = true;
+            setTSAParagraphText!.readonly = false;
+            setTSAParagraphText!.textColor = color;
+            setTSAParagraphText!.title = phrase;
+            setTSAParagraphText!.visible = true;
+            setTSAParagraphText!.value = phrase + randDiscount + name;
+          } catch (err) {
+            console.log(err);
+          }
+          let getTSAParagraphText = await uiObject.getField("TSAParagraphText");
+          expect(
+            getTSAParagraphText!,
+            "failed on TSAParagraphText field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAParagraphText?.type,
+              "failed on getTSAParagraphText.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("TextArea").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAParagraphText!.value,
+              "failed on TSAParagraphText.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(phrase + randDiscount + name).that.is.not.null
+              .and.is.not.undefined,
+            expect(
+              getTSAParagraphText!.accessory,
+              "failed on TSAParagraphText.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAParagraphText!.backgroundColor,
+              "failed on TSAParagraphText.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAParagraphText!.decimalDigits,
+              "failed on TSAParagraphText.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAParagraphText!.highlighted,
+              "failed on TSAParagraphText.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAParagraphText!.mandatory,
+              "failed on TSAParagraphText.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAParagraphText!.readonly,
+              "failed on TSAParagraphText.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAParagraphText!.textColor,
+              "failed on TSAParagraphText.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAParagraphText!.title,
+              "failed on TSAParagraphText.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAParagraphText!.visible,
+              "failed on TSAParagraphText.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setTSADateField = await uiObject.getField("TSADateField");
+          try {
+            setTSADateField!.accessory = randAcessory;
+            setTSADateField!.backgroundColor = bgColor;
+            setTSADateField!.decimalDigits = 3;
+            setTSADateField!.highlighted = true;
+            setTSADateField!.mandatory = true;
+            setTSADateField!.readonly = false;
+            setTSADateField!.textColor = color;
+            setTSADateField!.title = phrase;
+            setTSADateField!.visible = true;
+            setTSADateField!.value = "1990-07-27";
+          } catch (err) {
+            console.log(err);
+          }
+          let getTSADateField = await uiObject.getField("TSADateField");
+          expect(
+            getTSADateField!,
+            "failed on TSADateField field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateField?.type,
+              "failed on getTSADateField.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("Date").that.is.not.null.and.is.not.undefined,
+            expect(getTSADateField!.value, "failed on TSADateField.value field")
+              .to.be.a("string")
+              .and.to.be.equal("1990-07-27").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateField!.accessory,
+              "failed on TSADateField.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateField!.backgroundColor,
+              "failed on TSADateField.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateField!.decimalDigits,
+              "failed on TSADateField.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateField!.highlighted,
+              "failed on TSADateField.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateField!.mandatory,
+              "failed on TSADateField.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateField!.readonly,
+              "failed on TSADateField.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateField!.textColor,
+              "failed on TSADateField.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getTSADateField!.title, "failed on TSADateField.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateField!.visible,
+              "failed on TSADateField.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setTSADateTimeField = await uiObject.getField("TSADateTimeField");
+          try {
+            setTSADateTimeField!.accessory = randAcessory;
+            setTSADateTimeField!.backgroundColor = bgColor;
+            setTSADateTimeField!.decimalDigits = 3;
+            setTSADateTimeField!.highlighted = true;
+            setTSADateTimeField!.mandatory = true;
+            setTSADateTimeField!.readonly = false;
+            setTSADateTimeField!.textColor = color;
+            setTSADateTimeField!.title = phrase;
+            setTSADateTimeField!.visible = true;
+            setTSADateTimeField!.value = "1990-07-27:00:00:00";
+          } catch (err) {
+            console.log(err);
+          }
+          let getTSADateTimeField = await uiObject.getField("TSADateTimeField");
+          expect(
+            getTSADateTimeField!,
+            "failed on TSADateTimeField field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateTimeField?.type,
+              "failed on getTSADateTimeField.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("DateAndTime").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateTimeField!.value,
+              "failed on TSADateTimeField.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal("1990-07-27:00:00:00").that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getTSADateTimeField!.accessory,
+              "failed on TSADateTimeField.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateTimeField!.backgroundColor,
+              "failed on TSADateTimeField.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateTimeField!.decimalDigits,
+              "failed on TSADateTimeField.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateTimeField!.highlighted,
+              "failed on TSADateTimeField.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateTimeField!.mandatory,
+              "failed on TSADateTimeField.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateTimeField!.readonly,
+              "failed on TSADateTimeField.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateTimeField!.textColor,
+              "failed on TSADateTimeField.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateTimeField!.title,
+              "failed on TSADateTimeField.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateTimeField!.visible,
+              "failed on TSADateTimeField.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setTSACheckboxField = await uiObject.getField("TSACheckboxField");
+          try {
+            setTSACheckboxField!.accessory = randAcessory;
+            setTSACheckboxField!.backgroundColor = bgColor;
+            setTSACheckboxField!.decimalDigits = 3;
+            setTSACheckboxField!.highlighted = true;
+            setTSACheckboxField!.mandatory = true;
+            setTSACheckboxField!.readonly = false;
+            setTSACheckboxField!.textColor = color;
+            setTSACheckboxField!.title = phrase;
+            setTSACheckboxField!.visible = true;
+            setTSACheckboxField!.value = (!randBool).toString();
+          } catch (err) {
+            console.log(err);
+          }
+          let getTSACheckboxField = await uiObject.getField("TSACheckboxField");
+          expect(
+            getTSACheckboxField!,
+            "failed on TSACheckboxField field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACheckboxField?.type,
+              "failed on getTSACheckboxField.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("BooleanText").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACheckboxField!.value,
+              "failed on TSACheckboxField.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal((!randBool).toString()).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getTSACheckboxField!.accessory,
+              "failed on TSACheckboxField.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACheckboxField!.backgroundColor,
+              "failed on TSACheckboxField.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACheckboxField!.decimalDigits,
+              "failed on TSACheckboxField.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACheckboxField!.highlighted,
+              "failed on TSACheckboxField.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACheckboxField!.mandatory,
+              "failed on TSACheckboxField.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACheckboxField!.readonly,
+              "failed on TSACheckboxField.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACheckboxField!.textColor,
+              "failed on TSACheckboxField.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACheckboxField!.title,
+              "failed on TSACheckboxField.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACheckboxField!.visible,
+              "failed on TSACheckboxField.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setTSACurrencyField = await uiObject.getField("TSACurrencyField");
+          try {
+            setTSACurrencyField!.accessory = randAcessory;
+            setTSACurrencyField!.backgroundColor = bgColor;
+            setTSACurrencyField!.decimalDigits = 3;
+            setTSACurrencyField!.highlighted = true;
+            setTSACurrencyField!.mandatory = true;
+            setTSACurrencyField!.readonly = false;
+            setTSACurrencyField!.textColor = color;
+            setTSACurrencyField!.title = phrase;
+            setTSACurrencyField!.visible = true;
+            setTSACurrencyField!.value = (randDiscount * 2).toString();
+          } catch (err) {
+            console.log(err);
+          }
+          let getTSACurrencyField = await uiObject.getField("TSACurrencyField");
+          expect(
+            getTSACurrencyField!,
+            "failed on TSACurrencyField field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACurrencyField?.type,
+              "failed on getTSACurrencyField.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("Currency").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACurrencyField!.value,
+              "failed on TSACurrencyField.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal((randDiscount * 2).toString()).that.is.not.null
+              .and.is.not.undefined,
+            expect(
+              getTSACurrencyField!.accessory,
+              "failed on TSACurrencyField.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACurrencyField!.backgroundColor,
+              "failed on TSACurrencyField.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACurrencyField!.decimalDigits,
+              "failed on TSACurrencyField.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACurrencyField!.highlighted,
+              "failed on TSACurrencyField.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACurrencyField!.mandatory,
+              "failed on TSACurrencyField.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACurrencyField!.readonly,
+              "failed on TSACurrencyField.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACurrencyField!.textColor,
+              "failed on TSACurrencyField.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACurrencyField!.title,
+              "failed on TSACurrencyField.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACurrencyField!.visible,
+              "failed on TSACurrencyField.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setTSADecimalField = await uiObject.getField("TSADecimalField");
+          try {
+            setTSADecimalField!.accessory = randAcessory;
+            setTSADecimalField!.backgroundColor = bgColor;
+            setTSADecimalField!.decimalDigits = 3;
+            setTSADecimalField!.highlighted = true;
+            setTSADecimalField!.mandatory = true;
+            setTSADecimalField!.readonly = false;
+            setTSADecimalField!.textColor = color;
+            setTSADecimalField!.title = phrase;
+            setTSADecimalField!.visible = true;
+            setTSADecimalField!.value = (!randBool).toString();
+          } catch (err) {
+            console.log(err);
+          }
+          let getTSADecimalField = await uiObject.getField("TSADecimalField");
+          expect(
+            getTSADecimalField!,
+            "failed on TSADecimalField field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADecimalField?.type,
+              "failed on getTSADecimalField.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("NumberReal").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADecimalField!.value,
+              "failed on TSADecimalField.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal((!randBool).toString()).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getTSADecimalField!.accessory,
+              "failed on TSADecimalField.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADecimalField!.backgroundColor,
+              "failed on TSADecimalField.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADecimalField!.decimalDigits,
+              "failed on TSADecimalField.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADecimalField!.highlighted,
+              "failed on TSADecimalField.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADecimalField!.mandatory,
+              "failed on TSADecimalField.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADecimalField!.readonly,
+              "failed on TSADecimalField.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADecimalField!.textColor,
+              "failed on TSADecimalField.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADecimalField!.title,
+              "failed on TSADecimalField.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADecimalField!.visible,
+              "failed on TSADecimalField.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setTSANumberField = await uiObject.getField("TSANumberField");
+          try {
+            setTSANumberField!.accessory = randAcessory;
+            setTSANumberField!.backgroundColor = bgColor;
+            setTSANumberField!.decimalDigits = 3;
+            setTSANumberField!.highlighted = true;
+            setTSANumberField!.mandatory = true;
+            setTSANumberField!.readonly = false;
+            setTSANumberField!.textColor = color;
+            setTSANumberField!.title = phrase;
+            setTSANumberField!.visible = true;
+            setTSANumberField!.value = (quantitiesTotal * 2).toString();
+          } catch (err) {
+            console.log(err);
+          }
+          let getTSANumberField = await uiObject.getField("TSANumberField");
+          expect(
+            getTSANumberField!,
+            "failed on TSANumberField field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSANumberField?.type,
+              "failed on getTSANumberField.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("NumberInteger").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSANumberField!.value,
+              "failed on TSANumberField.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal((quantitiesTotal * 2).toString()).that.is.not
+              .null.and.is.not.undefined,
+            expect(
+              getTSANumberField!.accessory,
+              "failed on TSANumberField.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSANumberField!.backgroundColor,
+              "failed on TSANumberField.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSANumberField!.decimalDigits,
+              "failed on TSANumberField.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSANumberField!.highlighted,
+              "failed on TSANumberField.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSANumberField!.mandatory,
+              "failed on TSANumberField.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSANumberField!.readonly,
+              "failed on TSANumberField.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSANumberField!.textColor,
+              "failed on TSANumberField.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSANumberField!.title,
+              "failed on TSANumberField.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSANumberField!.visible,
+              "failed on TSANumberField.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setTSAEmailField = await uiObject.getField("TSAEmailField");
+          try {
+            setTSAEmailField!.accessory = randAcessory;
+            setTSAEmailField!.backgroundColor = bgColor;
+            setTSAEmailField!.decimalDigits = 3;
+            setTSAEmailField!.highlighted = true;
+            setTSAEmailField!.mandatory = true;
+            setTSAEmailField!.readonly = false;
+            setTSAEmailField!.textColor = color;
+            setTSAEmailField!.title = phrase;
+            setTSAEmailField!.visible = true;
+            setTSAEmailField!.value = randDiscount + userEmail;
+          } catch (err) {
+            console.log(err);
+          }
+          let getTSAEmailField = await uiObject.getField("TSAEmailField");
+          expect(
+            getTSAEmailField!,
+            "failed on TSAEmailField field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAEmailField?.type,
+              "failed on getTSAEmailField.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("Email").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAEmailField!.value,
+              "failed on TSAEmailField.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(randDiscount + userEmail).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getTSAEmailField!.accessory,
+              "failed on TSAEmailField.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAEmailField!.backgroundColor,
+              "failed on TSAEmailField.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAEmailField!.decimalDigits,
+              "failed on TSAEmailField.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAEmailField!.highlighted,
+              "failed on TSAEmailField.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAEmailField!.mandatory,
+              "failed on TSAEmailField.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAEmailField!.readonly,
+              "failed on TSAEmailField.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAEmailField!.textColor,
+              "failed on TSAEmailField.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAEmailField!.title,
+              "failed on TSAEmailField.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAEmailField!.visible,
+              "failed on TSAEmailField.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setTSAPhoneField = await uiObject.getField("TSAPhoneField");
+          try {
+            setTSAPhoneField!.accessory = randAcessory;
+            setTSAPhoneField!.backgroundColor = bgColor;
+            setTSAPhoneField!.decimalDigits = 3;
+            setTSAPhoneField!.highlighted = true;
+            setTSAPhoneField!.mandatory = true;
+            setTSAPhoneField!.readonly = false;
+            setTSAPhoneField!.textColor = color;
+            setTSAPhoneField!.title = phrase;
+            setTSAPhoneField!.visible = true;
+            setTSAPhoneField!.value = (randPhone + randPhone).toString();
+          } catch (err) {
+            console.log(err);
+          }
+          let getTSAPhoneField = await uiObject.getField("TSAPhoneField");
+          expect(
+            getTSAPhoneField!,
+            "failed on TSAPhoneField field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAPhoneField?.type,
+              "failed on getTSAPhoneField.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("Phone").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAPhoneField!.value,
+              "failed on TSAPhoneField.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal((randPhone + randPhone).toString()).that.is.not
+              .null.and.is.not.undefined,
+            expect(
+              getTSAPhoneField!.accessory,
+              "failed on TSAPhoneField.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAPhoneField!.backgroundColor,
+              "failed on TSAPhoneField.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAPhoneField!.decimalDigits,
+              "failed on TSAPhoneField.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAPhoneField!.highlighted,
+              "failed on TSAPhoneField.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAPhoneField!.mandatory,
+              "failed on TSAPhoneField.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAPhoneField!.readonly,
+              "failed on TSAPhoneField.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAPhoneField!.textColor,
+              "failed on TSAPhoneField.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAPhoneField!.title,
+              "failed on TSAPhoneField.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAPhoneField!.visible,
+              "failed on TSAPhoneField.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setTSALinkField = await uiObject.getField("TSALinkField");
+          try {
+            setTSALinkField!.accessory = randAcessory;
+            setTSALinkField!.backgroundColor = bgColor;
+            setTSALinkField!.decimalDigits = 3;
+            setTSALinkField!.highlighted = true;
+            setTSALinkField!.mandatory = true;
+            setTSALinkField!.readonly = false;
+            setTSALinkField!.textColor = color;
+            setTSALinkField!.title = phrase;
+            setTSALinkField!.visible = true;
+            setTSALinkField!.value = userEmail + userEmail;
+          } catch (err) {
+            console.log(err);
+          }
+          let getTSALinkField = await uiObject.getField("TSALinkField");
+          expect(
+            getTSALinkField!,
+            "failed on TSALinkField field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALinkField?.type,
+              "failed on getTSALinkField.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("Link").that.is.not.null.and.is.not.undefined,
+            expect(getTSALinkField!.value, "failed on TSALinkField.value field")
+              .to.be.a("string")
+              .and.to.be.equal(userEmail + userEmail).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getTSALinkField!.accessory,
+              "failed on TSALinkField.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALinkField!.backgroundColor,
+              "failed on TSALinkField.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALinkField!.decimalDigits,
+              "failed on TSALinkField.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALinkField!.highlighted,
+              "failed on TSALinkField.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALinkField!.mandatory,
+              "failed on TSALinkField.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALinkField!.readonly,
+              "failed on TSALinkField.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALinkField!.textColor,
+              "failed on TSALinkField.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getTSALinkField!.title, "failed on TSALinkField.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALinkField!.visible,
+              "failed on TSALinkField.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          let setTSAHTMLField = await uiObject.getField("TSAHTMLField");
+          try {
+            setTSAHTMLField!.accessory = randAcessory;
+            setTSAHTMLField!.backgroundColor = bgColor;
+            setTSAHTMLField!.decimalDigits = 3;
+            setTSAHTMLField!.highlighted = true;
+            setTSAHTMLField!.mandatory = true;
+            setTSAHTMLField!.readonly = false;
+            setTSAHTMLField!.textColor = color;
+            setTSAHTMLField!.title = phrase;
+            setTSAHTMLField!.visible = true;
+            setTSAHTMLField!.value = HTML + HTML;
+          } catch (err) {
+            console.log(err);
+          }
+          let getTSAHTMLField = await uiObject.getField("TSAHTMLField");
+          expect(
+            getTSAHTMLField!,
+            "failed on TSAHTMLField field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(getTSAHTMLField?.type, "failed on TSAHTMLField.type field")
+              .to.be.a("string")
+              .that.is.equal("RichTextHTML").that.is.not.null.and.is.not
+              .undefined,
+            expect(getTSAHTMLField!.value, "failed on TSAHTMLField.value field")
+              .to.be.a("string")
+              .and.to.be.equal(HTML + HTML).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAHTMLField!.accessory,
+              "failed on TSAHTMLField.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAHTMLField!.backgroundColor,
+              "failed on TSAHTMLField.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAHTMLField!.decimalDigits,
+              "failed on TSAHTMLField.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAHTMLField!.highlighted,
+              "failed on TSAHTMLField.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAHTMLField!.mandatory,
+              "failed on TSAHTMLField.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAHTMLField!.readonly,
+              "failed on TSAHTMLField.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAHTMLField!.textColor,
+              "failed on TSAHTMLField.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getTSAHTMLField!.title, "failed on TSAHTMLField.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAHTMLField!.visible,
+              "failed on TSAHTMLField.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          console.log(
+            "%cDetails - Accessors - UIObject Finished CRUD testing!",
+            "color: #bada55"
+          );
+        });
       });
       break;
     }
@@ -5958,8 +5915,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
         let uiObject = TrnDetailsUIPage.uiObject;
         let accUIObject = AccDetailsUIPage.uiObject;
         const status = 2;
-
-        it("CRUD testing on Transaction Details UIObject - Recalculate (DI-18476) - ignore for now,might become a test for ReloadDataObject", async () => {
+        it("CRUD testing on Transaction Details UIObject - Recalculate", async () => {
           console.log(
             "%cDetails - Recalculate - UIObject Starting CRUD testing!",
             "color: #bada55"
@@ -5971,106 +5927,122 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           //===========================SET=========================================
           //========================TSA's===========================================
           //setting new values for the recalculate to work
-          await uiObject?.setFieldValue("TSASingleLineText", phrase + randDays);
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue(
+            "TSASingleLineText",
+            phrase + randDays
+          );
+          await dataObject?.setFieldValue(
             "TSALimitedLineText",
             phrase + randDays
           );
-          await uiObject?.setFieldValue("TSAParagraphText", phrase + randDays);
-          await uiObject?.setFieldValue("TSADateField", "27-07-1990");
-          await uiObject?.setFieldValue(
-            "TSADateTimeField",
-            "27-07-1990T07:45:00Z"
+          await dataObject?.setFieldValue(
+            "TSAParagraphText",
+            phrase + randDays
           );
-          await uiObject?.setFieldValue("TSADecimalField", randZip.toFixed(6));
-          await uiObject?.setFieldValue("TSANumberField", randDays.toString());
-          await uiObject?.setFieldValue(
+          //const dateOnly = await dateFormatter("27-07-1990T07:45:00Z"); // returns 1990-07-27
+          await dataObject?.setFieldValue("TSADateField", "1990-07-27");
+          await dataObject?.setFieldValue(
+            "TSADateTimeField",
+            "1990-07-27T07:45:00Z"
+          );
+          await dataObject?.setFieldValue(
+            "TSADecimalField",
+            randZip.toFixed(6)
+          );
+          await dataObject?.setFieldValue(
+            "TSANumberField",
+            randDays.toString()
+          );
+          await dataObject?.setFieldValue(
             "TSACurrencyField",
             randDays.toString()
           );
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue(
             "TSACheckboxField",
             (!randBool).toString()
           );
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue(
             "TSAEmailField",
             "dor.s@cpinodetest.com"
           );
-          await uiObject?.setFieldValue("TSAPhoneField", randZip.toString());
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue("TSAPhoneField", randZip.toString());
+          await dataObject?.setFieldValue(
             "TSALinkField",
             "https://en.wikipedia.org/wiki/Iron_Man"
           );
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue(
             "TSAHTMLField",
             HTML + "<br/><h1>this is a change</h1>"
           );
           //===================================SystemFields=================================
           const status = 2;
-          await uiObject?.setFieldValue("ExternalID", name);
-          await uiObject?.setFieldValue("Remark", ExID);
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue("ExternalID", name);
+          await dataObject?.setFieldValue("Remark", ExID);
+          await dataObject?.setFieldValue(
             "DiscountPercentage",
             randDays.toString()
           );
-          await uiObject?.setFieldValue("BillToName", phrase);
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue("BillToName", phrase);
+          await dataObject?.setFieldValue(
             "BillToStreet",
             accounDataArr[accountGeoIndex].Street
           );
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue(
             "BillToCity",
             accounDataArr[accountGeoIndex].City
           );
-          await uiObject?.setFieldValue("BillToZipCode", randDays.toString());
-          await uiObject?.setFieldValue("BillToPhone", randZip.toString());
-          await uiObject?.setFieldValue("QuantitiesTotal", randDays.toString());
-          await uiObject?.setFieldValue("DeliveryDate", "27-07-1990");
-          await uiObject?.setFieldValue("Status", (status + 1).toString());
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue("BillToZipCode", randDays.toString());
+          await dataObject?.setFieldValue("BillToPhone", randZip.toString());
+          await dataObject?.setFieldValue(
+            "QuantitiesTotal",
+            randDays.toString()
+          );
+          await dataObject?.setFieldValue("DeliveryDate", "1990-07-27");
+          await dataObject?.setFieldValue("Status", (status + 1).toString());
+          await dataObject?.setFieldValue(
             "SubmissionGeoCodeLAT",
             accounDataArr[accountGeoIndex].Latitude!.toString()
           );
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue(
             "SubmissionGeoCodeLNG",
             accounDataArr[accountGeoIndex].Longtitude!.toString()
           );
-          await uiObject?.setFieldValue("ShipToName", phrase);
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue("ShipToName", phrase);
+          await dataObject?.setFieldValue(
             "ShipToStreet",
             accounDataArr[accountGeoIndex].Street
           );
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue(
             "ShipToCity",
             accounDataArr[accountGeoIndex].City
           );
-          await uiObject?.setFieldValue("ShipToZipCode", randDays.toString());
-          await uiObject?.setFieldValue("SubTotal", randDays.toString());
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue("ShipToZipCode", randDays.toString());
+          await dataObject?.setFieldValue("SubTotal", randDays.toString());
+          await dataObject?.setFieldValue(
             "SubTotalAfterItemsDiscount",
             (randZip * randDays).toString()
           );
-          await uiObject?.setFieldValue(
+          await dataObject?.setFieldValue(
             "GrandTotal",
             (randZip * randDays * quantitiesTotal).toString()
           );
-          //brings the data back to the point it was when was defined by the dataObject
-          await uiObject.recalculate(); // possible bug,I see the function running and bringing back the correct values, but it doesn't update the UIObject
+          //pushes all updates from dataObject into the UIObject
+          await uiObject.recalculate();
 
           //=============================GET======================================
-          const getTSASingleLineText = await uiObject?.getUIField(
+          const getTSASingleLineText = await uiObject?.getField(
             "TSASingleLineText"
           );
           expect(getTSASingleLineText?.value, "fell on TSASingleLineText.value")
             .that.is.a("string")
-            .and.is.equal(phrase + randDiscount),
+            .and.is.equal(phrase + randDays),
             expect(
               getTSASingleLineText?.formattedValue,
               "fell on TSASingleLineText.formattedValue"
             )
               .that.is.a("string")
-              .and.is.equal(phrase + randDiscount);
-          const getTSALimitedLineText = await uiObject?.getUIField(
+              .and.is.equal(phrase + randDays);
+          const getTSALimitedLineText = await uiObject?.getField(
             "TSALimitedLineText"
           );
           expect(
@@ -6078,14 +6050,14 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             "fell on getTSALimitedLineText.value"
           )
             .that.is.a("string")
-            .and.is.equal(phrase + randDiscount),
+            .and.is.equal(phrase + randDays),
             expect(
               getTSALimitedLineText?.formattedValue,
               "fell on getTSALimitedLineText.formattedValue"
             )
               .that.is.a("string")
-              .and.is.equal(phrase + randDiscount);
-          const getTSAParagraphText = await uiObject?.getUIField(
+              .and.is.equal(phrase + randDays);
+          const getTSAParagraphText = await uiObject?.getField(
             "TSAParagraphText"
           );
           expect(
@@ -6093,72 +6065,68 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             "fell on getTSAParagraphText.value"
           )
             .that.is.a("string")
-            .and.is.equal(phrase + randDiscount),
+            .and.is.equal(phrase + randDays),
             expect(
               getTSAParagraphText?.formattedValue,
               "fell on getTSAParagraphText.formattedValue"
             )
               .that.is.a("string")
-              .and.is.equal(phrase + randDiscount);
-          //need to go back to here
-          const getTSADateField = await uiObject?.getUIField("TSADateField");
-          let formattedDate = dateFormatter(getTSADateField!.value);
-          expect(formattedDate, "fell on getTSADateField")
+              .and.is.equal(phrase + randDays);
+          //the below works according to M/d/yyyy h:mm tt
+          const getTSADateField = await uiObject?.getField("TSADateField");
+          expect(getTSADateField?.formattedValue, "fell on getTSADateField")
             .to.be.a("string")
-            .and.is.equal(dateOnly);
-          const getTSADateTimeField = await uiObject?.getUIField(
+            .and.is.equal("07/27/1990");
+          const getTSADateTimeField = await uiObject?.getField(
             "TSADateTimeField"
           );
-          let formattedDateTime: any = dateFormatter(
-            getTSADateTimeField!.value,
-            true
-          );
-          const expectedDateTimeValue = dateFormatter(dateTime, true);
-          expect(formattedDateTime, "Failed on getTSADateTimeField")
+          expect(
+            getTSADateTimeField?.formattedValue,
+            "Failed on getTSADateTimeField"
+          )
             .to.be.a("string")
-            .and.is.equal(expectedDateTimeValue);
-          const getTSADecimalField = await uiObject?.getUIField(
+            .and.is.equal("07/27/1990 07:45 AM");
+          const getTSADecimalField = await uiObject?.getField(
             "TSADecimalField"
           );
+          const formattedDecimal = formatterUS.format(randZip);
           expect(getTSADecimalField?.value, "fell on getTSADecimalField.value")
             .to.be.a("string")
-            .and.is.equal(randDiscount.toFixed(6)),
+            .and.is.equal(randZip.toFixed(6)),
             expect(
               getTSADecimalField?.formattedValue,
               "fell on getTSADecimalField.formattedValue"
             )
               .to.be.a("string")
-              .and.is.equal(randDiscount.toFixed(6));
-          const getTSANumberField = await uiObject?.getUIField(
-            "TSANumberField"
-          );
+              .and.is.equal(formattedDecimal);
+          const getTSANumberField = await uiObject?.getField("TSANumberField");
           expect(getTSANumberField?.value, "fell on getTSANumberField.value")
             .to.be.a("string")
-            .and.is.equal(quantitiesTotal.toString()),
+            .and.is.equal(randDays.toString()),
             expect(
               getTSANumberField?.formattedValue,
               "fell on getTSANumberField.formattedValue"
             )
               .to.be.a("string")
-              .and.is.equal(quantitiesTotal.toString());
-          const getTSACurrencyField = await uiObject?.getUIField(
+              .and.is.equal(randDays.toString());
+          const getTSACurrencyField = await uiObject?.getField(
             "TSACurrencyField"
           );
-          const strCur = formatter.format(quantitiesTotal);
+          const strCur = formatter.format(randDays);
           const resultCur = strCur.substr(1) + strCur.substr(0, 1);
           expect(
             getTSACurrencyField?.value,
             "fell on getTSACurrencyField.value"
           )
             .to.be.a("string")
-            .and.is.equal(quantitiesTotal.toString());
+            .and.is.equal(randDays.toString());
           expect(
             getTSACurrencyField?.formattedValue,
             "fell on getTSACurrencyField.formattedValue"
           )
             .to.be.a("string")
             .and.is.equal(resultCur);
-          const getTSACheckboxField = await uiObject?.getUIField(
+          const getTSACheckboxField = await uiObject?.getField(
             "TSACheckboxField"
           );
           expect(
@@ -6166,81 +6134,81 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             "fell on getTSACheckboxField.value"
           )
             .to.be.a("string")
-            .and.is.equal(randBool.toString()),
+            .and.is.equal((!randBool).toString()),
             expect(
               getTSACheckboxField?.formattedValue,
               "fell on getTSACheckboxField.formattedValue"
             )
               .to.be.a("string")
-              .and.is.equal(randBool.toString());
-          const getTSAEmailField = await uiObject?.getUIField("TSAEmailField");
+              .and.is.equal((!randBool).toString());
+          const getTSAEmailField = await uiObject?.getField("TSAEmailField");
           expect(getTSAEmailField?.value, "fell on getTSAEmailField.value")
             .to.be.a("string")
-            .and.is.equal(userEmail),
+            .and.is.equal("dor.s@cpinodetest.com"),
             expect(
               getTSAEmailField?.formattedValue,
               "fell on getTSAEmailField.formattedValue"
             )
               .to.be.a("string")
-              .and.is.equal(userEmail);
-          const getTSAPhoneField = await uiObject?.getUIField("TSAPhoneField");
+              .and.is.equal("dor.s@cpinodetest.com");
+          const getTSAPhoneField = await uiObject?.getField("TSAPhoneField");
           expect(getTSAPhoneField?.value, "fell on getTSAPhoneField.value")
             .to.be.a("string")
-            .and.is.equal(randPhone.toString()),
+            .and.is.equal(randZip.toString()),
             expect(
               getTSAPhoneField?.formattedValue,
               "fell on getTSAPhoneField.formattedValue"
             )
               .to.be.a("string")
-              .and.is.equal(randPhone.toString());
-          const getTSALinkField = await uiObject?.getUIField("TSALinkField");
+              .and.is.equal(randZip.toString());
+          const getTSALinkField = await uiObject?.getField("TSALinkField");
           expect(getTSALinkField?.value, "fell on getTSALinkField.value")
             .to.be.a("string")
-            .and.is.equal(link),
+            .and.is.equal("https://en.wikipedia.org/wiki/Iron_Man"),
             expect(
               getTSALinkField?.formattedValue,
               "fell on getTSALinkField.formattedValue"
             )
               .to.be.a("string")
-              .and.is.equal(link);
-          const getTSAHTMLField = await uiObject?.getUIField("TSAHTMLField");
+              .and.is.equal("https://en.wikipedia.org/wiki/Iron_Man");
+          const getTSAHTMLField = await uiObject?.getField("TSAHTMLField");
           expect(getTSAHTMLField?.value, "fell on getTSAHTMLField.value")
             .to.be.a("string")
-            .and.is.equal(HTML),
+            .and.is.equal(HTML + "<br/><h1>this is a change</h1>"),
             expect(
               getTSAHTMLField?.formattedValue,
               "fell on getTSAHTMLField.formattedValue"
             )
               .to.be.a("string")
-              .and.is.equal(HTML);
-          const getExID = await uiObject?.getUIField("ExternalID");
+              .and.is.equal(HTML + "<br/><h1>this is a change</h1>");
+          const getExID = await uiObject?.getField("ExternalID");
           expect(getExID?.value, "Failed on getExID.value")
             .that.is.a("string")
-            .and.is.equal(ExID),
+            .and.is.equal(name),
             expect(getExID?.formattedValue, "Failed on getExID.formattedValue")
               .that.is.a("string")
-              .and.is.equal(ExID);
-          const getRemark = await uiObject?.getUIField("Remark");
+              .and.is.equal(name);
+          const getRemark = await uiObject?.getField("Remark");
           expect(getRemark?.value, "Failed on getRemark.value")
             .that.is.a("string")
-            .and.is.equal(phrase),
+            .and.is.equal(ExID),
             expect(
               getRemark?.formattedValue,
               "Failed on getRemark.formattedValue"
             )
               .that.is.a("string")
-              .and.is.equal(phrase);
-          const getBillToName = await uiObject?.getUIField("BillToName");
+              .and.is.equal(ExID);
+          const getBillToName = await uiObject?.getField("BillToName");
           expect(getBillToName?.value, "Failed on getBillToName.value")
             .that.is.a("string")
-            .and.is.equal(name),
+            .and.is.equal(phrase),
             expect(
               getBillToName?.formattedValue,
               "Failed on getBillToName.formattedValue"
             )
               .that.is.a("string")
-              .and.is.equal(name);
-          const getBillToStreet = await uiObject?.getUIField("BillToStreet");
+              .and.is.equal(phrase);
+          const getBillToStreet = await uiObject?.getField("BillToStreet");
           expect(getBillToStreet?.value, "Failed on getBillToStreet.value")
             .that.is.a("string")
             .and.is.equal(accounDataArr[accountGeoIndex].Street),
@@ -6250,27 +6218,27 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .that.is.a("string")
               .and.is.equal(accounDataArr[accountGeoIndex].Street);
-          const getBillToZipCode = await uiObject?.getUIField("BillToZipCode");
+          const getBillToZipCode = await uiObject?.getField("BillToZipCode");
           expect(getBillToZipCode?.value, "Failed on getBillToZipCode.value")
             .that.is.a("string")
-            .and.is.equal(randZip.toString()),
+            .and.is.equal(randDays.toString()),
             expect(
               getBillToZipCode?.formattedValue,
               "Failed on getBillToZipCode.formattedValue"
             )
               .that.is.a("string")
-              .and.is.equal(randZip.toString());
-          const getBillToPhone = await uiObject?.getUIField("BillToPhone");
+              .and.is.equal(randDays.toString());
+          const getBillToPhone = await uiObject?.getField("BillToPhone");
           expect(getBillToPhone?.value, "Failed on getBillToPhone.value")
             .that.is.a("string")
-            .and.is.equal(randPhone),
+            .and.is.equal(randZip.toString()),
             expect(
               getBillToPhone?.formattedValue,
               "Failed on getBillToPhone.formattedValue"
             )
               .that.is.a("string")
-              .and.is.equal(randPhone);
-          const getBillToCity = await uiObject?.getUIField("BillToCity");
+              .and.is.equal(randZip.toString());
+          const getBillToCity = await uiObject?.getField("BillToCity");
           expect(getBillToCity?.value, "Failed on getBillToCity.value")
             .that.is.a("string")
             .and.is.equal(accounDataArr[accountGeoIndex].City),
@@ -6280,7 +6248,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .that.is.a("string")
               .and.is.equal(accounDataArr[accountGeoIndex].City);
-          const getDiscountPercentage = await uiObject?.getUIField(
+          const getDiscountPercentage = await uiObject?.getField(
             "DiscountPercentage"
           );
           expect(
@@ -6288,14 +6256,14 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             "Failed on getDiscountPercentage.value"
           )
             .that.is.a("string")
-            .and.is.equal(randDiscount.toFixed(6)),
+            .and.is.equal(randDays.toFixed(6)),
             expect(
               getDiscountPercentage!.formattedValue,
               "Failed on getDiscountPercentage.formattedValue"
             )
               .that.is.a("string")
-              .and.is.equal(randDiscount.toFixed(2) + "%");
-          const getQuantitiesTotal = await uiObject?.getUIField(
+              .and.is.equal(randDays + "%");
+          const getQuantitiesTotal = await uiObject?.getField(
             "QuantitiesTotal"
           );
           expect(
@@ -6303,30 +6271,32 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             "Failed on getQuantitiesTotal.value"
           )
             .that.is.a("string")
-            .and.is.equal(quantitiesTotal.toString());
+            .and.is.equal(randDays.toString());
           expect(
             parseFloat(getQuantitiesTotal!.formattedValue).toFixed(2),
             "Failed on getQuantitiesTotal.formattedValue"
           )
             .that.is.a("string")
-            .and.is.equal(quantitiesTotal.toFixed(2));
+            .and.is.equal(randDays.toFixed(2));
 
-          const getDeliveryDate = await uiObject?.getUIField("DeliveryDate");
-          let formattedDateSystem = dateFormatter(getDeliveryDate!.value);
-          expect(formattedDateSystem, "Fell on getDeliveryDate")
+          const getDeliveryDate = await uiObject?.getField("DeliveryDate");
+          expect(
+            getDeliveryDate!.formattedValue,
+            "Fell on getDeliveryDate.formattedValue"
+          )
             .to.be.a("string")
-            .and.is.equal(dateOnly);
-          const getStatus = await uiObject?.getUIField("Status");
+            .and.is.equal("07/27/1990");
+          const getStatus = await uiObject?.getField("Status");
           expect(getStatus?.value, "Failed on getStatus.value")
             .to.be.a("string")
-            .and.is.equal(status.toString());
+            .and.is.equal((status + 1).toString());
           expect(
             getStatus?.formattedValue,
             "Failed on getStatus.formattedValue"
           )
             .to.be.a("string")
-            .and.is.equal("Submitted");
-          const getLat = await uiObject?.getUIField("SubmissionGeoCodeLAT");
+            .and.is.equal("In Progress");
+          const getLat = await uiObject?.getField("SubmissionGeoCodeLAT");
           const latToNum = +accounDataArr[accountGeoIndex].Latitude!.toFixed(4);
           expect(getLat?.value, "Failed on getLat.value")
             .to.be.a("string")
@@ -6334,7 +6304,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           expect(getLat?.formattedValue, "Failed on getLat.formattedValue")
             .to.be.a("string")
             .and.is.equal(latToNum.toFixed(2));
-          const getLng = await uiObject?.getUIField("SubmissionGeoCodeLNG");
+          const getLng = await uiObject?.getField("SubmissionGeoCodeLNG");
           const lngToNum =
             +accounDataArr[accountGeoIndex].Longtitude!.toFixed(3);
           expect(parseFloat(getLng!.value).toFixed(3), "Failed on getLng.value")
@@ -6346,17 +6316,17 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           )
             .to.be.a("string")
             .and.is.equal(lngToNum.toFixed(2));
-          const getShipToName = await uiObject?.getUIField("ShipToName");
+          const getShipToName = await uiObject?.getField("ShipToName");
           expect(getShipToName?.value, "Failed on getShipToName.value")
             .to.be.a("string")
-            .and.is.equal(name),
+            .and.is.equal(phrase),
             expect(
               getShipToName?.formattedValue,
               "Failed on getShipToName.formattedValue"
             )
               .to.be.a("string")
-              .and.is.equal(name);
-          const getShipToStreet = await uiObject?.getUIField("ShipToStreet");
+              .and.is.equal(phrase);
+          const getShipToStreet = await uiObject?.getField("ShipToStreet");
           expect(getShipToStreet?.value, "Failed on getShipToStreet.value")
             .to.be.a("string")
             .and.is.equal(accounDataArr[accountGeoIndex].Street),
@@ -6366,7 +6336,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .and.is.equal(accounDataArr[accountGeoIndex].Street);
-          const getShipToCity = await uiObject?.getUIField("ShipToCity");
+          const getShipToCity = await uiObject?.getField("ShipToCity");
           expect(getShipToCity?.value, "Failed on getShipToCity.value")
             .to.be.a("string")
             .and.is.equal(accounDataArr[accountGeoIndex].City),
@@ -6376,61 +6346,57 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             )
               .to.be.a("string")
               .and.is.equal(accounDataArr[accountGeoIndex].City);
-          const getShipToZipCode = await uiObject?.getUIField("ShipToZipCode");
+          const getShipToZipCode = await uiObject?.getField("ShipToZipCode");
           expect(getShipToZipCode?.value, "Failed on getShipToZipCode.value")
             .to.be.a("string")
-            .and.is.equal(randZip.toString()),
+            .and.is.equal(randDays.toString()),
             expect(
               getShipToZipCode?.formattedValue,
               "Failed on getShipToZipCode.formattedValue"
             )
               .to.be.a("string")
-              .and.is.equal(randZip.toString());
-          const getSubTotal = await uiObject?.getUIField("SubTotal");
-          const strST = formatter.format(randZip);
+              .and.is.equal(randDays.toString());
+          const getSubTotal = await uiObject?.getField("SubTotal");
+          const strST = formatter.format(randDays);
           const resultST = strST.substr(1) + strST.substr(0, 1);
           expect(
             parseFloat(getSubTotal!.value).toFixed(2),
             "Failed on getSubTotal.value"
           )
             .to.be.a("string")
-            .that.is.equal(randZip.toFixed(2));
+            .that.is.equal(randDays.toFixed(2));
           expect(
             getSubTotal!.formattedValue,
             "Failed on getSubTotal.formattedValue"
           )
             .to.be.a("string")
             .that.is.equal(resultST);
-          const getSubTotalAfterItemsDiscount = await uiObject?.getUIField(
+          const getSubTotalAfterItemsDiscount = await uiObject?.getField(
             "SubTotalAfterItemsDiscount"
           );
-          const strSTAD = formatter.format(randZip * randDiscount);
+          const strSTAD = formatter.format(randZip * randDays);
           const resultSTAD = strSTAD.substr(1) + strSTAD.substr(0, 1);
           expect(
             parseFloat(getSubTotalAfterItemsDiscount!.value).toFixed(4),
             "Failed on getSubTotalAfterItemsDiscount.value"
           )
             .to.be.a("string")
-            .that.is.equal((randZip * randDiscount).toFixed(4)),
+            .that.is.equal((randZip * randDays).toFixed(4)),
             expect(
               getSubTotalAfterItemsDiscount!.formattedValue,
               "Failed on getSubTotalAfterItemsDiscount.formattedValue"
             )
               .to.be.a("string")
               .that.is.equal(resultSTAD);
-          const getGrandTotal = await uiObject?.getUIField("GrandTotal");
-          const strGT = formatter.format(
-            randZip * randDiscount * quantitiesTotal
-          );
+          const getGrandTotal = await uiObject?.getField("GrandTotal");
+          const strGT = formatter.format(randZip * randDays * quantitiesTotal);
           const resultGT = strGT.substr(1) + strGT.substr(0, 1);
           expect(
             parseFloat(getGrandTotal!.value).toFixed(4),
             "Failed on getGrandTotal.value"
           )
             .to.be.a("string")
-            .that.is.equal(
-              (randZip * randDiscount * quantitiesTotal).toFixed(4)
-            ),
+            .that.is.equal((randZip * randDays * quantitiesTotal).toFixed(4)),
             expect(
               getGrandTotal!.formattedValue,
               "Failed on getGrandTotal.formattedValue"
@@ -6632,7 +6598,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           );
           expect(getTSADateTimeField, "Failed on getTSADateTimeField")
             .to.be.a("string")
-            .and.is.equal("2005-07-27T00:00:00Z");
+            .and.is.equal("2005-07-27T01:00:00Z");
 
           const getTSADecimalField = await dataObject?.getFieldValue(
             "TSADecimalField"
@@ -6823,7 +6789,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           );
         });
 
-        it("CRUD testing on Account Details UIObject", async () => {
+        it("CRUD testing on Account Details UIObject - SetFieldValue", async () => {
           console.log(
             "%cDetails - Accounts - UIObject Starting CRUD testing!",
             "color: #bada55"
@@ -6887,7 +6853,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             accounDataArr[accountGeoIndex].Street
           );
           //===============================GET================================
-          const getTSACheckboxAcc = await accUIObject?.getUIField(
+          const getTSACheckboxAcc = await accUIObject?.getField(
             "TSACheckboxAcc"
           );
           expect(getTSACheckboxAcc?.value, "Failed on getTSACheckboxAcc.value")
@@ -6902,7 +6868,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal((!randBool).toString()).and.is.not.null.and.is.not
               .undefined;
 
-          const getTSACurrencyAcc = await accUIObject?.getUIField(
+          const getTSACurrencyAcc = await accUIObject?.getField(
             "TSACurrencyAcc"
           );
           const strCur = formatter.format(randZip);
@@ -6918,7 +6884,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .to.be.a("string")
               .that.is.equal(resultCur).and.is.not.null.and.is.not.undefined;
 
-          const getTSANumberAcc = await accUIObject?.getUIField("TSANumberAcc");
+          const getTSANumberAcc = await accUIObject?.getField("TSANumberAcc");
           const formattedNumber = formatter.format(randZip);
           const resultFormatted = formattedNumber.substr(1).split(".");
           expect(getTSANumberAcc?.value, "Failed on getTSANumberAcc.value")
@@ -6933,12 +6899,12 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal(resultFormatted[0]).and.is.not.null.and.is.not
               .undefined;
 
-          const getTSADateAcc = await accUIObject?.getUIField("TSADateAcc");
+          const getTSADateAcc = await accUIObject?.getField("TSADateAcc");
           const formattedDate = dateFormatter(getTSADateAcc!.value);
           expect(formattedDate).to.be.a("string").and.is.equal(dateOnly).and.is
             .not.null.and.is.not.undefined;
 
-          const getTSADateTimeAcc = await accUIObject?.getUIField(
+          const getTSADateTimeAcc = await accUIObject?.getField(
             "TSADateTimeAcc"
           );
           let formattedDateTime: any = dateFormatter(
@@ -6952,9 +6918,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             .to.be.a("string")
             .and.is.equal(expectedDateTimeValue);
 
-          const getTSADecimalAcc = await accUIObject?.getUIField(
-            "TSADecimalAcc"
-          );
+          const getTSADecimalAcc = await accUIObject?.getField("TSADecimalAcc");
           expect(getTSADecimalAcc?.value, "fell on getTSADecimalAcc.value")
             .to.be.a("string")
             .and.is.equal((randDiscount + quantitiesTotal).toFixed(6)).and.is
@@ -6967,7 +6931,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .and.is.equal((randDiscount + quantitiesTotal).toFixed(6)).and.is
               .not.null.and.is.not.undefined;
 
-          const getTSAEmailAcc = await accUIObject?.getUIField("TSAEmailAcc");
+          const getTSAEmailAcc = await accUIObject?.getField("TSAEmailAcc");
           expect(getTSAEmailAcc?.value, "fell on TSAEmailAcc.value")
             .to.be.a("string")
             .and.is.equal("dor.s@pepperi.com").and.is.not.null.and.is.not
@@ -6980,7 +6944,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .and.is.equal("dor.s@pepperi.com").and.is.not.null.and.is.not
               .undefined;
 
-          const getTSAHTMLAcc = await accUIObject?.getUIField("TSAHTMLAcc");
+          const getTSAHTMLAcc = await accUIObject?.getField("TSAHTMLAcc");
           expect(getTSAHTMLAcc?.value, "fell on TSAHTMLAcc.value")
             .to.be.a("string")
             .and.is.equal(HTML + HTML).and.is.not.null.and.is.not.undefined,
@@ -6991,7 +6955,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .to.be.a("string")
               .and.is.equal(HTML + HTML).and.is.not.null.and.is.not.undefined;
 
-          const getTSASingleLineTextAcc = await accUIObject?.getUIField(
+          const getTSASingleLineTextAcc = await accUIObject?.getField(
             "TSASingleLineTextAcc"
           );
 
@@ -7010,7 +6974,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .and.is.equal(phrase + randZip).and.is.not.null.and.is.not
               .undefined;
 
-          const getTSALimitedLineTextAcc = await accUIObject?.getUIField(
+          const getTSALimitedLineTextAcc = await accUIObject?.getField(
             "TSALimitedLineTextAcc"
           );
           expect(
@@ -7028,7 +6992,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .and.is.equal(phrase + randZip).and.is.not.null.and.is.not
               .undefined;
 
-          const getTSAParagraphTextAcc = await accUIObject?.getUIField(
+          const getTSAParagraphTextAcc = await accUIObject?.getField(
             "TSAParagraphTextAcc"
           );
           expect(
@@ -7046,7 +7010,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .and.is.equal(phrase + randZip).and.is.not.null.and.is.not
               .undefined;
 
-          const getTSALinkAcc = await accUIObject?.getUIField("TSALinkAcc");
+          const getTSALinkAcc = await accUIObject?.getField("TSALinkAcc");
           expect(getTSALinkAcc?.value, "fell on getTSALinkAcc.value")
             .to.be.a("string")
             .and.is.equal("https://www.google.com").and.is.not.null.and.is.not
@@ -7059,7 +7023,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .and.is.equal("https://www.google.com").and.is.not.null.and.is.not
               .undefined;
 
-          const getTSAPhoneAcc = await accUIObject?.getUIField("TSAPhoneAcc");
+          const getTSAPhoneAcc = await accUIObject?.getField("TSAPhoneAcc");
           expect(getTSAPhoneAcc?.value, "fell on getTSAPhoneAcc.value")
             .to.be.a("string")
             .and.is.equal(randZip.toString()).and.is.not.null.and.is.not
@@ -7072,7 +7036,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .and.is.equal(randZip.toString()).and.is.not.null.and.is.not
               .undefined;
 
-          const getExID = await accUIObject?.getUIField("ExternalID");
+          const getExID = await accUIObject?.getField("ExternalID");
           expect(getExID?.value, "Failed on ExternalID.value")
             .to.be.a("string")
             .that.is.equal(name).and.is.not.null.and.is.not.undefined,
@@ -7083,7 +7047,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .to.be.a("string")
               .that.is.equal(name).and.is.not.null.and.is.not.undefined;
 
-          const getName = await accUIObject?.getUIField("Name");
+          const getName = await accUIObject?.getField("Name");
           expect(getName?.value, "Failed on Name.value")
             .to.be.a("string")
             .that.is.equal(phrase).and.is.not.null.and.is.not.undefined,
@@ -7091,7 +7055,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .to.be.a("string")
               .that.is.equal(phrase).and.is.not.null.and.is.not.undefined;
 
-          const getNote = await accUIObject?.getUIField("Note");
+          const getNote = await accUIObject?.getField("Note");
           expect(getNote?.value, "Failed on Note.value")
             .to.be.a("string")
             .that.is.equal(phrase + randDays).and.is.not.null.and.is.not
@@ -7101,7 +7065,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal(phrase + randDays).and.is.not.null.and.is.not
               .undefined;
 
-          const getZipCode = await accUIObject?.getUIField("ZipCode");
+          const getZipCode = await accUIObject?.getField("ZipCode");
           expect(getZipCode?.value, "Failed on ZipCode.value")
             .to.be.a("string")
             .that.is.equal(randDays.toString()).and.is.not.null.and.is.not
@@ -7114,7 +7078,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal(randDays.toString()).and.is.not.null.and.is.not
               .undefined;
 
-          const getCity = await accUIObject?.getUIField("City");
+          const getCity = await accUIObject?.getField("City");
           expect(getCity?.value, "Failed on City.value")
             .to.be.a("string")
             .that.is.equal(accounDataArr[accountGeoIndex].City).and.is.not.null
@@ -7124,7 +7088,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal(accounDataArr[accountGeoIndex].City).and.is.not
               .null.and.is.not.undefined;
 
-          const getStreet = await accUIObject?.getUIField("Street");
+          const getStreet = await accUIObject?.getField("Street");
           expect(getStreet?.value, "Failed on Street.value")
             .to.be.a("string")
             .that.is.equal(accounDataArr[accountGeoIndex].Street).and.is.not
@@ -7134,7 +7098,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal(accounDataArr[accountGeoIndex].Street).and.is.not
               .null.and.is.not.undefined;
 
-          const getDiscount = await accUIObject?.getUIField("Discount");
+          const getDiscount = await accUIObject?.getField("Discount");
           const formattedDisc = parseFloat(getDiscount?.value!);
           const newValue = randDiscount + 0.5;
           expect(formattedDisc.toFixed(4), "Failed on Discount.value")
@@ -7149,7 +7113,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal((randDiscount + 0.5).toFixed(2) + "%").and.is.not
               .null.and.is.not.undefined;
 
-          const getFax = await accUIObject?.getUIField("Fax");
+          const getFax = await accUIObject?.getField("Fax");
           expect(getFax?.value, "Failed on Fax.value")
             .to.be.a("string")
             .that.is.equal(randZip.toString()).and.is.not.null.and.is.not
@@ -7159,7 +7123,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal(randZip.toString()).and.is.not.null.and.is.not
               .undefined;
 
-          const getPhone = await accUIObject?.getUIField("Phone");
+          const getPhone = await accUIObject?.getField("Phone");
           expect(getPhone?.value, "Failed on Phone.value")
             .to.be.a("string")
             .that.is.equal(randZip.toString()).and.is.not.null.and.is.not
@@ -7169,7 +7133,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal(randZip.toString()).and.is.not.null.and.is.not
               .undefined;
 
-          const getMobile = await accUIObject?.getUIField("Fax");
+          const getMobile = await accUIObject?.getField("Fax");
           expect(getMobile?.value, "Failed on Mobile.value")
             .to.be.a("string")
             .that.is.equal(randZip.toString()).and.is.not.null.and.is.not
@@ -7183,140 +7147,2526 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             "%cDetails - Accounts - UIObject Finished CRUD testing!",
             "color: #bada55"
           );
-        }); // need to add UIObject account details for accessors
+        });
+        // need to add UIObject account details for accessors
+        it("CRUD testing on Account Details UIObject - Accessors", async () => {
+          console.log(
+            "%cDetails - Accounts - Accessors - UIObject Starting CRUD testing!",
+            "color: #bada55"
+          );
+          //=======================UIDetailsPage====================================
+          try {
+            AccDetailsUIPage.title = phrase;
+            AccDetailsUIPage.subTitle = phrase;
+          } catch (err) {
+            console.log(err);
+            console.log(
+              `%uiDetails CRUD test failed! error: ${err}`,
+              "color: #FF0000"
+            );
+          }
+
+          expect(AccDetailsUIPage.title, "Failed on AccDetailsUIPage.title")
+            .to.be.a("string")
+            .that.is.equal(phrase),
+            expect(
+              AccDetailsUIPage.subTitle,
+              "Failed on AccDetailsUIPage.subTitle"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase);
+          expect(
+            AccDetailsUIPage.dataObject,
+            "Failed on AccDetailsUIPage.dataObject"
+          ).to.be.an("object").that.is.not.empty.and.is.not.null.and.is.not
+            .undefined;
+          expect(AccDetailsUIPage.type, "Failed on AccDetailsUIPage.type")
+            .to.be.a("string")
+            .that.is.equal("Details");
+          expect(
+            AccDetailsUIPage.key,
+            "Failed on AccDetailsUIPage.key"
+          ).to.be.a("string").that.is.not.null.and.is.not.undefined;
+          expect(
+            AccDetailsUIPage.uiObject,
+            "Failed on AccDetailsUIPage.uiObject"
+          ).to.be.an("object").that.is.not.empty.and.is.not.null.and.is.not
+            .undefined;
+          //===================================================UIObject=====================================================================
+          console.log(accUIObject);
+
+          try {
+            accUIObject.backgroundColor = bgColor;
+            accUIObject.readonly = false;
+          } catch (err) {
+            console.log(err);
+          }
+          const readonly = accUIObject.readonly;
+          expect(
+            accUIObject.backgroundColor,
+            "failed on accUIObject.backgroundColor"
+          )
+            .to.be.a("string")
+            .and.to.be.equal(bgColor).and.is.not.null.and.is.not.empty,
+            expect(readonly, "failed on accUIObject.readonly").to.be.a(
+              "boolean"
+            ).and.to.be.false.and.is.not.null.and.is.not.undefined,
+            expect(
+              accUIObject.dataObject,
+              "failed on accUIObject.dataObject"
+            ).to.be.an("object").and.is.not.null.and.is.not.empty.and.is.not
+              .undefined,
+            expect(accUIObject.key, "failed on accUIObject.key").to.be.a(
+              "string"
+            ).and.is.not.null.and.is.not.empty.and.is.not.undefined,
+            expect(
+              accUIObject.context,
+              "failed on accUIObject.context"
+            ).to.be.an("object").and.is.not.null.and.is.not.empty.and.is.not
+              .undefined,
+            expect(
+              accUIObject.context.Name,
+              "failed on accUIObject.context.Name"
+            )
+              .to.be.a("string")
+              .and.is.equal("AccountForm").and.is.not.null.and.is.not.empty.and
+              .is.not.undefined,
+            expect(
+              accUIObject.context.ScreenSize,
+              "failed on accUIObject.context.ScreenSize"
+            )
+              .to.be.a("string")
+              .and.is.equal(screenSize[accUIObject.context.ScreenSize]).and.is
+              .not.null.and.is.not.empty.and.is.not.undefined,
+            expect(
+              accUIObject.context.Object?.InternalID,
+              "failed on accUIObject.Object?.InternalID"
+            )
+              .to.be.a("number")
+              .that.is.above(0).and.is.not.null.and.is.not.undefined,
+            expect(
+              accUIObject.context.Object?.Resource,
+              "failed on accUIObject.Object?.Resource"
+            )
+              .to.be.a("string")
+              .that.is.equal("accounts").and.is.not.null.and.is.not.empty.and.is
+              .not.undefined,
+            expect(
+              accUIObject.context.Profile.InternalID,
+              "failed on accUIObject.Profile?.InternalID"
+            )
+              .to.be.a("number")
+              .that.is.above(-0.1).and.is.not.null.and.is.not.undefined;
+
+          //DI-18839 - Acc UIPage.UIObject.dataViews has fields that return undefind
+          //when they fix it will add dataviews tests
+
+          //===============================UIFields==================================
+          let setName = await accUIObject.getField("Name");
+
+          try {
+            setName!.accessory = randAcessory;
+            setName!.backgroundColor = bgColor;
+            setName!.decimalDigits = 3;
+            setName!.highlighted = true;
+            setName!.mandatory = true;
+            setName!.readonly = false;
+            setName!.textColor = color;
+            setName!.title = phrase;
+            setName!.visible = true;
+            setName!.value = ExID + name + randPhone;
+            setName!.formattedValue = ExID + randPhone + name;
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getName = await accUIObject.getField("Name");
+          expect(getName, "failed on Name field object").to.be.an("object").that
+            .is.not.null.and.is.not.undefined,
+            expect(getName!.type, "failed on Name.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getName!.value, "failed on Name.value field")
+              .to.be.a("string")
+              .and.to.be.equal(ExID + name + randPhone).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getName!.formattedValue,
+              "failed on Name.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(ExID + randPhone + name).that.is.not.null.and.is
+              .not.undefined,
+            expect(getName!.accessory, "failed on Name.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getName!.backgroundColor,
+              "failed on Name.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(getName!.decimalDigits, "failed on Name.decimalDigits field")
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getName!.highlighted,
+              "failed on Name.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getName!.mandatory,
+              "failed on Name.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getName!.readonly, "failed on Name.readonly field").to.be.a(
+              "boolean"
+            ).that.is.false.and.that.is.not.null.and.is.not.undefined,
+            expect(getName!.textColor, "failed on Name.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getName!.title, "failed on Name.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(getName!.visible, "failed on Name.visible field").to.be.a(
+              "boolean"
+            ).that.is.true.and.that.is.not.null.and.is.not.undefined;
+
+          let setExternalID = await accUIObject.getField("ExternalID");
+
+          try {
+            setExternalID!.accessory = randAcessory;
+            setExternalID!.backgroundColor = bgColor;
+            setExternalID!.decimalDigits = 3;
+            setExternalID!.highlighted = true;
+            setExternalID!.mandatory = true;
+            setExternalID!.readonly = false;
+            setExternalID!.textColor = color;
+            setExternalID!.title = phrase;
+            setExternalID!.visible = true;
+            setExternalID!.value = ExID + name + randPhone;
+            setExternalID!.formattedValue = ExID + randPhone + name;
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getExternalID = await accUIObject.getField("ExternalID");
+
+          expect(getExternalID, "failed on ExternalID field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getExternalID!.type, "failed on ExternalID.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getExternalID!.value, "failed on ExternalID.value field")
+              .to.be.a("string")
+              .and.to.be.equal(ExID + name + randPhone).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getExternalID!.formattedValue,
+              "failed on ExternalID.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(ExID + randPhone + name).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getExternalID!.accessory,
+              "failed on ExternalID.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getExternalID!.backgroundColor,
+              "failed on ExternalID.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getExternalID!.decimalDigits,
+              "failed on ExternalID.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getExternalID!.highlighted,
+              "failed on ExternalID.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getExternalID!.mandatory,
+              "failed on ExternalID.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getExternalID!.readonly,
+              "failed on ExternalID.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getExternalID!.textColor,
+              "failed on ExternalID.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getExternalID!.title, "failed on ExternalID.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getExternalID!.visible,
+              "failed on ExternalID.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setPhone = await accUIObject.getField("Phone");
+
+          try {
+            setPhone!.accessory = randAcessory;
+            setPhone!.backgroundColor = bgColor;
+            setPhone!.decimalDigits = 3;
+            setPhone!.highlighted = true;
+            setPhone!.mandatory = true;
+            setPhone!.readonly = false;
+            setPhone!.textColor = color;
+            setPhone!.title = phrase;
+            setPhone!.visible = true;
+            setPhone!.value = ExID + name + randPhone;
+            setPhone!.formattedValue = ExID + randPhone + name;
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getPhone = await accUIObject.getField("Phone");
+
+          expect(getPhone, "failed on Phone field object").to.be.an("object")
+            .that.is.not.null.and.is.not.undefined,
+            expect(getPhone!.type, "failed on Phone.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getPhone!.value, "failed on Phone.value field")
+              .to.be.a("string")
+              .and.to.be.equal(ExID + name + randPhone).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getPhone!.formattedValue,
+              "failed on Phone.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(ExID + randPhone + name).that.is.not.null.and.is
+              .not.undefined,
+            expect(getPhone!.accessory, "failed on Phone.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getPhone!.backgroundColor,
+              "failed on Phone.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getPhone!.decimalDigits,
+              "failed on Phone.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getPhone!.highlighted,
+              "failed on Phone.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getPhone!.mandatory,
+              "failed on Phone.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getPhone!.readonly,
+              "failed on Phone.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getPhone!.textColor, "failed on Phone.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getPhone!.title, "failed on Phone.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(getPhone!.visible, "failed on Phone.visible field").to.be.a(
+              "boolean"
+            ).that.is.true.and.that.is.not.null.and.is.not.undefined;
+
+          let setFax = await accUIObject.getField("Fax");
+
+          try {
+            setFax!.accessory = randAcessory;
+            setFax!.backgroundColor = bgColor;
+            setFax!.decimalDigits = 3;
+            setFax!.highlighted = true;
+            setFax!.mandatory = true;
+            setFax!.readonly = false;
+            setFax!.textColor = color;
+            setFax!.title = phrase;
+            setFax!.visible = true;
+            setFax!.value = ExID + name + randPhone;
+            setFax!.formattedValue = ExID + randPhone + name;
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getFax = await accUIObject.getField("Fax");
+
+          expect(getFax, "failed on Fax field object").to.be.an("object").that
+            .is.not.null.and.is.not.undefined,
+            expect(getFax!.type, "failed on Fax.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getFax!.value, "failed on Fax.value field")
+              .to.be.a("string")
+              .and.to.be.equal(ExID + name + randPhone).that.is.not.null.and.is
+              .not.undefined,
+            expect(getFax!.formattedValue, "failed on Fax.formattedValue field")
+              .to.be.a("string")
+              .and.to.be.equal(ExID + randPhone + name).that.is.not.null.and.is
+              .not.undefined,
+            expect(getFax!.accessory, "failed on Fax.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getFax!.backgroundColor,
+              "failed on Fax.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(getFax!.decimalDigits, "failed on Fax.decimalDigits field")
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getFax!.highlighted,
+              "failed on Fax.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getFax!.mandatory, "failed on Fax.mandatory field").to.be.a(
+              "boolean"
+            ).that.is.true.and.that.is.not.null.and.is.not.undefined,
+            expect(getFax!.readonly, "failed on Fax.readonly field").to.be.a(
+              "boolean"
+            ).that.is.false.and.that.is.not.null.and.is.not.undefined,
+            expect(getFax!.textColor, "failed on Fax.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getFax!.title, "failed on Fax.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(getFax!.visible, "failed on Fax.visible field").to.be.a(
+              "boolean"
+            ).that.is.true.and.that.is.not.null.and.is.not.undefined;
+
+          let setEmail = await accUIObject.getField("Email");
+
+          try {
+            setEmail!.accessory = randAcessory;
+            setEmail!.backgroundColor = bgColor;
+            setEmail!.decimalDigits = 3;
+            setEmail!.highlighted = true;
+            setEmail!.mandatory = true;
+            setEmail!.readonly = false;
+            setEmail!.textColor = color;
+            setEmail!.title = phrase;
+            setEmail!.visible = true;
+            setEmail!.value = "dor.s@pepperi.com";
+            setEmail!.formattedValue = "dor.s@pepperitest.com";
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getEmail = await accUIObject.getField("Email");
+
+          expect(getEmail, "failed on Email field object").to.be.an("object")
+            .that.is.not.null.and.is.not.undefined,
+            expect(getEmail!.type, "failed on Email.type field")
+              .to.be.a("string")
+              .that.is.equal("Email").that.is.not.null.and.is.not.undefined,
+            expect(getEmail!.value, "failed on Email.value field")
+              .to.be.a("string")
+              .and.to.be.equal("dor.s@pepperi.com").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getEmail!.formattedValue,
+              "failed on Email.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal("dor.s@pepperitest.com").that.is.not.null.and.is
+              .not.undefined,
+            expect(getEmail!.accessory, "failed on Email.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getEmail!.backgroundColor,
+              "failed on Email.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getEmail!.decimalDigits,
+              "failed on Email.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getEmail!.highlighted,
+              "failed on Email.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getEmail!.mandatory,
+              "failed on Email.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getEmail!.readonly,
+              "failed on Email.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getEmail!.textColor, "failed on Email.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getEmail!.title, "failed on Email.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(getEmail!.visible, "failed on Email.visible field").to.be.a(
+              "boolean"
+            ).that.is.true.and.that.is.not.null.and.is.not.undefined;
+
+          let setDiscount = await accUIObject.getField("Discount");
+
+          try {
+            setDiscount!.accessory = randAcessory;
+            setDiscount!.backgroundColor = bgColor;
+            setDiscount!.decimalDigits = 3;
+            setDiscount!.highlighted = true;
+            setDiscount!.mandatory = true;
+            setDiscount!.readonly = false;
+            setDiscount!.textColor = color;
+            setDiscount!.title = phrase;
+            setDiscount!.visible = true;
+            setDiscount!.value = randDiscount.toString();
+            setDiscount!.formattedValue = (randDiscount + 0.1).toString();
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getDiscount = await accUIObject.getField("Discount");
+
+          expect(getDiscount, "failed on Discount field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getDiscount!.type, "failed on Discount.type field")
+              .to.be.a("string")
+              .that.is.equal("Percentage").that.is.not.null.and.is.not
+              .undefined,
+            expect(getDiscount!.value, "failed on Discount.value field")
+              .to.be.a("string")
+              .and.to.be.equal(randDiscount.toString()).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getDiscount!.formattedValue,
+              "failed on Discount.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal((randDiscount + 0.1).toString()).that.is.not.null
+              .and.is.not.undefined,
+            expect(getDiscount!.accessory, "failed on Discount.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getDiscount!.backgroundColor,
+              "failed on Discount.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getDiscount!.decimalDigits,
+              "failed on Discount.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getDiscount!.highlighted,
+              "failed on Discount.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getDiscount!.mandatory,
+              "failed on Discount.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getDiscount!.readonly,
+              "failed on Discount.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getDiscount!.textColor, "failed on Discount.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getDiscount!.title, "failed on Discount.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getDiscount!.visible,
+              "failed on Discount.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setNote = await accUIObject.getField("Note");
+
+          try {
+            setNote!.accessory = randAcessory;
+            setNote!.backgroundColor = bgColor;
+            setNote!.decimalDigits = 3;
+            setNote!.highlighted = true;
+            setNote!.mandatory = true;
+            setNote!.readonly = false;
+            setNote!.textColor = color;
+            setNote!.title = phrase;
+            setNote!.visible = true;
+            setNote!.value = ExID + phrase;
+            setNote!.formattedValue = name + phrase;
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getNote = await accUIObject.getField("Note");
+
+          expect(getNote, "failed on Note field object").to.be.an("object").that
+            .is.not.null.and.is.not.undefined,
+            expect(getNote!.type, "failed on Note.type field")
+              .to.be.a("string")
+              .that.is.equal("TextArea").that.is.not.null.and.is.not.undefined,
+            expect(getNote!.value, "failed on Note.value field")
+              .to.be.a("string")
+              .and.to.be.equal(ExID + phrase).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getNote!.formattedValue,
+              "failed on Note.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(name + phrase).that.is.not.null.and.is.not
+              .undefined,
+            expect(getNote!.accessory, "failed on Note.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getNote!.backgroundColor,
+              "failed on Note.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(getNote!.decimalDigits, "failed on Note.decimalDigits field")
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getNote!.highlighted,
+              "failed on Note.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getNote!.mandatory,
+              "failed on Note.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getNote!.readonly, "failed on Note.readonly field").to.be.a(
+              "boolean"
+            ).that.is.false.and.that.is.not.null.and.is.not.undefined,
+            expect(getNote!.textColor, "failed on Note.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getNote!.title, "failed on Note.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(getNote!.visible, "failed on Note.visible field").to.be.a(
+              "boolean"
+            ).that.is.true.and.that.is.not.null.and.is.not.undefined;
+
+          let setWrntyID = await accUIObject.getField("WrntyID");
+
+          try {
+            setWrntyID!.accessory = randAcessory;
+            setWrntyID!.backgroundColor = bgColor;
+            setWrntyID!.decimalDigits = 3;
+            setWrntyID!.highlighted = true;
+            setWrntyID!.mandatory = true;
+            setWrntyID!.readonly = false;
+            setWrntyID!.textColor = color;
+            setWrntyID!.title = phrase;
+            setWrntyID!.visible = true;
+            setWrntyID!.value = ExID + phrase;
+            setWrntyID!.formattedValue = name + phrase;
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getWrntyID = await accUIObject.getField("WrntyID");
+
+          expect(getWrntyID, "failed on WrntyID field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getWrntyID!.type, "failed on WrntyID.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getWrntyID!.value, "failed on WrntyID.value field")
+              .to.be.a("string")
+              .and.to.be.equal(ExID + phrase).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getWrntyID!.formattedValue,
+              "failed on WrntyID.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(name + phrase).that.is.not.null.and.is.not
+              .undefined,
+            expect(getWrntyID!.accessory, "failed on WrntyID.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getWrntyID!.backgroundColor,
+              "failed on WrntyID.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getWrntyID!.decimalDigits,
+              "failed on WrntyID.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getWrntyID!.highlighted,
+              "failed on WrntyID.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getWrntyID!.mandatory,
+              "failed on WrntyID.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getWrntyID!.readonly,
+              "failed on WrntyID.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getWrntyID!.textColor, "failed on WrntyID.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getWrntyID!.title, "failed on WrntyID.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getWrntyID!.visible,
+              "failed on WrntyID.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setStreet = await accUIObject.getField("Street");
+
+          try {
+            setStreet!.accessory = randAcessory;
+            setStreet!.backgroundColor = bgColor;
+            setStreet!.decimalDigits = 3;
+            setStreet!.highlighted = true;
+            setStreet!.mandatory = true;
+            setStreet!.readonly = false;
+            setStreet!.textColor = color;
+            setStreet!.title = phrase;
+            setStreet!.visible = true;
+            setStreet!.value = ExID + phrase;
+            setStreet!.formattedValue = name + phrase;
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getStreet = await accUIObject.getField("Street");
+
+          expect(getStreet, "failed on Street field object").to.be.an("object")
+            .that.is.not.null.and.is.not.undefined,
+            expect(getStreet!.type, "failed on Street.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getStreet!.value, "failed on Street.value field")
+              .to.be.a("string")
+              .and.to.be.equal(ExID + phrase).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getStreet!.formattedValue,
+              "failed on Street.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(name + phrase).that.is.not.null.and.is.not
+              .undefined,
+            expect(getStreet!.accessory, "failed on Street.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getStreet!.backgroundColor,
+              "failed on Street.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getStreet!.decimalDigits,
+              "failed on Street.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getStreet!.highlighted,
+              "failed on Street.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getStreet!.mandatory,
+              "failed on Street.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getStreet!.readonly,
+              "failed on Street.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getStreet!.textColor, "failed on Street.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getStreet!.title, "failed on Street.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getStreet!.visible,
+              "failed on Street.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setCity = await accUIObject.getField("City");
+
+          try {
+            setCity!.accessory = randAcessory;
+            setCity!.backgroundColor = bgColor;
+            setCity!.decimalDigits = 3;
+            setCity!.highlighted = true;
+            setCity!.mandatory = true;
+            setCity!.readonly = false;
+            setCity!.textColor = color;
+            setCity!.title = phrase;
+            setCity!.visible = true;
+            setCity!.value = ExID + phrase;
+            setCity!.formattedValue = name + phrase;
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getCity = await accUIObject.getField("City");
+
+          expect(getCity, "failed on City field object").to.be.an("object").that
+            .is.not.null.and.is.not.undefined,
+            expect(getCity!.type, "failed on City.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getCity!.value, "failed on City.value field")
+              .to.be.a("string")
+              .and.to.be.equal(ExID + phrase).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getCity!.formattedValue,
+              "failed on City.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(name + phrase).that.is.not.null.and.is.not
+              .undefined,
+            expect(getCity!.accessory, "failed on City.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getCity!.backgroundColor,
+              "failed on City.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(getCity!.decimalDigits, "failed on City.decimalDigits field")
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getCity!.highlighted,
+              "failed on City.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getCity!.mandatory,
+              "failed on City.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getCity!.readonly, "failed on City.readonly field").to.be.a(
+              "boolean"
+            ).that.is.false.and.that.is.not.null.and.is.not.undefined,
+            expect(getCity!.textColor, "failed on City.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getCity!.title, "failed on City.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(getCity!.visible, "failed on City.visible field").to.be.a(
+              "boolean"
+            ).that.is.true.and.that.is.not.null.and.is.not.undefined;
+
+          let setZipCode = await accUIObject.getField("ZipCode");
+
+          try {
+            setZipCode!.accessory = randAcessory;
+            setZipCode!.backgroundColor = bgColor;
+            setZipCode!.decimalDigits = 3;
+            setZipCode!.highlighted = true;
+            setZipCode!.mandatory = true;
+            setZipCode!.readonly = false;
+            setZipCode!.textColor = color;
+            setZipCode!.title = phrase;
+            setZipCode!.visible = true;
+            setZipCode!.value = randZip.toString();
+            setZipCode!.formattedValue = randDays.toString();
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getZipCode = await accUIObject.getField("ZipCode");
+
+          expect(getZipCode, "failed on ZipCode field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getZipCode!.type, "failed on ZipCode.type field")
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(getZipCode!.value, "failed on ZipCode.value field")
+              .to.be.a("string")
+              .and.to.be.equal(randZip.toString()).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getZipCode!.formattedValue,
+              "failed on ZipCode.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(randDays.toString()).that.is.not.null.and.is.not
+              .undefined,
+            expect(getZipCode!.accessory, "failed on ZipCode.accessory field")
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getZipCode!.backgroundColor,
+              "failed on ZipCode.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getZipCode!.decimalDigits,
+              "failed on ZipCode.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getZipCode!.highlighted,
+              "failed on ZipCode.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getZipCode!.mandatory,
+              "failed on ZipCode.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getZipCode!.readonly,
+              "failed on ZipCode.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(getZipCode!.textColor, "failed on ZipCode.textColor field")
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getZipCode!.title, "failed on ZipCode.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getZipCode!.visible,
+              "failed on ZipCode.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setTSASingleLineTextAcc = await accUIObject.getField(
+            "TSASingleLineTextAcc"
+          );
+
+          try {
+            setTSASingleLineTextAcc!.accessory = randAcessory;
+            setTSASingleLineTextAcc!.backgroundColor = bgColor;
+            setTSASingleLineTextAcc!.decimalDigits = 3;
+            setTSASingleLineTextAcc!.highlighted = true;
+            setTSASingleLineTextAcc!.mandatory = true;
+            setTSASingleLineTextAcc!.readonly = false;
+            setTSASingleLineTextAcc!.textColor = color;
+            setTSASingleLineTextAcc!.title = phrase;
+            setTSASingleLineTextAcc!.visible = true;
+            setTSASingleLineTextAcc!.value = name + phrase + randDays;
+            setTSASingleLineTextAcc!.formattedValue =
+              name + phrase + randDiscount;
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getTSASingleLineTextAcc = await accUIObject.getField(
+            "TSASingleLineTextAcc"
+          );
+
+          expect(
+            getTSASingleLineTextAcc,
+            "failed on TSASingleLineTextAcc field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSASingleLineTextAcc!.type,
+              "failed on TSASingleLineTextAcc.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("TextBox").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSASingleLineTextAcc!.value,
+              "failed on TSASingleLineTextAcc.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(name + phrase + randDays).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getTSASingleLineTextAcc!.formattedValue,
+              "failed on TSASingleLineTextAcc.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(name + phrase + randDiscount).that.is.not.null
+              .and.is.not.undefined,
+            expect(
+              getTSASingleLineTextAcc!.accessory,
+              "failed on TSASingleLineTextAcc.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSASingleLineTextAcc!.backgroundColor,
+              "failed on TSASingleLineTextAcc.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSASingleLineTextAcc!.decimalDigits,
+              "failed on TSASingleLineTextAcc.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSASingleLineTextAcc!.highlighted,
+              "failed on TSASingleLineTextAcc.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSASingleLineTextAcc!.mandatory,
+              "failed on TSASingleLineTextAcc.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSASingleLineTextAcc!.readonly,
+              "failed on TSASingleLineTextAcc.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSASingleLineTextAcc!.textColor,
+              "failed on TSASingleLineTextAcc.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSASingleLineTextAcc!.title,
+              "failed on TSASingleLineTextAcc.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSASingleLineTextAcc!.visible,
+              "failed on TSASingleLineTextAcc.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setTSALimitedLineTextAcc = await accUIObject.getField(
+            "TSALimitedLineTextAcc"
+          );
+
+          try {
+            setTSALimitedLineTextAcc!.accessory = randAcessory;
+            setTSALimitedLineTextAcc!.backgroundColor = bgColor;
+            setTSALimitedLineTextAcc!.decimalDigits = 3;
+            setTSALimitedLineTextAcc!.highlighted = true;
+            setTSALimitedLineTextAcc!.mandatory = true;
+            setTSALimitedLineTextAcc!.readonly = false;
+            setTSALimitedLineTextAcc!.textColor = color;
+            setTSALimitedLineTextAcc!.title = phrase;
+            setTSALimitedLineTextAcc!.visible = true;
+            setTSALimitedLineTextAcc!.value = name + phrase + randDays;
+            setTSALimitedLineTextAcc!.formattedValue =
+              name + phrase + randDiscount;
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getTSALimitedLineTextAcc = await accUIObject.getField(
+            "TSALimitedLineTextAcc"
+          );
+
+          expect(
+            getTSALimitedLineTextAcc,
+            "failed on TSALimitedLineTextAcc field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALimitedLineTextAcc!.type,
+              "failed on TSALimitedLineTextAcc.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("LimitedLengthTextBox").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALimitedLineTextAcc!.value,
+              "failed on TSALimitedLineTextAcc.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(name + phrase + randDays).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getTSALimitedLineTextAcc!.formattedValue,
+              "failed on TSALimitedLineTextAcc.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(name + phrase + randDiscount).that.is.not.null
+              .and.is.not.undefined,
+            expect(
+              getTSALimitedLineTextAcc!.accessory,
+              "failed on TSALimitedLineTextAcc.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALimitedLineTextAcc!.backgroundColor,
+              "failed on TSALimitedLineTextAcc.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALimitedLineTextAcc!.decimalDigits,
+              "failed on TSALimitedLineTextAcc.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALimitedLineTextAcc!.highlighted,
+              "failed on TSALimitedLineTextAcc.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALimitedLineTextAcc!.mandatory,
+              "failed on TSALimitedLineTextAcc.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALimitedLineTextAcc!.readonly,
+              "failed on TSALimitedLineTextAcc.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALimitedLineTextAcc!.textColor,
+              "failed on TSALimitedLineTextAcc.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALimitedLineTextAcc!.title,
+              "failed on TSALimitedLineTextAcc.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALimitedLineTextAcc!.visible,
+              "failed on TSALimitedLineTextAcc.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setTSAParagraphTextAcc = await accUIObject.getField(
+            "TSAParagraphTextAcc"
+          );
+
+          try {
+            setTSAParagraphTextAcc!.accessory = randAcessory;
+            setTSAParagraphTextAcc!.backgroundColor = bgColor;
+            setTSAParagraphTextAcc!.decimalDigits = 3;
+            setTSAParagraphTextAcc!.highlighted = true;
+            setTSAParagraphTextAcc!.mandatory = true;
+            setTSAParagraphTextAcc!.readonly = false;
+            setTSAParagraphTextAcc!.textColor = color;
+            setTSAParagraphTextAcc!.title = phrase;
+            setTSAParagraphTextAcc!.visible = true;
+            setTSAParagraphTextAcc!.value = name + phrase + randDays;
+            setTSAParagraphTextAcc!.formattedValue =
+              name + phrase + randDiscount;
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getTSAParagraphTextAcc = await accUIObject.getField(
+            "TSAParagraphTextAcc"
+          );
+
+          expect(
+            getTSAParagraphTextAcc,
+            "failed on TSAParagraphTextAcc field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAParagraphTextAcc!.type,
+              "failed on TSAParagraphTextAcc.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("TextArea").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAParagraphTextAcc!.value,
+              "failed on TSAParagraphTextAcc.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(name + phrase + randDays).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getTSAParagraphTextAcc!.formattedValue,
+              "failed on TSAParagraphTextAcc.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(name + phrase + randDiscount).that.is.not.null
+              .and.is.not.undefined,
+            expect(
+              getTSAParagraphTextAcc!.accessory,
+              "failed on TSAParagraphTextAcc.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAParagraphTextAcc!.backgroundColor,
+              "failed on TSAParagraphTextAcc.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAParagraphTextAcc!.decimalDigits,
+              "failed on TSAParagraphTextAcc.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAParagraphTextAcc!.highlighted,
+              "failed on TSAParagraphTextAcc.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAParagraphTextAcc!.mandatory,
+              "failed on TSAParagraphTextAcc.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAParagraphTextAcc!.readonly,
+              "failed on TSAParagraphTextAcc.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAParagraphTextAcc!.textColor,
+              "failed on TSAParagraphTextAcc.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAParagraphTextAcc!.title,
+              "failed on TSAParagraphTextAcc.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAParagraphTextAcc!.visible,
+              "failed on TSAParagraphTextAcc.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setTSADateAcc = await accUIObject.getField("TSADateAcc");
+
+          try {
+            setTSADateAcc!.accessory = randAcessory;
+            setTSADateAcc!.backgroundColor = bgColor;
+            setTSADateAcc!.decimalDigits = 3;
+            setTSADateAcc!.highlighted = true;
+            setTSADateAcc!.mandatory = true;
+            setTSADateAcc!.readonly = false;
+            setTSADateAcc!.textColor = color;
+            setTSADateAcc!.title = phrase;
+            setTSADateAcc!.visible = true;
+            setTSADateAcc!.value = "2021-07-27";
+            setTSADateAcc!.formattedValue = "2020-07-27";
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getTSADateAcc = await accUIObject.getField("TSADateAcc");
+
+          expect(getTSADateAcc, "failed on TSADateAcc field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getTSADateAcc!.type, "failed on TSADateAcc.type field")
+              .to.be.a("string")
+              .that.is.equal("Date").that.is.not.null.and.is.not.undefined,
+            expect(getTSADateAcc!.value, "failed on TSADateAcc.value field")
+              .to.be.a("string")
+              .and.to.be.equal("2021-07-27").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateAcc!.formattedValue,
+              "failed on TSADateAcc.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal("2020-07-27").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateAcc!.accessory,
+              "failed on TSADateAcc.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateAcc!.backgroundColor,
+              "failed on TSADateAcc.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateAcc!.decimalDigits,
+              "failed on TSADateAcc.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateAcc!.highlighted,
+              "failed on TSADateAcc.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateAcc!.mandatory,
+              "failed on TSADateAcc.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateAcc!.readonly,
+              "failed on TSADateAcc.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateAcc!.textColor,
+              "failed on TSADateAcc.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getTSADateAcc!.title, "failed on TSADateAcc.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateAcc!.visible,
+              "failed on TSADateAcc.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setTSADateTimeAcc = await accUIObject.getField("TSADateTimeAcc");
+
+          try {
+            setTSADateTimeAcc!.accessory = randAcessory;
+            setTSADateTimeAcc!.backgroundColor = bgColor;
+            setTSADateTimeAcc!.decimalDigits = 3;
+            setTSADateTimeAcc!.highlighted = true;
+            setTSADateTimeAcc!.mandatory = true;
+            setTSADateTimeAcc!.readonly = false;
+            setTSADateTimeAcc!.textColor = color;
+            setTSADateTimeAcc!.title = phrase;
+            setTSADateTimeAcc!.visible = true;
+            setTSADateTimeAcc!.value = "2021-07-27T09:09:09.000Z";
+            setTSADateTimeAcc!.formattedValue = "2020-07-27 09:09 AM";
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getTSADateTimeAcc = await accUIObject.getField("TSADateTimeAcc");
+
+          expect(
+            getTSADateTimeAcc,
+            "failed on TSADateTimeAcc field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateTimeAcc!.type,
+              "failed on TSADateTimeAcc.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("DateAndTime").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateTimeAcc!.value,
+              "failed on TSADateTimeAcc.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal("2021-07-27T09:09:09.000Z").that.is.not.null.and
+              .is.not.undefined,
+            expect(
+              getTSADateTimeAcc!.formattedValue,
+              "failed on TSADateTimeAcc.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal("2020-07-27 09:09 AM").that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getTSADateTimeAcc!.accessory,
+              "failed on TSADateTimeAcc.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateTimeAcc!.backgroundColor,
+              "failed on TSADateTimeAcc.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateTimeAcc!.decimalDigits,
+              "failed on TSADateTimeAcc.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateTimeAcc!.highlighted,
+              "failed on TSADateTimeAcc.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateTimeAcc!.mandatory,
+              "failed on TSADateTimeAcc.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateTimeAcc!.readonly,
+              "failed on TSADateTimeAcc.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADateTimeAcc!.textColor,
+              "failed on TSADateTimeAcc.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateTimeAcc!.title,
+              "failed on TSADateTimeAcc.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADateTimeAcc!.visible,
+              "failed on TSADateTimeAcc.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setTSANumberAcc = await accUIObject.getField("TSANumberAcc");
+
+          try {
+            setTSANumberAcc!.accessory = randAcessory;
+            setTSANumberAcc!.backgroundColor = bgColor;
+            setTSANumberAcc!.decimalDigits = 3;
+            setTSANumberAcc!.highlighted = true;
+            setTSANumberAcc!.mandatory = true;
+            setTSANumberAcc!.readonly = false;
+            setTSANumberAcc!.textColor = color;
+            setTSANumberAcc!.title = phrase;
+            setTSANumberAcc!.visible = true;
+            setTSANumberAcc!.value = randDays.toString();
+            setTSANumberAcc!.formattedValue = randZip.toString();
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getTSANumberAcc = await accUIObject.getField("TSANumberAcc");
+
+          expect(
+            getTSANumberAcc,
+            "failed on TSANumberAcc field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(getTSANumberAcc!.type, "failed on TSANumberAcc.type field")
+              .to.be.a("string")
+              .that.is.equal("NumberInteger").that.is.not.null.and.is.not
+              .undefined,
+            expect(getTSANumberAcc!.value, "failed on TSANumberAcc.value field")
+              .to.be.a("string")
+              .and.to.be.equal(randDays.toString()).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSANumberAcc!.formattedValue,
+              "failed on TSANumberAcc.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(randZip.toString()).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSANumberAcc!.accessory,
+              "failed on TSANumberAcc.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSANumberAcc!.backgroundColor,
+              "failed on TSANumberAcc.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSANumberAcc!.decimalDigits,
+              "failed on TSANumberAcc.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSANumberAcc!.highlighted,
+              "failed on TSANumberAcc.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSANumberAcc!.mandatory,
+              "failed on TSANumberAcc.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSANumberAcc!.readonly,
+              "failed on TSANumberAcc.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSANumberAcc!.textColor,
+              "failed on TSANumberAcc.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getTSANumberAcc!.title, "failed on TSANumberAcc.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSANumberAcc!.visible,
+              "failed on TSANumberAcc.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setTSADecimalAcc = await accUIObject.getField("TSADecimalAcc");
+
+          try {
+            setTSADecimalAcc!.accessory = randAcessory;
+            setTSADecimalAcc!.backgroundColor = bgColor;
+            setTSADecimalAcc!.decimalDigits = 3;
+            setTSADecimalAcc!.highlighted = true;
+            setTSADecimalAcc!.mandatory = true;
+            setTSADecimalAcc!.readonly = false;
+            setTSADecimalAcc!.textColor = color;
+            setTSADecimalAcc!.title = phrase;
+            setTSADecimalAcc!.visible = true;
+            setTSADecimalAcc!.value = (randDiscount * 2).toString();
+            setTSADecimalAcc!.formattedValue = randDiscount.toString();
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getTSADecimalAcc = await accUIObject.getField("TSADecimalAcc");
+
+          expect(
+            getTSADecimalAcc,
+            "failed on TSADecimalAcc field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(getTSADecimalAcc!.type, "failed on TSADecimalAcc.type field")
+              .to.be.a("string")
+              .that.is.equal("NumberReal").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADecimalAcc!.value,
+              "failed on TSADecimalAcc.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal((randDiscount * 2).toString()).that.is.not.null
+              .and.is.not.undefined,
+            expect(
+              getTSADecimalAcc!.formattedValue,
+              "failed on TSADecimalAcc.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(randDiscount.toString()).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getTSADecimalAcc!.accessory,
+              "failed on TSADecimalAcc.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADecimalAcc!.backgroundColor,
+              "failed on TSADecimalAcc.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADecimalAcc!.decimalDigits,
+              "failed on TSADecimalAcc.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADecimalAcc!.highlighted,
+              "failed on TSADecimalAcc.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADecimalAcc!.mandatory,
+              "failed on TSADecimalAcc.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADecimalAcc!.readonly,
+              "failed on TSADecimalAcc.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSADecimalAcc!.textColor,
+              "failed on TSADecimalAcc.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADecimalAcc!.title,
+              "failed on TSADecimalAcc.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSADecimalAcc!.visible,
+              "failed on TSADecimalAcc.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setTSACurrencyAcc = await accUIObject.getField("TSACurrencyAcc");
+
+          try {
+            setTSACurrencyAcc!.accessory = randAcessory;
+            setTSACurrencyAcc!.backgroundColor = bgColor;
+            setTSACurrencyAcc!.decimalDigits = 3;
+            setTSACurrencyAcc!.highlighted = true;
+            setTSACurrencyAcc!.mandatory = true;
+            setTSACurrencyAcc!.readonly = false;
+            setTSACurrencyAcc!.textColor = color;
+            setTSACurrencyAcc!.title = phrase;
+            setTSACurrencyAcc!.visible = true;
+            setTSACurrencyAcc!.value = (randDays * 2).toString();
+            setTSACurrencyAcc!.formattedValue = randDays.toString();
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getTSACurrencyAcc = await accUIObject.getField("TSACurrencyAcc");
+
+          expect(
+            getTSACurrencyAcc,
+            "failed on TSACurrencyAcc field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACurrencyAcc!.type,
+              "failed on TSACurrencyAcc.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("Currency").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACurrencyAcc!.value,
+              "failed on TSACurrencyAcc.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal((randDays * 2).toString()).that.is.not.null.and
+              .is.not.undefined,
+            expect(
+              getTSACurrencyAcc!.formattedValue,
+              "failed on TSACurrencyAcc.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(randDays.toString()).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACurrencyAcc!.accessory,
+              "failed on TSACurrencyAcc.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACurrencyAcc!.backgroundColor,
+              "failed on TSACurrencyAcc.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACurrencyAcc!.decimalDigits,
+              "failed on TSACurrencyAcc.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACurrencyAcc!.highlighted,
+              "failed on TSACurrencyAcc.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACurrencyAcc!.mandatory,
+              "failed on TSACurrencyAcc.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACurrencyAcc!.readonly,
+              "failed on TSACurrencyAcc.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACurrencyAcc!.textColor,
+              "failed on TSACurrencyAcc.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACurrencyAcc!.title,
+              "failed on TSACurrencyAcc.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACurrencyAcc!.visible,
+              "failed on TSACurrencyAcc.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setTSACheckboxAcc = await accUIObject.getField("TSACheckboxAcc");
+
+          try {
+            setTSACheckboxAcc!.accessory = randAcessory;
+            setTSACheckboxAcc!.backgroundColor = bgColor;
+            setTSACheckboxAcc!.decimalDigits = 3;
+            setTSACheckboxAcc!.highlighted = true;
+            setTSACheckboxAcc!.mandatory = true;
+            setTSACheckboxAcc!.readonly = false;
+            setTSACheckboxAcc!.textColor = color;
+            setTSACheckboxAcc!.title = phrase;
+            setTSACheckboxAcc!.visible = true;
+            setTSACheckboxAcc!.value = randBool.toString();
+            setTSACheckboxAcc!.formattedValue = (!randBool).toString();
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getTSACheckboxAcc = await accUIObject.getField("TSACheckboxAcc");
+
+          expect(
+            getTSACheckboxAcc,
+            "failed on TSACheckboxAcc field object"
+          ).to.be.an("object").that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACheckboxAcc!.type,
+              "failed on TSACheckboxAcc.type field"
+            )
+              .to.be.a("string")
+              .that.is.equal("BooleanText").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACheckboxAcc!.value,
+              "failed on TSACheckboxAcc.value field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(randBool.toString()).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACheckboxAcc!.formattedValue,
+              "failed on TSACheckboxAcc.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal((!randBool).toString()).that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getTSACheckboxAcc!.accessory,
+              "failed on TSACheckboxAcc.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACheckboxAcc!.backgroundColor,
+              "failed on TSACheckboxAcc.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACheckboxAcc!.decimalDigits,
+              "failed on TSACheckboxAcc.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACheckboxAcc!.highlighted,
+              "failed on TSACheckboxAcc.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACheckboxAcc!.mandatory,
+              "failed on TSACheckboxAcc.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACheckboxAcc!.readonly,
+              "failed on TSACheckboxAcc.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSACheckboxAcc!.textColor,
+              "failed on TSACheckboxAcc.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACheckboxAcc!.title,
+              "failed on TSACheckboxAcc.title field"
+            )
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSACheckboxAcc!.visible,
+              "failed on TSACheckboxAcc.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setTSAPhoneAcc = await accUIObject.getField("TSAPhoneAcc");
+
+          try {
+            setTSAPhoneAcc!.accessory = randAcessory;
+            setTSAPhoneAcc!.backgroundColor = bgColor;
+            setTSAPhoneAcc!.decimalDigits = 3;
+            setTSAPhoneAcc!.highlighted = true;
+            setTSAPhoneAcc!.mandatory = true;
+            setTSAPhoneAcc!.readonly = false;
+            setTSAPhoneAcc!.textColor = color;
+            setTSAPhoneAcc!.title = phrase;
+            setTSAPhoneAcc!.visible = true;
+            setTSAPhoneAcc!.value = randDays.toString();
+            setTSAPhoneAcc!.formattedValue = (randDays * 2).toString();
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getTSAPhoneAcc = await accUIObject.getField("TSAPhoneAcc");
+
+          expect(getTSAPhoneAcc, "failed on TSAPhoneAcc field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getTSAPhoneAcc!.type, "failed on TSAPhoneAcc.type field")
+              .to.be.a("string")
+              .that.is.equal("Phone").that.is.not.null.and.is.not.undefined,
+            expect(getTSAPhoneAcc!.value, "failed on TSAPhoneAcc.value field")
+              .to.be.a("string")
+              .and.to.be.equal(randDays.toString()).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAPhoneAcc!.formattedValue,
+              "failed on TSAPhoneAcc.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal((randDays * 2).toString()).that.is.not.null.and
+              .is.not.undefined,
+            expect(
+              getTSAPhoneAcc!.accessory,
+              "failed on TSAPhoneAcc.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAPhoneAcc!.backgroundColor,
+              "failed on TSAPhoneAcc.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAPhoneAcc!.decimalDigits,
+              "failed on TSAPhoneAcc.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAPhoneAcc!.highlighted,
+              "failed on TSAPhoneAcc.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAPhoneAcc!.mandatory,
+              "failed on TSAPhoneAcc.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAPhoneAcc!.readonly,
+              "failed on TSAPhoneAcc.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAPhoneAcc!.textColor,
+              "failed on TSAPhoneAcc.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getTSAPhoneAcc!.title, "failed on TSAPhoneAcc.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAPhoneAcc!.visible,
+              "failed on TSAPhoneAcc.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setTSALinkAcc = await accUIObject.getField("TSALinkAcc");
+
+          try {
+            setTSALinkAcc!.accessory = randAcessory;
+            setTSALinkAcc!.backgroundColor = bgColor;
+            setTSALinkAcc!.decimalDigits = 3;
+            setTSALinkAcc!.highlighted = true;
+            setTSALinkAcc!.mandatory = true;
+            setTSALinkAcc!.readonly = false;
+            setTSALinkAcc!.textColor = color;
+            setTSALinkAcc!.title = phrase;
+            setTSALinkAcc!.visible = true;
+            setTSALinkAcc!.value = link;
+            setTSALinkAcc!.formattedValue = "www.google.com";
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getTSALinkAcc = await accUIObject.getField("TSALinkAcc");
+
+          expect(getTSALinkAcc, "failed on TSALinkAcc field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getTSALinkAcc!.type, "failed on TSALinkAcc.type field")
+              .to.be.a("string")
+              .that.is.equal("Link").that.is.not.null.and.is.not.undefined,
+            expect(getTSALinkAcc!.value, "failed on TSALinkAcc.value field")
+              .to.be.a("string")
+              .and.to.be.equal(link).that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALinkAcc!.formattedValue,
+              "failed on TSALinkAcc.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal("www.google.com").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALinkAcc!.accessory,
+              "failed on TSALinkAcc.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALinkAcc!.backgroundColor,
+              "failed on TSALinkAcc.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALinkAcc!.decimalDigits,
+              "failed on TSALinkAcc.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALinkAcc!.highlighted,
+              "failed on TSALinkAcc.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALinkAcc!.mandatory,
+              "failed on TSALinkAcc.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALinkAcc!.readonly,
+              "failed on TSALinkAcc.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSALinkAcc!.textColor,
+              "failed on TSALinkAcc.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getTSALinkAcc!.title, "failed on TSALinkAcc.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSALinkAcc!.visible,
+              "failed on TSALinkAcc.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setTSAHTMLAcc = await accUIObject.getField("TSAHTMLAcc");
+
+          try {
+            setTSAHTMLAcc!.accessory = randAcessory;
+            setTSAHTMLAcc!.backgroundColor = bgColor;
+            setTSAHTMLAcc!.decimalDigits = 3;
+            setTSAHTMLAcc!.highlighted = true;
+            setTSAHTMLAcc!.mandatory = true;
+            setTSAHTMLAcc!.readonly = false;
+            setTSAHTMLAcc!.textColor = color;
+            setTSAHTMLAcc!.title = phrase;
+            setTSAHTMLAcc!.visible = true;
+            setTSAHTMLAcc!.value = HTML;
+            setTSAHTMLAcc!.formattedValue = HTML + HTML;
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getTSAHTMLAcc = await accUIObject.getField("TSAHTMLAcc");
+
+          expect(getTSAHTMLAcc, "failed on TSAHTMLAcc field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getTSAHTMLAcc!.type, "failed on TSAHTMLAcc.type field")
+              .to.be.a("string")
+              .that.is.equal("RichTextHTML").that.is.not.null.and.is.not
+              .undefined,
+            expect(getTSAHTMLAcc!.value, "failed on TSAHTMLAcc.value field")
+              .to.be.a("string")
+              .and.to.be.equal(HTML).that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAHTMLAcc!.formattedValue,
+              "failed on TSAHTMLAcc.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal(HTML + HTML).that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAHTMLAcc!.accessory,
+              "failed on TSAHTMLAcc.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAHTMLAcc!.backgroundColor,
+              "failed on TSAHTMLAcc.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAHTMLAcc!.decimalDigits,
+              "failed on TSAHTMLAcc.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAHTMLAcc!.highlighted,
+              "failed on TSAHTMLAcc.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAHTMLAcc!.mandatory,
+              "failed on TSAHTMLAcc.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAHTMLAcc!.readonly,
+              "failed on TSAHTMLAcc.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAHTMLAcc!.textColor,
+              "failed on TSAHTMLAcc.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getTSAHTMLAcc!.title, "failed on TSAHTMLAcc.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAHTMLAcc!.visible,
+              "failed on TSAHTMLAcc.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+
+          let setTSAEmailAcc = await accUIObject.getField("TSAEmailAcc");
+
+          try {
+            setTSAEmailAcc!.accessory = randAcessory;
+            setTSAEmailAcc!.backgroundColor = bgColor;
+            setTSAEmailAcc!.decimalDigits = 3;
+            setTSAEmailAcc!.highlighted = true;
+            setTSAEmailAcc!.mandatory = true;
+            setTSAEmailAcc!.readonly = false;
+            setTSAEmailAcc!.textColor = color;
+            setTSAEmailAcc!.title = phrase;
+            setTSAEmailAcc!.visible = true;
+            setTSAEmailAcc!.value = "dor.s@pepperi.com";
+            setTSAEmailAcc!.formattedValue = "dor.s@pepperitest.com";
+          } catch (err) {
+            console.log(err);
+          }
+
+          let getTSAEmailAcc = await accUIObject.getField("TSAEmailAcc");
+
+          expect(getTSAEmailAcc, "failed on TSAEmailAcc field object").to.be.an(
+            "object"
+          ).that.is.not.null.and.is.not.undefined,
+            expect(getTSAEmailAcc!.type, "failed on TSAEmailAcc.type field")
+              .to.be.a("string")
+              .that.is.equal("Email").that.is.not.null.and.is.not.undefined,
+            expect(getTSAEmailAcc!.value, "failed on TSAEmailAcc.value field")
+              .to.be.a("string")
+              .and.to.be.equal("dor.s@pepperi.com").that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAEmailAcc!.formattedValue,
+              "failed on TSAEmailAcc.formattedValue field"
+            )
+              .to.be.a("string")
+              .and.to.be.equal("dor.s@pepperitest.com").that.is.not.null.and.is
+              .not.undefined,
+            expect(
+              getTSAEmailAcc!.accessory,
+              "failed on TSAEmailAcc.accessory field"
+            )
+              .to.be.a("string")
+              .that.is.equal(randAcessory).and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAEmailAcc!.backgroundColor,
+              "failed on TSAEmailAcc.backgroundColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(bgColor).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAEmailAcc!.decimalDigits,
+              "failed on TSAEmailAcc.decimalDigits field"
+            )
+              .to.be.a("number")
+              .that.is.equal(3).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAEmailAcc!.highlighted,
+              "failed on TSAEmailAcc.highlighted field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAEmailAcc!.mandatory,
+              "failed on TSAEmailAcc.mandatory field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAEmailAcc!.readonly,
+              "failed on TSAEmailAcc.readonly field"
+            ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+              .undefined,
+            expect(
+              getTSAEmailAcc!.textColor,
+              "failed on TSAEmailAcc.textColor field"
+            )
+              .to.be.a("string")
+              .that.is.equal(color).and.that.is.not.null.and.is.not.undefined,
+            expect(getTSAEmailAcc!.title, "failed on TSAEmailAcc.title field")
+              .to.be.a("string")
+              .that.is.equal(phrase).and.that.is.not.null.and.is.not.undefined,
+            expect(
+              getTSAEmailAcc!.visible,
+              "failed on TSAEmailAcc.visible field"
+            ).to.be.a("boolean").that.is.true.and.that.is.not.null.and.is.not
+              .undefined;
+          console.log(
+            "%cDetails - Accounts - Accessors - UIObject Finished CRUD testing!",
+            "color: #bada55"
+          );
+        });
       });
       break;
     }
     //===========================Neagative==========================================
     case "Negative": {
-      await initTestData(itemDataObject!, "items");
-      describe("Item DataObject Basic Negative CRUD test -  DI-18673 - SetFieldValue sets value/available for item DataObject", async () => {
+      describe("Item DataObject Basic Negative CRUD test", async () => {
         it("Basic Negative CRUD for SetFieldValue and GetFieldValue", async () => {
+          //=================================SET=====================================
+          //SET for TSA's
+          try {
+            await itemDataObject?.setFieldValue(
+              "TSASingleLineText",
+              phrase + randDiscount
+            );
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSASingleLineText with value: ${
+                    phrase + randDiscount
+                  }, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue(
+              "TSALimitedLineText",
+              phrase + randDiscount
+            );
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSALimitedLineText with value: ${
+                    phrase + randDiscount
+                  }, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue(
+              "TSAParagraphText",
+              phrase + randDiscount
+            );
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSAParagraphText with value: ${
+                    phrase + randDiscount
+                  }, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue("TSADate", dateOnly);
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSADate with value: ${dateOnly}, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue("TSADateTime", date);
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSADateTime with value: ${date}, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue(
+              "TSADecimal",
+              randDiscount.toFixed(6)
+            );
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSADecimal with value: ${randDiscount.toFixed(
+                    6
+                  )}, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue("TSANumber", quantitiesTotal);
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSANumber with value: ${quantitiesTotal}, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue("TSACurrency", quantitiesTotal);
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSACurrency with value: ${quantitiesTotal}, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue("TSACheckbox", randBool);
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSACheckbox with value: ${randBool}, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue("TSAEmail", userEmail);
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSAEmail with value: ${userEmail}, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue("TSAPhone", randPhone);
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSAPhone with value: ${randPhone}, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue("TSALink", link);
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSALink with value: ${link}, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue("TSAHTML", HTML);
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSAHTML with value: ${HTML}, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue("UPC", ExID);
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field UPC with value: ${ExID}, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue("LongDescription", name);
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field LongDescription with value: ${name}, Item is not editable`
+                );
+            }
+          }
+
+          try {
+            await itemDataObject?.setFieldValue("Price", quantitiesTotal);
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field Price with value: ${quantitiesTotal}, Item is not editable`
+                );
+            }
+          }
+
           //=================================GET=====================================
           const getTSASingleLineText = await itemDataObject?.getFieldValue(
             "TSASingleLineText"
           );
 
-          expect(getTSASingleLineText, "Failed on getTSASingleLineText")
-            .to.be.a("string")
-            .that.is.not.equal(phrase + randDiscount);
+          expect(
+            getTSASingleLineText,
+            "Failed on getTSASingleLineText"
+          ).that.is.not.equal(phrase + randDiscount);
 
           const getTSALimitedLineText = await itemDataObject?.getFieldValue(
             "TSALimitedLineText"
           );
 
-          expect(getTSALimitedLineText, "Failed on getTSALimitedLineText")
-            .to.be.a("string")
-            .that.is.not.equal(phrase + randDiscount);
+          expect(
+            getTSALimitedLineText,
+            "Failed on getTSALimitedLineText"
+          ).that.is.not.equal(phrase + randDiscount);
 
           const getTSAParagrathText = await itemDataObject?.getFieldValue(
             "TSAParagraphText"
           );
 
-          expect(getTSAParagrathText, "Failed on getTSAParagrathText")
-            .to.be.a("string")
-            .that.is.not.equal(phrase + randDiscount);
+          expect(
+            getTSAParagrathText,
+            "Failed on getTSAParagrathText"
+          ).that.is.not.equal(phrase + randDiscount);
 
           const getTSADate = await itemDataObject?.getFieldValue("TSADate");
 
-          expect(getTSADate, "Failed on getTSADate")
-            .to.be.a("string")
-            .that.is.not.equal(dateOnly);
+          expect(getTSADate, "Failed on getTSADate").that.is.not.equal(
+            dateOnly
+          );
 
           const getTSADT = await itemDataObject?.getFieldValue("TSADateTime");
 
-          expect(getTSADT, "Failed on getTSADateTime")
-            .to.be.a("string")
-            .that.is.not.equal(dateOnly);
+          expect(getTSADT, "Failed on getTSADateTime").that.is.not.equal(
+            dateOnly
+          );
 
           const getTSADecimal = await itemDataObject?.getFieldValue(
             "TSADecimal"
           );
 
-          expect(getTSADecimal, "Failed on getTSADecimal")
-            .to.be.a("number")
-            .that.is.not.equal(+randDiscount.toFixed(3));
+          expect(getTSADecimal, "Failed on getTSADecimal").that.is.not.equal(
+            +randDiscount.toFixed(3)
+          );
 
           const getTSANumber = await itemDataObject?.getFieldValue("TSANumber");
 
-          expect(getTSANumber, "Failed on getTSANumber")
-            .to.be.a("number")
-            .that.is.not.equal(quantitiesTotal);
+          expect(getTSANumber, "Failed on getTSANumber").that.is.not.equal(
+            quantitiesTotal
+          );
 
           const getTSACurrency = await itemDataObject?.getFieldValue(
             "TSACurrency"
           );
 
-          expect(getTSACurrency, "Failed on getTSACurrency")
-            .to.be.a("number")
-            .that.is.not.equal(quantitiesTotal);
+          expect(getTSACurrency, "Failed on getTSACurrency").that.is.not.equal(
+            quantitiesTotal
+          );
 
           const getTSACheckbox = await itemDataObject?.getFieldValue(
             "TSACheckbox"
           );
 
-          expect(getTSACheckbox, "Failed on getTSACheckbox")
-            .to.be.a("boolean")
-            .that.is.not.equal(randBool);
+          expect(getTSACheckbox, "Failed on getTSACheckbox").that.is.not.equal(
+            randBool
+          );
 
           const getTSAEmail = await itemDataObject?.getFieldValue("TSAEmail");
 
-          expect(getTSAEmail, "Failed on getTSAEmail")
-            .to.be.a("string")
-            .that.is.not.equal(userEmail);
+          expect(getTSAEmail, "Failed on getTSAEmail").that.is.not.equal(
+            userEmail
+          );
 
           const getTSAPhone = await itemDataObject?.getFieldValue("TSAPhone");
 
-          expect(getTSAPhone, "Failed on getTSAPhone")
-            .to.be.a("string")
-            .that.is.not.equal(randPhone);
+          expect(getTSAPhone, "Failed on getTSAPhone").that.is.not.equal(
+            randPhone
+          );
 
           const getTSALink = await itemDataObject?.getFieldValue("TSALink");
 
-          expect(getTSALink, "Failed on getTSALink")
-            .to.be.a("string")
-            .that.is.not.equal(link);
+          expect(getTSALink, "Failed on getTSALink").that.is.not.equal(link);
 
           const getTSAHTML = await itemDataObject?.getFieldValue("TSAHTML");
 
-          expect(getTSAHTML, "Failed on getTSAHTML")
-            .to.be.a("string")
-            .that.is.not.equal(HTML);
+          expect(getTSAHTML, "Failed on getTSAHTML").that.is.not.equal(HTML);
 
           const getUPC = await itemDataObject?.getFieldValue("UPC");
 
-          expect(getUPC, "Failed on getUPC")
-            .to.be.a("string")
-            .that.is.not.equal(ExID);
+          expect(getUPC, "Failed on getUPC").that.is.not.equal(ExID);
 
           const getName = await itemDataObject?.getFieldValue("Name");
 
-          expect(getName, "Failed on getName")
-            .to.be.a("string")
-            .that.is.not.equal(name);
+          expect(getName, "Failed on getName").that.is.not.equal(name);
 
           const getLngDesc = await itemDataObject?.getFieldValue(
             "LongDescription"
           );
 
-          expect(getLngDesc, "Failed on getLngDesc")
-            .to.be.a("string")
-            .that.is.not.equal(name);
+          expect(getLngDesc, "Failed on getLngDesc").that.is.not.equal(name);
 
           const getPrice = await itemDataObject?.getFieldValue("Price");
 
-          expect(getPrice, "Failed on getPrice")
-            .to.be.a("number")
-            .that.is.not.equal(quantitiesTotal);
+          expect(getPrice, "Failed on getPrice").that.is.not.equal(
+            quantitiesTotal
+          );
         });
         it("Basic CRUD for Items DataObject Accessors", async () => {
           const ExternalID = itemDataObject?.externalID;
           const hidden = itemDataObject?.hidden;
           const internalID = itemDataObject?.internalID;
           const resource = itemDataObject?.resource;
-          //const typeDef = itemDataObject?.typeDefinition;
+          const typeDef = itemDataObject?.typeDefinition;
           const uuid = itemDataObject?.uuid;
-
           expect(hidden, "Failed on hidden accessor").to.be.a("boolean").that.is
             .false.and.is.not.null.and.is.not.undefined;
 
@@ -7336,12 +9686,258 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             .that.has.lengthOf(36).and.is.not.null.and.is.not.undefined;
         });
       });
+      describe("Inserted Values Negative CRUD test", async () => {
+        it("Activity dataObject Negative CRUD for SetFieldValue", async () => {
+          try {
+            await actDataObject?.setFieldValue(
+              "TSADateTimeACT",
+              "random crap" /// DI-18925 - dataObject.setFieldValue allows to insert alphabetical string into a date formatted field
+            );
+          } catch (err) {
+            console.log(err);
+            if (err instanceof Error) {
+              // expect(err.message)
+              //   .to.be.a("string")
+              //   .that.is.equal(
+              //     `Error setting field TSASingleLineText with value: ${
+              //       phrase + randDiscount
+              //     }, Item is not editable`
+              //   );
+              console.log(err);
+            }
+          }
+
+          try {
+            await actDataObject?.setFieldValue("TSANumberACT", phrase);
+          } catch (err) {
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSANumberACT with value: ${phrase}, Error: Setting value for field: TSANumberACT failed with error: ILLEGAL_VALUE`
+                );
+              console.log(err);
+            }
+          }
+
+          try {
+            await actDataObject?.setFieldValue("TSANumberACT", randBool);
+          } catch (err) {
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSANumberACT with value: ${randBool}, Error: Setting value for field: TSANumberACT failed with error: ILLEGAL_VALUE`
+                );
+              console.log(err);
+            }
+          }
+
+          try {
+            await actDataObject?.setFieldValue("TSADecimalACT", phrase);
+          } catch (err) {
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSADecimalACT with value: ${phrase}, Error: Setting value for field: TSADecimalACT failed with error: ILLEGAL_VALUE`
+                );
+              console.log(err);
+            }
+          }
+
+          try {
+            await actDataObject?.setFieldValue("TSADecimalACT", randBool);
+          } catch (err) {
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSADecimalACT with value: ${randBool}, Error: Setting value for field: TSADecimalACT failed with error: ILLEGAL_VALUE`
+                );
+              console.log(err);
+            }
+          }
+
+          try {
+            await actDataObject?.setFieldValue("TSACurrencyACT", phrase);
+          } catch (err) {
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSACurrencyACT with value: ${phrase}, Error: Setting value for field: TSACurrencyACT failed with error: ILLEGAL_VALUE`
+                );
+              console.log(err);
+            }
+          }
+
+          try {
+            await actDataObject?.setFieldValue("TSACurrencyACT", randBool);
+          } catch (err) {
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSACurrencyACT with value: ${randBool}, Error: Setting value for field: TSACurrencyACT failed with error: ILLEGAL_VALUE`
+                );
+              console.log(err);
+            }
+          }
+
+          try {
+            await actDataObject?.setFieldValue("TSACheckboxACT", phrase);
+          } catch (err) {
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSACheckboxACT with value: ${phrase}, Error: Setting value for field: TSACheckboxACT failed with error: ILLEGAL_VALUE`
+                );
+              console.log(err);
+            }
+          }
+
+          try {
+            await actDataObject?.setFieldValue("TSACheckboxACT", randZip);
+          } catch (err) {
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSACheckboxACT with value: ${randZip}, Error: Setting value for field: TSACheckboxACT failed with error: ILLEGAL_VALUE`
+                );
+              console.log(err);
+            }
+          }
+
+          //currently no validation firing for the below
+          try {
+            await actDataObject?.setFieldValue("TSADateACT", randBool);
+          } catch (err) {
+            if (err instanceof Error) {
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSADateACT with value: ${randBool}, Error: Setting value for field: TSADateACT failed with error: ILLEGAL_VALUE`
+                );
+              console.log(err);
+            }
+          }
+
+          let longString = "";
+          for (let i = 0; i < 250; i++) {
+            longString = longString + name + phrase;
+          }
+          //currently no validation firing for the below
+          try {
+            await actDataObject?.setFieldValue(
+              "TSALimitedLineTextACT",
+              longString
+            );
+          } catch (err) {
+            if (err instanceof Error) {
+              console.log(err);
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field TSASingleLineTextACT with value: ${longString}, Error: Setting value for field: TSASingleLineTextACT failed with error: ILLEGAL_VALUE`
+                );
+            }
+          }
+
+          try {
+            await actDataObject?.setFieldValue("PlannedDuration", phrase);
+          } catch (err) {
+            if (err instanceof Error) {
+              console.log(err);
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field PlannedDuration with value: ${phrase}, Error: Setting value for field: PlannedDuration failed with error: ILLEGAL_VALUE`
+                );
+            }
+          }
+
+          try {
+            await actDataObject?.setFieldValue("PlannedDuration", randBool);
+          } catch (err) {
+            if (err instanceof Error) {
+              console.log(err);
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field PlannedDuration with value: ${randBool}, Error: Setting value for field: PlannedDuration failed with error: ILLEGAL_VALUE`
+                );
+            }
+          }
+
+          try {
+            await actDataObject?.setFieldValue(
+              "SubmissionGeoCodeLAT",
+              randBool
+            );
+          } catch (err) {
+            if (err instanceof Error) {
+              console.log(err);
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field SubmissionGeoCodeLAT with value: ${randBool}, Error: Setting value for field: SubmissionGeoCodeLAT failed with error: ILLEGAL_VALUE`
+                );
+            }
+          }
+
+          try {
+            await actDataObject?.setFieldValue("SubmissionGeoCodeLAT", name);
+          } catch (err) {
+            if (err instanceof Error) {
+              console.log(err);
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field SubmissionGeoCodeLAT with value: ${name}, Error: Setting value for field: SubmissionGeoCodeLAT failed with error: ILLEGAL_VALUE`
+                );
+            }
+          }
+
+          try {
+            await actDataObject?.setFieldValue("x", name);
+          } catch (err) {
+            if (err instanceof Error) {
+              console.log(err);
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field x with value: ${name}, Error: Setting value for field: x failed with error: APINAME_DOES_NOT_EXIST`
+                );
+            }
+          }
+        });
+        it("Transaction header UIObject Negative CRUD for SetFieldValue", async () => {
+          const uiObject = TrnDetailsUIPage.uiObject;
+
+          //DI-18940 - uiObject.setFieldValue with incorrect APIName returns no exception
+          try {
+            await uiObject?.setFieldValue("x", phrase);
+          } catch (err) {
+            if (err instanceof Error) {
+              console.log(err);
+              expect(err.message)
+                .to.be.a("string")
+                .that.is.equal(
+                  `Error setting field x with value: ${phrase}, Error: Setting value for field: x failed with error: ILLEGAL_VALUE`
+                );
+            }
+          }
+        });
+      });
       break;
     }
     //===========================Error handling=====================================
     case "error": {
       console.log(
-        "%cThe test name you've inserted does not exist,try again with 'Data','UI1/2 or 'Negative'",
+        "%cThe test name you've inserted does not exist,try again with 'Data','UI1/2' or 'Negative'",
         "color: #FF0000"
       );
       break;
@@ -7396,8 +9992,8 @@ router.use("/addon-api/:v/use", async (req, res, next) => {
     }
   } catch (err) {
     console.log(err);
+    res.json({ result: "failure", error: err });
   }
-  res.json({ result: "failure" });
 });
 //Recalculate trigger for interceptors test
 router.get("/recalculate/:UUID/trigger", async (req, res, next) => {
@@ -7420,22 +10016,10 @@ router.get("/recalculate/:UUID/trigger", async (req, res, next) => {
       });
     }
   }
-  //can move the below and logic is ready
-  let uiObject = accDetailsUIPage!.uiObject;
-  await uiObject.recalculate();
-  console.log(uiObject);
-
   res.json({
     result: "success",
   });
 });
-
-//router for Load function test -- dummy trigger
-// router.get("/load-test", async (req, res, next) => {
-//   loadTestActive = true;
-//   loadTestCounter = 0;
-//   console.log(new Date());
-// });
 
 //==============================/ClientAPI/ADAL=======================================
 router.get("/ClientAPI/ADAL", async (req, res, next) => {
@@ -7445,87 +10029,331 @@ router.get("/ClientAPI/ADAL", async (req, res, next) => {
     it("Negative ADAL.get() test", async () => {
       //negative with invalid key
       try {
-      const negativeGet1 = await pepperi.api.adal.get({
-        addon: addonUUID,
-        table: adalTableName,
-        key: "negativeKey",
-      });} catch(err) {
-        if(err instanceof Error) {
-          expect(err.message,"Negative get1 returned the wrong message").to.be.equal("Could not find object with key: 'negativeKey' on table: 'Load_Test'").and.is.not.null;
-          expect(err.name,"Negative get1 returned the wrong exception name").to.be.equal("ClientApiError").and.is.not.null;
+        const negativeGet1 = await pepperi.api.adal.get({
+          addon: addonUUID,
+          table: adalTableName,
+          key: "negativeKey",
+        });
+      } catch (err) {
+        if (err instanceof Error) {
+          expect(
+            err.message,
+            "Negative get1 returned the wrong message"
+          ).to.be.equal(
+            "Could not find object with key: 'negativeKey' on table: 'Load_Test'"
+          ).and.is.not.null;
+          expect(
+            err.name,
+            "Negative get1 returned the wrong exception name"
+          ).to.be.equal("ClientApiError").and.is.not.null;
         }
       }
       //negative with invalid table
       try {
-      const negativeGet2 = await pepperi.api.adal.get({
-        addon: addonUUID,
-        table: "randomTableName",
-        key: "testKey1",
-      });} catch(err) {
-        if(err instanceof Error) {
-          expect(err.message,"Negative get2 returned the wrong message").to.be.equal("Could not find object with key: 'testKey1' on table: 'randomTableName'").and.is.not.null;
-          expect(err.name,"Negative get2 returned the wrong exception name").to.be.equal("ClientApiError").and.is.not.null;
+        const negativeGet2 = await pepperi.api.adal.get({
+          addon: addonUUID,
+          table: "randomTableName",
+          key: "testKey1",
+        });
+      } catch (err) {
+        if (err instanceof Error) {
+          expect(
+            err.message,
+            "Negative get2 returned the wrong message"
+          ).to.be.equal(
+            "Could not find object with key: 'testKey1' on table: 'randomTableName'"
+          ).and.is.not.null;
+          expect(
+            err.name,
+            "Negative get2 returned the wrong exception name"
+          ).to.be.equal("ClientApiError").and.is.not.null;
         }
       }
-      
+
       //negative with invalid  addonUUID
       try {
-      const negativeGet3 = await pepperi.api.adal.get({
-        addon: "random-uuid-for-this-test",
-        table: adalTableName,
-        key: "testKey1",
-      });} catch(err) {
-        if(err instanceof Error) {
-          expect(err.message,"Negative get3 returned the wrong message").to.be.equal("Could not find object with key: 'testKey1' on table: 'Load_Test'").and.is.not.null;
-          expect(err.name,"Negative get3 returned the wrong exception name").to.be.equal("ClientApiError").and.is.not.null;
+        const negativeGet3 = await pepperi.api.adal.get({
+          addon: "random-uuid-for-this-test",
+          table: adalTableName,
+          key: "testKey1",
+        });
+      } catch (err) {
+        if (err instanceof Error) {
+          expect(
+            err.message,
+            "Negative get3 returned the wrong message"
+          ).to.be.equal(
+            "Could not find object with key: 'testKey1' on table: 'Load_Test'"
+          ).and.is.not.null;
+          expect(
+            err.name,
+            "Negative get3 returned the wrong exception name"
+          ).to.be.equal("ClientApiError").and.is.not.null;
         }
       }
-
     });
     it("Positive ADAL.get() test", async () => {
-     //positive with valid key
-    const get = await pepperi.api.adal.get({
-      addon: addonUUID,
-      table: adalTableName,
-      key: "testKey2",
-    });
+      //positive with valid key
+      const get = await pepperi.api.adal.get({
+        addon: addonUUID,
+        table: adalTableName,
+        key: "testKey2",
+      });
 
-    expect(get.object.Key,"ADAL returned the wrong key").that.is.equal("testKey2").and.is.not.null;
-    expect(get.object.Name,"ADAL string returned the wrong value").that.is.equal("Load_Test").and.is.not.null;
-    expect(get.object.object.Array,"ADAL returned the wrong array value").to.eql([1,2,3,4,5]).and.is.not.null;
-    expect(get.object.object.String,"ADAL string returned the wrong String value").that.is.equal("Red pill or Blue pill?").and.is.not.null;
-    expect(get.object.object.object.string,"ADAL returned the wrong object string value").that.is.equal("random string").and.is.not.null;
-    expect(get.object.object.object.number,"ADAL string returned the wrong object number value").that.is.equal(27).and.is.not.null;
-    expect(get.object.object.object.boolean,"ADAL string returned the wrong object boolean value").that.is.equal(true).and.is.not.null;
-    
+      expect(get.object.Key, "ADAL returned the wrong key").that.is.equal(
+        "testKey2"
+      ).and.is.not.null;
+      expect(
+        get.object.Name,
+        "ADAL string returned the wrong value"
+      ).that.is.equal("Load_Test").and.is.not.null;
+      expect(
+        get.object.object.Array,
+        "ADAL returned the wrong array value"
+      ).to.eql([1, 2, 3, 4, 5]).and.is.not.null;
+      expect(
+        get.object.object.String,
+        "ADAL string returned the wrong String value"
+      ).that.is.equal("Red pill or Blue pill?").and.is.not.null;
+      expect(
+        get.object.object.object.string,
+        "ADAL returned the wrong object string value"
+      ).that.is.equal("random string").and.is.not.null;
+      expect(
+        get.object.object.object.number,
+        "ADAL string returned the wrong object number value"
+      ).that.is.equal(27).and.is.not.null;
+      expect(
+        get.object.object.object.boolean,
+        "ADAL string returned the wrong object boolean value"
+      ).that.is.equal(true).and.is.not.null;
     });
 
     it("Negative ADAL.getList() test", async () => {
-    //negative to a list that does not exist
-    //no addon uuid
-    const getListNegative1 = await pepperi.api.adal.getList({
-      addon: "random-uuid-for-this-test",
-      table: adalTableName,
-    });
-    expect(getListNegative1.objects,"getList Negative test returned the wrong number of values").that.is.an("Array").that.has.lengthOf(0);
-    //no tableName
-    const getListNegative2 = await pepperi.api.adal.getList({
-      addon: addonUUID,
-      table: "randomTableName",
-    });
-    expect(getListNegative2.objects,"getList Negative test returned the wrong number of values").that.is.an("Array").that.has.lengthOf(0);
+      //negative to a list that does not exist
+      //no addon uuid
+      const getListNegative1 = await pepperi.api.adal.getList({
+        addon: "random-uuid-for-this-test",
+        table: adalTableName,
+      });
+      expect(
+        getListNegative1.objects,
+        "getList Negative test returned the wrong number of values"
+      )
+        .that.is.an("Array")
+        .that.has.lengthOf(0);
+      //no tableName
+      const getListNegative2 = await pepperi.api.adal.getList({
+        addon: addonUUID,
+        table: "randomTableName",
+      });
+      expect(
+        getListNegative2.objects,
+        "getList Negative test returned the wrong number of values"
+      )
+        .that.is.an("Array")
+        .that.has.lengthOf(0);
     });
     it("Positive ADAL.getList() test", async () => {
-    //positive with correct list name
-    const getList = await pepperi.api.adal.getList({
-      addon: addonUUID,
-      table: adalTableName,
+      //positive with correct list name
+      const getList = await pepperi.api.adal.getList({
+        addon: addonUUID,
+        table: adalTableName,
+      });
+      expect(getList.objects, "ADAL array had returned the wrong value")
+        .that.is.an("array")
+        .that.has.lengthOf(3).and.is.not.null;
+      expect(
+        getList.objects[0].Key,
+        "First ADAL key returned the incorrect result"
+      ).that.is.equal("testKey1").and.is.not.null;
+      expect(
+        getList.objects[1].Key,
+        "Second ADAL key returned the incorrect result"
+      ).that.is.equal("testKey2").and.is.not.null;
+      expect(
+        getList.objects[0].Name,
+        "First ADAL name returned the incorrect result"
+      ).that.is.equal("Load_Test").and.is.not.null;
+      expect(
+        getList.objects[1].Name,
+        "Second ADAL name returned the incorrect result"
+      ).that.is.equal("Load_Test").and.is.not.null;
+      expect(
+        getList.objects[2].Name,
+        "Third ADAL name returned the incorrect result"
+      ).that.is.equal("Load_Test").and.is.not.null;
+      expect(
+        getList.objects[0].InterceptorsTestActive,
+        "First boolean failed on first record"
+      ).that.is.equal(false).and.is.not.null;
+      expect(
+        getList.objects[0].TestActive,
+        "Second boolean failed on first record"
+      ).that.is.equal(false).and.is.not.null;
+      expect(
+        getList.objects[0].TestRunCounter,
+        "First number failed on first record"
+      ).that.is.equal(0).and.is.not.null;
+      expect(
+        getList.objects[1].object,
+        "Failed on second ADAL object returned the incorrect result"
+      ).that.is.an("object").and.is.not.null;
+      expect(
+        getList.objects[1].object.Array,
+        "Failed on returning the wrong value for an array"
+      )
+        .to.be.an("array")
+        .and.that.is.eql([1, 2, 3, 4, 5]).and.is.not.null;
+      expect(
+        getList.objects[1].object.String,
+        "Second ADAL object's string returned the wrong value"
+      ).that.is.equal("Red pill or Blue pill?").and.is.not.null;
+      expect(
+        getList.objects[1].object.object,
+        "Failed on second ADAL object returned the incorrect result"
+      ).that.is.an("object").and.is.not.null;
+      expect(
+        getList.objects[1].object.object.string,
+        "Failed on second ADAL object returned the incorrect string result"
+      ).that.is.equal("random string").and.is.not.null;
+      expect(
+        getList.objects[1].object.object.number,
+        "Failed on second ADAL object returned the incorrect number result"
+      ).that.is.equal(27).and.is.not.null;
+      expect(
+        getList.objects[1].object.object.boolean,
+        "Failed on second ADAL object returned the incorrect boolean result"
+      ).that.is.equal(true).and.is.not.null,
+        expect(
+          getList.objects[2].Key,
+          "Third ADAL key returned the incorrect result"
+        ).that.is.equal("testKey3").and.is.not.null;
     });
-
-    console.log(getList);
   });
-  });
-  // mochsa tests
   const testResult = await run();
   res.json(testResult);
+});
+//===========================Performence/Stress tests===========================
+router.get("/PerformenceTest", async (req, res, next) => {
+  let accRes = await pepperi.app.accounts.add({
+    type: { Name: "Customer" },
+    object: {
+      ExternalID: ExID,
+      Name: ExID,
+    },
+  });
+  //OTHER THEN LOOPS,this side is done,need to formalize server side once they decide what to do with it
+  const accountUUID = accRes.id;
+
+  let apiRes = await pepperi.app.transactions.add({
+    type: { Name: "DorS CPINode Sales Order" },
+    references: {
+      account: { UUID: accountUUID },
+      catalog: { Name: "Default Catalog" },
+    },
+  });
+
+  let apiResPerf = await pepperi.app.transactions.add({
+    type: { Name: "DorS CPINode Sales Order" },
+    references: {
+      account: { UUID: accountUUID },
+      catalog: { Name: "Default Catalog" },
+    },
+  });
+
+  const transactionUUID = apiRes.id;
+  const perfTransactionUUID = apiResPerf.id;
+
+  let dataObject = await pepperi.DataObject.Get(
+    "transactions",
+    transactionUUID
+  );
+
+  let perfDataObject = await pepperi.DataObject.Get(
+    "transactions",
+    perfTransactionUUID
+  );
+
+  let TrnDetailsUIPage!: UIDetailsPage;
+  if (dataObject) {
+    try {
+      TrnDetailsUIPage = await pepperi.UIPage.Create("Details", dataObject!);
+      TrnDetailsUIPage.rebuild();
+    } catch (err) {
+      console.log(err);
+    }
+  }
+  //setup UI object to get field names dynamically
+  let fields!: UIField[];
+  let fieldNames: string[] = [];
+  if (TrnDetailsUIPage) {
+    fields = TrnDetailsUIPage.uiObject.fields;
+  }
+
+  if (fields) {
+    fields?.forEach((field) => {
+      if (field.fieldID!) {
+        fieldNames.push(field.fieldID);
+      }
+    });
+  }
+  console.log(
+    "PerformenceTester::Performence - dataObject Starting CRUD testing!"
+  );
+
+  let startTime = performance.now();
+
+  for (let i = 0; i < 5000; i++) {
+    // should finish at 3K as the crash happens above
+    try {
+      if (fieldNames!) {
+        fieldNames.forEach((name) => {
+          if (
+            name! &&
+            name !== "GeneralInformation" &&
+            name !== "OrderInformation"
+          ) {
+            perfDataObject?.setFieldValue(name, i);
+            perfDataObject?.getFieldValue(name);
+            dataObject?.setFieldValue(name, i);
+            dataObject?.getFieldValue(name);
+          }
+        });
+      }
+      if (i % 100 === 0) {
+        const thisTime = performance.now();
+        console.log(
+          `PerformenceTester::Test is on the ${i} loop and took ${
+            thisTime - startTime
+          } so far`
+        );
+      }
+    } catch (err) {
+      let endTime = performance.now();
+      console.log(
+        `PerformenceTester::Test failed after the ${i} loop and took ${
+          endTime - startTime
+        } and failed due to the following error: ${err}`
+      );
+    }
+  }
+
+  let endTime = performance.now();
+  const perfResults = endTime - startTime;
+
+  const adalObject = await pepperi.api.adal.get({
+    addon: addonUUID,
+    table: adalTableName,
+    key: "testKey3",
+  });
+
+  console.log(
+    `PerformenceTester::Performence - dataObject Finished CRUD testing! - test took ${perfResults}`
+  );
+
+  res.json({
+    currentResults: perfResults,
+    adalObject: adalObject,
+  });
 });

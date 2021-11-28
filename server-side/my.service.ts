@@ -23,18 +23,20 @@ class MyService {
   getAddons(): Promise<InstalledAddon[]> {
     return this.papiClient.addons.installedAddons.find({});
   }
-
+  //need to refactor according to this:
+  // https://apidesign.pepperi.com/not-in-use/webapi/get-region-webapi-baseurl
   async getWebAPIBaseURL() {
     let environment = jwtDecode(this.client.OAuthAccessToken)[
       "pepperi.datacenter"
     ];
-
+    /// https://pepperi.atlassian.net/browse/DI-18769
     const webappAddon = await this.papiClient.addons.installedAddons
       .addonUUID("00000000-0000-0000-0000-0000003eba91")
       .get();
     environment = environment == "sandbox" ? "sandbox." : "";
 
     let baseURL = "";
+    //if is not longer relevant since no one uses 16.55 anymore,will be removed during refactor
     if (webappAddon.Version?.indexOf("16.55") != -1) {
       const webappVersion = webappAddon.Version?.split(".");
       const versionMain = webappVersion ? webappVersion[0] : "";
@@ -79,7 +81,7 @@ class MyService {
     return accessToken;
   }
 
-  async getPepperiClientAPI(webAPIBaseURL, accessToken) {
+  async getPepperiClientAPI(webAPIBaseURL: string, accessToken: string) {
     const pepperi = ClientApi(async (params) => {
       const url = `${webAPIBaseURL}/Service1.svc/v1/ClientApi/Execute`;
       const response = await fetch(url, {
@@ -109,7 +111,12 @@ class MyService {
     return pepperi;
   }
 
-  async createTransaction(webAPIBaseURL, accessToken, pepperiClientAPI, atdID) {
+  async createTransaction(
+    webAPIBaseURL: string,
+    accessToken: string,
+    pepperiClientAPI,
+    atdID
+  ) {
     const userUUID = jwtDecode(this.client.OAuthAccessToken)[
       "pepperi.useruuid"
     ];
@@ -136,7 +143,7 @@ class MyService {
     });
     return [transaction.id, account.UUID];
   }
-  //Creates transaction with papiClient
+  //** Creates transaction with papiClient -- NOT IN USE */
   async createTrans(atdID) {
     const account = await this.papiClient.accounts.upsert({
       ExternalID: "Account" + Math.random(),
@@ -172,21 +179,17 @@ class MyService {
     }
     return line.result[0].id;
   }
-  //need to overview before running this function
+  //trigger event function
   async triggerEvent(
-    accessToken,
-    transactionUUID,
-    webAPIBaseURL,
-    method,
-    fieldName?,
-    value?
+    accessToken: string,
+    transactionUUID: any[],
+    webAPIBaseURL: string,
+    method: string,
+    fieldName?: string,
+    value?: string
   ) {
     const addonUUID = this.client.AddonUUID;
-    let URL = `${webAPIBaseURL}
-      /Service1.svc/v1/Transaction/
-      ${transactionUUID[0]}
-      /Details/
-      ${method}`;
+    let URL = `${webAPIBaseURL}/Service1.svc/v1/Transaction/${transactionUUID[0]}/Details/${method}`;
 
     let Body = {
       FieldApiName: fieldName,
@@ -195,11 +198,8 @@ class MyService {
     let trigger;
 
     if (method === "DecrementValue" || method === "IncrementValue") {
-      //Create transaction line for Increment/Decrement
-      const searchItemsURL = `${webAPIBaseURL}
-        /Service1.svc/v1/OrderCenter/Transaction/
-        ${transactionUUID[0]}
-        /Items/Search`;
+      //Create transaction line for Increment/Decrement through Lihi's end and method
+      const searchItemsURL = `${webAPIBaseURL}/Service1.svc/v1/OrderCenter/Transaction/${transactionUUID[0]}/Items/Search`;
 
       const countItemsBody = {
         Ascending: true,
@@ -225,7 +225,7 @@ class MyService {
 
       const relatedItemsSearchCode = relatedItemsData.SearchCode;
       const transactionLineUUID = relatedItemsData.Rows[0].UID;
-      console.log(relatedItemsData);
+
       const reqBody = {
         TransactionUID: transactionUUID[0],
         SearchCode: relatedItemsSearchCode,
@@ -233,44 +233,21 @@ class MyService {
         FieldApiName: "UnitsQuantity",
       };
 
-      URL = `${webAPIBaseURL}/Service1.svc/v1/OrderCenter/Transaction/
-        ${transactionUUID[0]}
-        /
-        ${method}`;
+      URL = `${webAPIBaseURL}/Service1.svc/v1/OrderCenter/Transaction/${transactionUUID[0]}/${method}`;
 
-      switch (method) {
-        case "DecrementValue": {
-          trigger = await (
-            await fetch(URL, {
-              method: "POST",
-              body: JSON.stringify(reqBody),
-              headers: {
-                PepperiSessionToken: accessToken,
-                "Content-Type": "application/json",
-              },
-            })
-          ).json();
-          break;
-        }
-        case "IncrementValue": {
-          trigger = await (
-            await fetch(URL, {
-              method: "POST",
-              body: JSON.stringify(reqBody),
-              headers: {
-                PepperiSessionToken: accessToken,
-                "Content-Type": "application/json",
-              },
-            })
-          ).json();
-          break;
-        }
-      }
+      trigger = await (
+        await fetch(URL, {
+          method: "POST",
+          body: JSON.stringify(reqBody),
+          headers: {
+            PepperiSessionToken: accessToken,
+            "Content-Type": "application/json",
+          },
+        })
+      ).json();
     }
     if (method === "Recalculate") {
-      URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${addonUUID}/addon-cpi/recalculate/
-        ${transactionUUID[1]}
-        /trigger`;
+      URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${addonUUID}/addon-cpi/recalculate/${transactionUUID[1]}/trigger`;
       trigger = await (
         await fetch(URL, {
           method: "GET",
@@ -322,9 +299,9 @@ class MyService {
     return trigger;
   }
 
-  async initSync(accessToken, webAPIBaseURL) {
+  async initSync(accessToken: string, webAPIBaseURL: string) {
     //possibly redundent
-    //https://webapi.sandbox.pepperi.com/V16_55/WebApp_232/Service1.svc/v1/HomePage
+    //webapi.sandbox.pepperi.com/16.60.82/webapi/Service1.svc/v1/HomePage
     const URL = `${webAPIBaseURL}/Service1.svc/v1/HomePage`;
     const navigateToHomescreen = await (
       await fetch(URL, {
@@ -346,14 +323,11 @@ class MyService {
       v: "param",
       q: "queryParam",
     };
-    const addonInfo = await this.papiClient.addons.installedAddons
-      .addonUUID(this.client.AddonUUID)
-      .get();
-    const addonUUID = addonInfo.Addon.UUID;
+    const addonUUID = this.client.AddonUUID
     const getURL = `${webapiURL}/Service1.svc/v1/Addon/Api/${addonUUID}/addon-cpi/addon-api/get?q=${params.q}`;
     const postURL = `${webapiURL}/Service1.svc/v1/Addon/Api/${addonUUID}/addon-cpi/addon-api/post`;
     const useURL = `${webapiURL}/Service1.svc/v1/Addon/Api/${addonUUID}/addon-cpi/addon-api/${params.v}/use`;
-      
+
     const get = await (
       await fetch(getURL, {
         method: "GET",
@@ -393,7 +367,6 @@ class MyService {
       })
     ).json();
 
-
     return {
       GET: { result: get.result, param: get.params },
       POST: { result: post.result, param: post.params },
@@ -401,11 +374,11 @@ class MyService {
     };
   }
   //checks UDT values that were inserted during the interceptors tests/load test
-  async getUDTValues(tableName: string, pageSize: number) {
+  async getUDTValues(tableName: string, pageSize: number, order_by: string) {
     const udtData = await this.papiClient.userDefinedTables.find({
       where: `MapDataExternalID='${tableName}'`,
       page_size: pageSize,
-      order_by: "ModificationDateTime DESC",
+      order_by: `ModificationDateTime ${order_by}`,
     });
     return udtData;
   }
@@ -439,7 +412,7 @@ class MyService {
     };
 
     const upsert = await this.papiClient.addons.data
-      .uuid("2b39d63e-0982-4ada-8cbb-737b03b9ee58")
+      .uuid(this.client.AddonUUID)
       .table("Load_Test")
       .upsert(body);
 
@@ -492,10 +465,10 @@ class MyService {
     testName: string
   ) {
     //make request to the CPISide tests
-    let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/addon-cpi/automation-tests/${testName}/tests`;
+    let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/automation-tests/${testName}/tests`;
     if (testName === "ClientAPI/ADAL") {
-      URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/addon-cpi/${testName}`;
-    };
+      URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/${testName}`;
+    }
     const testResults = await (
       await fetch(URL, {
         method: "GET",
@@ -505,6 +478,34 @@ class MyService {
         },
       })
     ).json();
+
+    return testResults;
+  }
+
+  async PerformenceTester(webAPIBaseURL, accessToken) {
+    let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/PerformenceTest`;
+    const testResults = await (
+      await fetch(URL, {
+        method: "GET",
+        headers: {
+          PepperiSessionToken: accessToken,
+          "Content-Type": "application/json",
+        },
+      })
+    ).json();
+
+    const body = {
+      Key: "testKey3",
+      Hidden: false,
+      Name: "Load_Test",
+      Duration: testResults[0],
+    };
+
+    const upsert = await this.papiClient.addons.data
+      .uuid(this.client.AddonUUID)
+      .table("Load_Test")
+      .upsert(body);
+
 
     return testResults;
   }
