@@ -1,4 +1,4 @@
-import { PapiClient, InstalledAddon } from "@pepperi-addons/papi-sdk";
+import { PapiClient, InstalledAddon, AddonData } from "@pepperi-addons/papi-sdk";
 import { Client } from "@pepperi-addons/debug-server";
 import fetch from "node-fetch";
 import jwtDecode from "jwt-decode";
@@ -163,7 +163,7 @@ class MyService {
     });
     return transaction.UUID;
   }
-
+  //not in use
   async createTransactionLine(pepperiClientAPI, transactionUUID, ItemExID) {
     const line = await pepperiClientAPI.app.transactions.addLines({
       transaction: { UUID: transactionUUID },
@@ -274,33 +274,8 @@ class MyService {
 
     return trigger;
   }
-  //NOT IN USE
-  async startLoad(accessToken, webAPIBaseURL) {
-    //will be replaced by an insert into ADAL
-    const date = new Date();
-    const addonUUID = this.client.AddonUUID;
-    const body = {
-      Name: "Load_Test",
-      DateTime: date.toISOString(),
-      Key: "testKey1",
-    };
-
-    const URL = `${webAPIBaseURL}
-      /Service1.svc/v1/Addon/Api/${addonUUID}/addon-cpi/load-test`;
-    const trigger = await (
-      await fetch(URL, {
-        method: "GET",
-        headers: {
-          PepperiSessionToken: accessToken,
-          "Content-Type": "application/json",
-        },
-      })
-    ).json();
-    return trigger;
-  }
 
   async initSync(accessToken: string, webAPIBaseURL: string) {
-    //possibly redundent
     //webapi.sandbox.pepperi.com/16.60.82/webapi/Service1.svc/v1/HomePage
     const URL = `${webAPIBaseURL}/Service1.svc/v1/HomePage`;
     const navigateToHomescreen = await (
@@ -411,10 +386,7 @@ class MyService {
       InterceptorsTestActive: interceptorsFlag,
     };
 
-    const upsert = await this.papiClient.addons.data
-      .uuid(this.client.AddonUUID)
-      .table("Load_Test")
-      .upsert(body);
+    const upsert = await this.upsertToADAL("Load_Test",body);
 
     return upsert;
   }
@@ -494,20 +466,25 @@ class MyService {
       })
     ).json();
 
-    const body = {
-      Key: "testKey3",
-      Hidden: false,
-      Name: "Load_Test",
-      Duration: testResults[0],
-    };
-
-    const upsert = await this.papiClient.addons.data
-      .uuid(this.client.AddonUUID)
-      .table("Load_Test")
-      .upsert(body);
-
-
     return testResults;
+  }
+
+  async upsertToADAL(tableName: string,body: AddonData) {
+    const upsert = await this.papiClient.addons.data
+    .uuid(this.client.AddonUUID)
+    .table(tableName)
+    .upsert(body);
+
+    return upsert;
+  }
+
+  async getFromADAL(tableName: string,Key: string) {
+    const get = await this.papiClient.addons.data
+    .uuid(this.client.AddonUUID)
+    .table(tableName)
+    .find({where: `Key=${Key}`});
+
+    return get;
   }
 }
 

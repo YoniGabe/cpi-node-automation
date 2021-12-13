@@ -595,8 +595,6 @@ export async function initTestData(
   }
   return dataObject;
 }
-/**initiates test data for all UIobjects -- not in use */
-async function initTestUIData(uiObject: UIObject, testResource: string) {} // need to see if its needed
 
 /**formats date to ISO */
 function dateFormatter(date: string, time?: boolean, removeChar?: boolean) {
@@ -9947,7 +9945,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
   res.json(testResult);
 });
 
-//setup routers for router automation tests
+//setup routers for AddonAPI automation tests
 router.get("/addon-api/get", (req, res) => {
   console.log("AddonAPI test currently on CPISide - GET with query params");
   const queryString = req.query.q;
@@ -10020,7 +10018,6 @@ router.get("/recalculate/:UUID/trigger", async (req, res, next) => {
     result: "success",
   });
 });
-
 //==============================/ClientAPI/ADAL=======================================
 router.get("/ClientAPI/ADAL", async (req, res, next) => {
   const { describe, it, expect, run } = Tester("My test");
@@ -10234,7 +10231,7 @@ router.get("/ClientAPI/ADAL", async (req, res, next) => {
   const testResult = await run();
   res.json(testResult);
 });
-//===========================Performence/Stress tests===========================
+//===========================Performence/Stress tests================================
 router.get("/PerformenceTest", async (req, res, next) => {
   let accRes = await pepperi.app.accounts.add({
     type: { Name: "Customer" },
@@ -10243,7 +10240,7 @@ router.get("/PerformenceTest", async (req, res, next) => {
       Name: ExID,
     },
   });
-  //OTHER THEN LOOPS,this side is done,need to formalize server side once they decide what to do with it
+
   const accountUUID = accRes.id;
 
   let apiRes = await pepperi.app.transactions.add({
@@ -10304,7 +10301,7 @@ router.get("/PerformenceTest", async (req, res, next) => {
 
   let startTime = performance.now();
 
-  for (let i = 0; i < 5000; i++) {
+  for (let i = 0; i < 3000; i++) {
     // should finish at 3K as the crash happens above
     try {
       if (fieldNames!) {
@@ -10342,18 +10339,33 @@ router.get("/PerformenceTest", async (req, res, next) => {
   let endTime = performance.now();
   const perfResults = endTime - startTime;
 
-  const adalObject = await pepperi.api.adal.get({
-    addon: addonUUID,
-    table: adalTableName,
-    key: "testKey3",
-  });
-
   console.log(
     `PerformenceTester::Performence - dataObject Finished CRUD testing! - test took ${perfResults}`
   );
 
   res.json({
-    currentResults: perfResults,
-    adalObject: adalObject,
+    currentResults: perfResults
   });
 });
+//==========================TransactionScope tests===================================
+router.get("/TransactionScope", async (req, res, next) => {
+
+  //GET BLLOrderCenterManager
+  
+  //Trigger transaction scope for new transaction
+
+  //Trigger transaction scope for old transaction
+
+  //run the following tests:
+
+  //Test getLine() before load -> should return undefined
+
+  //Test getLines() before load -> should return scoped items
+
+  //Test getLine() after load -> should return search scope item
+
+  //Test getLines() after load -> should return scoped items
+
+  //Possibly trigger from lihi
+});
+

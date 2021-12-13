@@ -1,6 +1,7 @@
 import MyService from "./my.service";
 import { Client, Request } from "@pepperi-addons/debug-server";
 import Tester from "./tester";
+import { AddonData } from "@pepperi-addons/papi-sdk";
 
 // add functions here
 // this function will run on the 'api/foo' endpoint
@@ -291,42 +292,87 @@ export async function cleanseUDTLines(client: Client, request: Request) {
     }
   });
 }
-
+/**method to run Performence test */
 export async function PerformenceTester(client: Client, request: Request) {
   const service = new MyService(client);
   const { describe, it, expect, run } = Tester("My test");
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
+  const cpasAddon = await service.papiClient.addons.installedAddons
+    .addonUUID("00000000-0000-0000-0000-0000003eba91")
+    .get();
+  const cpiNodeAddon = await service.papiClient.addons.installedAddons
+    .addonUUID("bb6ee826-1c6b-4a11-9758-40a46acb69c5")
+    .get();
 
-  const testData = await service.PerformenceTester(webAPIBaseURL,accessToken);
-  const currentRes = testData.currentResults;
-  const adalObject = testData.adalObject;
-  //need to add to ADAL document
-  //bestRun = {
-  //Version,Duration
-  //}
-
-  const object =     {
+  const testData = await service.PerformenceTester(webAPIBaseURL, accessToken); //start CPISide function
+  console.log(`PerformenceTester::Test Results: ${testData}`);
+  const currentRes: number = parseFloat(testData.currentResults);
+  const adalObject = await service.getFromADAL("Load_Test", "testKey3");
+  console.log(`PerformenceTester::ADAL Object: ${adalObject}`);
+  const bestDuration = parseFloat(adalObject[0].bestRun.Duration);
+  const lastRun = parseFloat(adalObject[0].lastRun.Duration);
+  const cpiNodeBestVersion: string = adalObject[0].bestRun.nodeVersion;
+  const cpasBestVersion: string = adalObject[0].bestRun.cpasVersion;
+  const bestRunFlag: boolean = currentRes < bestDuration ? true : false;
+  //need to refactor name
+  //** Testing data via TS code (to verify which data should go where) */
+  const body: AddonData = {
     Key: "testKey3",
     Name: "Load_Test",
-    Duration: parseFloat(currentRes),
-    bestRun : {
-      cpasVersion: "16.60.83",
-      nodeVersion: "0.2.9",
-      Duration: 10000
+    Duration: currentRes,
+    bestRun: {
+      cpasVersion: bestRunFlag ? cpasAddon.Version : cpasBestVersion,
+      nodeVersion: bestRunFlag ? cpiNodeAddon.Version : cpiNodeBestVersion,
+      Duration: bestRunFlag ? currentRes : bestDuration,
+    },
+    lastRun: {
+      cpasVersion: cpasAddon.Version,
+      nodeVersion: cpiNodeAddon.Version,
+      Duration: currentRes,
+    },
+  };
+  const gottenAllObjects: boolean =
+    typeof testData !== "undefined" &&
+    testData &&
+    typeof currentRes !== "undefined" &&
+    currentRes
+      ? true
+      : false;
+
+  if (gottenAllObjects) {
+    try {
+      await service.upsertToADAL("Load_Test", body);
+    } catch (err) {
+      if (err instanceof Error) {
+        console.log(`PerformenceTester:: ${err}`);
+      }
     }
-}
-
-// need to compare data for versions and duration from current run to best run
-// need to insert new object into same key on ADAL
-// after it is done - simple mocha test to parse the test results
-
+  };
+  //** Testing data via mocha code (to verify which is correct and parse test results) */
   describe("Performence automation test", async () => {
     it("Parsed test results", async () => {
-      //need to add mocha test
+      expect(
+        gottenAllObjects,
+        "Failed to bring all test objects from test run/ADAL"
+      ).to.be.a("boolean").that.is.true;
+
+      expect(
+        currentRes,
+        "Test timespan took longer then the best run + average margin and version"
+      )
+        .to.be.a("number")
+        .that.is.below(bestDuration * 1.2);
+
+      expect(
+        currentRes,
+        "Test timespan took longer then the last run + average margin"
+      )
+        .to.be.a("number")
+        .that.is.below(lastRun * 1.1);
     });
   });
 
-  // const testResults = await run();
-  return testData;
+  const testResults = await run();
+  return testResults;
 }
