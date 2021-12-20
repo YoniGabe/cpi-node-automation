@@ -6,7 +6,7 @@ import { AddonData } from "@pepperi-addons/papi-sdk";
 // add functions here
 // this function will run on the 'api/foo' endpoint
 // the real function is runnning on another typescript file
-export async function foo(client: Client, request: Request) {
+export async function getInstalledAddons(client: Client, request: Request) {
   const service = new MyService(client);
   const res = await service.getAddons();
   return res;
@@ -319,7 +319,7 @@ export async function PerformenceTester(client: Client, request: Request) {
   //** Testing data via TS code (to verify which data should go where) */
   const body: AddonData = {
     Key: "testKey3",
-    Name: "Load_Test",
+    Name: "PerformenceTest",
     Duration: currentRes,
     bestRun: {
       cpasVersion: bestRunFlag ? cpasAddon.Version : cpasBestVersion,
@@ -348,7 +348,7 @@ export async function PerformenceTester(client: Client, request: Request) {
         console.log(`PerformenceTester:: ${err}`);
       }
     }
-  };
+  }
   //** Testing data via mocha code (to verify which is correct and parse test results) */
   describe("Performence automation test", async () => {
     it("Parsed test results", async () => {
@@ -370,6 +370,96 @@ export async function PerformenceTester(client: Client, request: Request) {
       )
         .to.be.a("number")
         .that.is.below(lastRun * 1.1);
+    });
+  });
+
+  const testResults = await run();
+  return testResults;
+}
+
+export async function JWTTesterPositive(client: Client, request: Request) {
+  const service = new MyService(client);
+  const isLocal = false;
+  const { describe, it, expect, run } = Tester("My test");
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  if (isLocal) {
+    accessToken = "a8d5082f-daa6-4c54-a91d-77b1b2882f5e"; //fill in from CPINode debugger
+    webAPIBaseURL = "http://localhost:8093";
+  }
+
+  const JWT = await service.getJWTFromCPISide(webAPIBaseURL, accessToken);
+  if (JWT.JWT === "None") {
+    console.log(`JWTTester:: There was an error during the test: ${JWT.err}`);
+    return `JWTTester::There was an issue with the test,No JWT was returned from CPISide,Error: ${JWT.err}`;
+  }
+
+  const validAccountDataForTest = await service.getAccountViaAPI(JWT.JWT);
+
+  const Body: AddonData = {
+    Key: "JWTKey1",
+    Name: "JWTExpiryTest",
+    Token: JWT.JWT,
+  };
+  await service.upsertToADAL("Load_Test", Body);
+
+  describe("JWT automation test - Positive", async () => {
+    it("Parsed test results for a valid Token", async () => {
+      expect(validAccountDataForTest[0], "Failed on gotten object from PAPI")
+        .to.be.an("object")
+        .that.is.not.empty.and.is.not.null.and.is.not.undefined.and.is.not.eql({
+          fault: {
+            faultstring: "Authorization request denied.",
+            detail: {
+              errorcode: "Unauthorized",
+            },
+          },
+        });
+      expect(
+        validAccountDataForTest[0].InternalID,
+        "Brought back the wrong object from PAPI"
+      ).to.be.a("number").that.is.not.null.and.is.not.undefined,
+        expect(
+          validAccountDataForTest[0].UUID,
+          "Brought back the wrong object from PAPI"
+        )
+          .to.be.a("string")
+          .that.is.not.null.and.is.not.undefined.and.has.lengthOf(36),
+        expect(
+          validAccountDataForTest[0].Hidden,
+          "Brought back the wrong object from PAPI"
+        ).to.be.a("boolean").that.is.not.null.and.is.not.undefined.and.is.false;
+    });
+  });
+
+  const testResults = await run();
+  return testResults;
+}
+
+export async function JWTTesterNegative(client: Client, request: Request) {
+  const service = new MyService(client);
+  const { describe, it, expect, run } = Tester("My test");
+
+  const JWTFromAdal = await service.getFromADAL("Load_Test", "JWTKey1");
+  const JWT = JWTFromAdal[0].Token;
+  const invalidAccountDataForTest = await service.getAccountViaAPI(JWT);
+  console.log(invalidAccountDataForTest);
+  //test invalid get -> need to finish mocha
+  describe("JWT automation test - Negative", async () => {
+    it("Parsed test results for an invalid Token", async () => {
+      expect(
+        invalidAccountDataForTest,
+        "The token expiry did not work,GET request from API succeeded,meaning the JWT did not expire"
+      )
+        .to.be.an("object")
+        .that.is.eql({
+          fault: {
+            faultstring: "Authorization request denied.",
+            detail: {
+              errorcode: "Unauthorized",
+            },
+          },
+        });
     });
   });
 

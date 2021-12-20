@@ -1,4 +1,8 @@
-import { PapiClient, InstalledAddon, AddonData } from "@pepperi-addons/papi-sdk";
+import {
+  PapiClient,
+  InstalledAddon,
+  AddonData,
+} from "@pepperi-addons/papi-sdk";
 import { Client } from "@pepperi-addons/debug-server";
 import fetch from "node-fetch";
 import jwtDecode from "jwt-decode";
@@ -14,10 +18,6 @@ class MyService {
       addonSecretKey: client.AddonSecretKey,
       addonUUID: client.AddonUUID,
     });
-  }
-
-  doSomething() {
-    console.log("doesn't really do anything....");
   }
 
   getAddons(): Promise<InstalledAddon[]> {
@@ -298,7 +298,7 @@ class MyService {
       v: "param",
       q: "queryParam",
     };
-    const addonUUID = this.client.AddonUUID
+    const addonUUID = this.client.AddonUUID;
     const getURL = `${webapiURL}/Service1.svc/v1/Addon/Api/${addonUUID}/addon-cpi/addon-api/get?q=${params.q}`;
     const postURL = `${webapiURL}/Service1.svc/v1/Addon/Api/${addonUUID}/addon-cpi/addon-api/post`;
     const useURL = `${webapiURL}/Service1.svc/v1/Addon/Api/${addonUUID}/addon-cpi/addon-api/${params.v}/use`;
@@ -386,7 +386,7 @@ class MyService {
       InterceptorsTestActive: interceptorsFlag,
     };
 
-    const upsert = await this.upsertToADAL("Load_Test",body);
+    const upsert = await this.upsertToADAL("Load_Test", body);
 
     return upsert;
   }
@@ -469,22 +469,63 @@ class MyService {
     return testResults;
   }
 
-  async upsertToADAL(tableName: string,body: AddonData) {
+  async upsertToADAL(tableName: string, body: AddonData) {
     const upsert = await this.papiClient.addons.data
-    .uuid(this.client.AddonUUID)
-    .table(tableName)
-    .upsert(body);
+      .uuid(this.client.AddonUUID)
+      .table(tableName)
+      .upsert(body);
 
     return upsert;
   }
 
-  async getFromADAL(tableName: string,Key: string) {
+  async getFromADAL(tableName: string, Key: string) {
     const get = await this.papiClient.addons.data
-    .uuid(this.client.AddonUUID)
-    .table(tableName)
-    .find({where: `Key=${Key}`});
+      .uuid(this.client.AddonUUID)
+      .table(tableName)
+      .find({ where: `Key=${Key}` });
 
     return get;
+  }
+
+  async getJWTFromCPISide(webAPIBaseURL: string, accessToken: string) {
+    let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/JWT`;
+    const JWT = await (
+      await fetch(URL, {
+        method: "GET",
+        headers: {
+          PepperiSessionToken: accessToken,
+          "Content-Type": "application/json",
+        },
+      })
+    ).json();
+
+    return JWT;
+  }
+
+  async getAccountViaAPI(JWT: string) {
+    let environment = jwtDecode(this.client.OAuthAccessToken)[
+      "pepperi.datacenter"
+    ];
+
+    environment = environment === "sandbox" ? "papi.staging" : "papi";
+
+    const URL = `https://${environment}.pepperi.com/V1.0/accounts?page_size=1`;
+    let getAcc;
+    try {
+      getAcc = await (
+        await fetch(URL, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${JWT}`,
+            "Content-Type": "application/json",
+          },
+        })
+      ).json();
+    } catch (err) {
+      getAcc = err;
+    }
+
+    return getAcc;
   }
 }
 

@@ -1,19 +1,17 @@
 import "@pepperi-addons/cpi-node";
 import Tester from "./tester";
 import {
-  Account,
-  Contact,
-  Transaction,
-  UIDetailsPage,
-  UIField,
-  UIObject,
-  User,
-} from "@pepperi-addons/cpi-node/build/cpi-side/app/entities";
-import {
   GeneralActivity,
   Item,
   TransactionLine,
+  UIField,
+  UIObject,
+  User,
+  Account,
+  Contact,
+  Transaction,
 } from "@pepperi-addons/cpi-node";
+//import { BLLOrderCenterManager } from "@pepperi-addons/cpi-node/build/cpi-side/wrappers";
 
 /** A list of events */
 enum OCEvents {
@@ -653,7 +651,9 @@ export async function load(configuration: any) {
   //console.log(adalData);
   console.log("LoadTester::loadTestActive: " + adalData.TestActive);
   console.log("LoadTester::counter: " + adalData.TestRunCounter);
-  console.log("LoadTester::InterceptorTestActive: " + adalData.InterceptorsTestActive);
+  console.log(
+    "LoadTester::InterceptorTestActive: " + adalData.InterceptorsTestActive
+  );
   const loadTestActive = adalData.TestActive;
   const loadTestCounter = adalData.TestRunCounter;
   const InterceptorsTestActive = adalData.InterceptorsTestActive;
@@ -731,7 +731,7 @@ export async function load(configuration: any) {
     );
     pepperi.events.intercept(
       OCEvents.Recalculate,
-      { UIObject: { context: { Name: "AccountForm" } } },
+      { UIObject: { Context: { name: "AccountForm" } } },
       async (data, next, main) => {
         console.log("InterceptorsTester::Recalculate 3 - before main");
         if (interceptorArr[interceptorArr.length - 1] === 23) {
@@ -790,7 +790,7 @@ export async function load(configuration: any) {
     );
     pepperi.events.intercept(
       OCEvents.Increment,
-      { FieldID: "UnitsQuantity" },
+      { fieldID: "UnitsQuantity" },
       async (data, next, main) => {
         console.log("InterceptorsTester::IncrementFieldValue 3 - before main");
         interceptorArr.push(10);
@@ -828,7 +828,7 @@ export async function load(configuration: any) {
     );
     pepperi.events.intercept(
       OCEvents.Decrement,
-      { FieldID: "UnitsQuantity" },
+      { fieldID: "UnitsQuantity" },
       async (data, next, main) => {
         console.log("InterceptorsTester::DecrementFieldValue 3 - before main");
         interceptorArr.push(17);
@@ -870,7 +870,7 @@ export async function load(configuration: any) {
     );
     pepperi.events.intercept(
       OCEvents.SetField,
-      { FieldID: "TSAInterceptorTrigger" },
+      { fieldID: "TSAInterceptorTrigger" },
       async (data, next, main) => {
         console.log("InterceptorsTester::SetFieldValue 3 - before main");
         interceptorArr.push(3);
@@ -956,6 +956,7 @@ router.use("/debug-tester", async (req, res) => {
 });
 /**Automation tests for CPINode */
 router.use("/automation-tests/:v/tests", async (req, res) => {
+  console.log("inside main test function CPISide");
   const { describe, it, expect, run } = Tester("My test");
   const bgColor: string = "#659DBD";
   const color: string = "#FBEEC1";
@@ -1059,7 +1060,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
 
   let userDataObject = await pepperi.DataObject.Get("users", userUUID);
 
-  let TrnDetailsUIPage: UIDetailsPage;
+  let TrnDetailsUIPage;
   if (dataObject!) {
     try {
       TrnDetailsUIPage = await pepperi.UIPage.Create("Details", dataObject!);
@@ -1069,7 +1070,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
     }
   }
 
-  let AccDetailsUIPage: UIDetailsPage;
+  let AccDetailsUIPage;
   if (accDataObject!) {
     try {
       AccDetailsUIPage = await pepperi.UIPage.Create("Details", accDataObject!);
@@ -1672,7 +1673,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const asignee = dataObject?.assignee;
           const status = dataObject?.status;
 
-
           expect(ExternalID, "Failed on ExID accessor")
             .to.be.a("string")
             .that.is.equal(ExID).and.is.not.null.and.is.not.undefined;
@@ -1686,7 +1686,9 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal("test@cpinodetest.com").and.is.not.null.and.is.not
               .undefined;
 
-          expect(actionDT,"Failed on actionDateTime accessor").to.be.a("string").that.is.not.null.and.is.not.undefined;    
+          expect(actionDT, "Failed on actionDateTime accessor").to.be.a(
+            "string"
+          ).that.is.not.null.and.is.not.undefined;
 
           expect(hidden, "Failed on Hidden Accessor")
             .to.be.a("boolean")
@@ -2233,8 +2235,9 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal("test@cpinodetest.com").and.is.not.null.and.is.not
               .undefined;
 
-              expect(actionDT,"Failed on actionDateTime accessor").to.be.a("string").that.is.not.null.and.is.not.undefined;    
-
+          expect(actionDT, "Failed on actionDateTime accessor").to.be.a(
+            "string"
+          ).that.is.not.null.and.is.not.undefined;
 
           expect(hidden, "Failed on Hidden Accessor")
             .to.be.a("boolean")
@@ -2590,7 +2593,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const res = userDataObject?.resource;
           const uuid = userDataObject?.uuid;
           const typeDef = userDataObject?.typeDefinition; //currently returns undefined
-
 
           expect(email, "Failed on Email accessor")
             .to.be.a("string")
@@ -10002,7 +10004,7 @@ router.get("/recalculate/:UUID/trigger", async (req, res, next) => {
     });
   }
   let accDataObject = await pepperi.DataObject.Get("accounts", accountUUID);
-  let accDetailsUIPage: UIDetailsPage;
+  let accDetailsUIPage;
   if (accDataObject!) {
     try {
       accDetailsUIPage = await pepperi.UIPage.Create("Details", accDataObject!);
@@ -10021,7 +10023,6 @@ router.get("/recalculate/:UUID/trigger", async (req, res, next) => {
 //==============================/ClientAPI/ADAL=======================================
 router.get("/ClientAPI/ADAL", async (req, res, next) => {
   const { describe, it, expect, run } = Tester("My test");
-
   describe("ClientAPI/ADAL Automation Test", async () => {
     it("Negative ADAL.get() test", async () => {
       //negative with invalid key
@@ -10103,7 +10104,7 @@ router.get("/ClientAPI/ADAL", async (req, res, next) => {
       expect(
         get.object.Name,
         "ADAL string returned the wrong value"
-      ).that.is.equal("Load_Test").and.is.not.null;
+      ).that.is.equal("ADALTest").and.is.not.null;
       expect(
         get.object.object.Array,
         "ADAL returned the wrong array value"
@@ -10157,75 +10158,92 @@ router.get("/ClientAPI/ADAL", async (req, res, next) => {
         addon: addonUUID,
         table: adalTableName,
       });
+      console.log(getList.objects);
       expect(getList.objects, "ADAL array had returned the wrong value")
         .that.is.an("array")
-        .that.has.lengthOf(3).and.is.not.null;
+        .that.has.lengthOf(4).and.is.not.null;
       expect(
-        getList.objects[0].Key,
+        getList.objects[1].Key,
         "First ADAL key returned the incorrect result"
       ).that.is.equal("testKey1").and.is.not.null;
       expect(
-        getList.objects[1].Key,
+        getList.objects[2].Key,
         "Second ADAL key returned the incorrect result"
       ).that.is.equal("testKey2").and.is.not.null;
       expect(
-        getList.objects[0].Name,
+        getList.objects[1].Name,
         "First ADAL name returned the incorrect result"
       ).that.is.equal("Load_Test").and.is.not.null;
       expect(
-        getList.objects[1].Name,
-        "Second ADAL name returned the incorrect result"
-      ).that.is.equal("Load_Test").and.is.not.null;
-      expect(
         getList.objects[2].Name,
-        "Third ADAL name returned the incorrect result"
-      ).that.is.equal("Load_Test").and.is.not.null;
+        "Second ADAL name returned the incorrect result"
+      ).that.is.equal("ADALTest").and.is.not.null;
       expect(
-        getList.objects[0].InterceptorsTestActive,
+        getList.objects[3].Name,
+        "Third ADAL name returned the incorrect result"
+      ).that.is.equal("PerformenceTest").and.is.not.null;
+      expect(
+        getList.objects[1].InterceptorsTestActive,
         "First boolean failed on first record"
       ).that.is.equal(false).and.is.not.null;
       expect(
-        getList.objects[0].TestActive,
+        getList.objects[1].TestActive,
         "Second boolean failed on first record"
       ).that.is.equal(false).and.is.not.null;
       expect(
-        getList.objects[0].TestRunCounter,
+        getList.objects[1].TestRunCounter,
         "First number failed on first record"
       ).that.is.equal(0).and.is.not.null;
       expect(
-        getList.objects[1].object,
+        getList.objects[2].object,
         "Failed on second ADAL object returned the incorrect result"
       ).that.is.an("object").and.is.not.null;
       expect(
-        getList.objects[1].object.Array,
+        getList.objects[2].object.Array,
         "Failed on returning the wrong value for an array"
       )
         .to.be.an("array")
         .and.that.is.eql([1, 2, 3, 4, 5]).and.is.not.null;
       expect(
-        getList.objects[1].object.String,
+        getList.objects[2].object.String,
         "Second ADAL object's string returned the wrong value"
       ).that.is.equal("Red pill or Blue pill?").and.is.not.null;
       expect(
-        getList.objects[1].object.object,
+        getList.objects[2].object.object,
         "Failed on second ADAL object returned the incorrect result"
       ).that.is.an("object").and.is.not.null;
       expect(
-        getList.objects[1].object.object.string,
+        getList.objects[2].object.object.string,
         "Failed on second ADAL object returned the incorrect string result"
       ).that.is.equal("random string").and.is.not.null;
       expect(
-        getList.objects[1].object.object.number,
+        getList.objects[2].object.object.number,
         "Failed on second ADAL object returned the incorrect number result"
       ).that.is.equal(27).and.is.not.null;
       expect(
-        getList.objects[1].object.object.boolean,
+        getList.objects[2].object.object.boolean,
         "Failed on second ADAL object returned the incorrect boolean result"
       ).that.is.equal(true).and.is.not.null,
         expect(
-          getList.objects[2].Key,
+          getList.objects[3].Key,
           "Third ADAL key returned the incorrect result"
-        ).that.is.equal("testKey3").and.is.not.null;
+        ).that.is.equal("testKey3").and.is.not.null,
+        expect(
+          getList.objects[0].Key,
+          "Third ADAL key returned the incorrect result"
+        ).that.is.equal("JWTKey1").and.is.not.null,
+        expect(
+          getList.objects[0].Name,
+          "fourth ADAL key.Name returned wrong value"
+        )
+          .to.be.a("string")
+          .and.that.is.equal("JWTExpiryTest"),
+        expect(
+          getList.objects[0].Token,
+          "fourth ADAL key.Token returned a value shorter then expected"
+        )
+          .to.be.a("string")
+          .and.has.lengthOf.above(1000);
     });
   });
   const testResult = await run();
@@ -10272,7 +10290,7 @@ router.get("/PerformenceTest", async (req, res, next) => {
     perfTransactionUUID
   );
 
-  let TrnDetailsUIPage!: UIDetailsPage;
+  let TrnDetailsUIPage;
   if (dataObject) {
     try {
       TrnDetailsUIPage = await pepperi.UIPage.Create("Details", dataObject!);
@@ -10344,14 +10362,16 @@ router.get("/PerformenceTest", async (req, res, next) => {
   );
 
   res.json({
-    currentResults: perfResults
+    currentResults: perfResults,
   });
 });
 //==========================TransactionScope tests===================================
 router.get("/TransactionScope", async (req, res, next) => {
-
+  console.log("Inside TransactionScope test");
+  //const get = OCManager.get()
+  //const TrnScope = new TransactionScope();
   //GET BLLOrderCenterManager
-  
+
   //Trigger transaction scope for new transaction
 
   //Trigger transaction scope for old transaction
@@ -10368,4 +10388,22 @@ router.get("/TransactionScope", async (req, res, next) => {
 
   //Possibly trigger from lihi
 });
-
+//===========================JWT from CPISide========================================
+router.get("/JWT", async (req, res, next) => {
+  try {
+    const JWT = await pepperi.auth.getAccessToken();
+    console.log(`JWTTester:: JWT output: ${JWT}`);
+    res.json({
+      JWT: JWT,
+      err: "None",
+    });
+  } catch (err) {
+    console.log(
+      `JWTTester:: Failed Getting JWT from CPISide with the following error: ${err}`
+    );
+    res.json({
+      JWT: "None",
+      err: err,
+    });
+  }
+});
