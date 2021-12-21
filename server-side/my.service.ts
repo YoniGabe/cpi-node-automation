@@ -25,7 +25,7 @@ class MyService {
   }
   //need to refactor according to this:
   // https://apidesign.pepperi.com/not-in-use/webapi/get-region-webapi-baseurl
-  async getWebAPIBaseURL() {
+  async getWebAPIBaseURL_OLD() {
     let environment = jwtDecode(this.client.OAuthAccessToken)[
       "pepperi.datacenter"
     ];
@@ -48,6 +48,44 @@ class MyService {
     }
 
     return baseURL;
+  }
+  //should work,need to overview with Lihi to finish it
+  async getWebAPIBaseURL() {
+    let environment = jwtDecode(this.client.OAuthAccessToken)[
+      "pepperi.datacenter"
+    ];
+
+    let apiRegion: string = "";
+
+    switch (environment) {
+      case "sandbox": {
+        apiRegion = "papi.staging";
+        break;
+      }
+      case "eu": {
+        apiRegion = "papi-eu";
+        break;
+      }
+      case "prod": {
+        apiRegion = "papi";
+        break;
+      }
+    }
+
+    let URL = `https://${apiRegion}.pepperi.com/v1.0/webapi/base_url?Region='${environment}'`;
+    const webAPIBaseURL = (
+      await (
+        await fetch(URL, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${this.client.OAuthAccessToken}`,
+            "Content-Type": "application/json",
+          },
+        })
+      ).json()
+    )["BaseURL"];
+
+    return webAPIBaseURL;
   }
 
   async getAccessToken(webAPIBaseURL) {
