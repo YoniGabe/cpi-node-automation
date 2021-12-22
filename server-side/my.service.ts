@@ -23,13 +23,11 @@ class MyService {
   getAddons(): Promise<InstalledAddon[]> {
     return this.papiClient.addons.installedAddons.find({});
   }
-  //need to refactor according to this:
-  // https://apidesign.pepperi.com/not-in-use/webapi/get-region-webapi-baseurl
+  //NOT IN USE -- keep around in case something breaks
   async getWebAPIBaseURL_OLD() {
     let environment = jwtDecode(this.client.OAuthAccessToken)[
       "pepperi.datacenter"
     ];
-    /// https://pepperi.atlassian.net/browse/DI-18769
     const webappAddon = await this.papiClient.addons.installedAddons
       .addonUUID("00000000-0000-0000-0000-0000003eba91")
       .get();
@@ -49,7 +47,8 @@ class MyService {
 
     return baseURL;
   }
-  //should work,need to overview with Lihi to finish it
+  //the below works according to https://pepperi.atlassian.net/browse/DI-18769 
+  // and https://apidesign.pepperi.com/not-in-use/webapi/get-region-webapi-baseurl
   async getWebAPIBaseURL() {
     let environment = jwtDecode(this.client.OAuthAccessToken)[
       "pepperi.datacenter"
