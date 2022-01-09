@@ -52,8 +52,6 @@ export async function InitiateLoad(client: Client, request: Request) {
     }
   });
 
-  console.log(udtData);
-
   describe("Load function automation test", async () => {
     it("Parsed test results", async () => {
       expect(
@@ -86,16 +84,20 @@ export async function InitiateLoad(client: Client, request: Request) {
   // remove UDT lines after test
   removeLines.forEach(async (line) => {
     if (line! && typeof line === "number") {
-      await service.removeUDTValues(line);
+      const res = await service.removeUDTValues(line);
+      console.log(
+        `LoadTester::Removed UDTLineID ${line},with the following response: ${res} `
+      );
     }
   });
   const testResults = await run();
   return testResults;
 }
-/** AddonAPI testing endpoint */
+/** AddonAPI & versions testing endpoint */
 export async function AddonAPITester(client: Client, request: Request) {
   const service = new MyService(client);
   const isLocal = false;
+  const varSecretKey = request.body.varKey;
   const { describe, it, expect, run } = Tester("My test");
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
@@ -104,10 +106,33 @@ export async function AddonAPITester(client: Client, request: Request) {
     webAPIBaseURL = "http://localhost:8093";
   }
 
+  const gottenVersions = await service.checkNodeVersion(varSecretKey);
   const routerTester = await service.routerTester(webAPIBaseURL, accessToken);
 
-  describe("AddonAPI automation test", async () => {
-    it("Parsed test results", async () => {
+  describe("AddonAPI and version automation test", async () => {
+    it("Version Parsed test results", async () => {
+      expect(
+        gottenVersions.installedVersion,
+        "Failed on current version input being empty or not as expected"
+      )
+        .to.be.a("string")
+        .that.lengthOf.above(0).is.not.undefined.and.is.not.empty;
+      expect(
+        gottenVersions.latestVersion,
+        "Failed on latest version input being empty or not as expected"
+      )
+        .to.be.a("string")
+        .that.lengthOf.above(0).is.not.undefined.and.is.not.empty;
+      expect(
+        gottenVersions.installedVersion,
+        "Failed on CPINode latest version not being installed"
+      )
+        .to.be.a("string")
+        .that.is.equal(gottenVersions.latestVersion).and.is.not.undefined.and.is
+        .not.empty;
+    });
+
+    it("AddonAPI Parsed test results", async () => {
       expect(
         routerTester,
         "There was an issue with the route test,the response did not include an object as expected"
@@ -205,7 +230,7 @@ export async function InterceptorTester(client: Client, request: Request) {
   });
   console.log(udtData);
   // some logic to finish the test -- MOCHA
-  describe("Load function automation test", async () => {
+  describe("Interceptors automation test", async () => {
     it("Parsed test results", async () => {
       expect(
         udtData,
@@ -226,7 +251,10 @@ export async function InterceptorTester(client: Client, request: Request) {
   //remove UDT lines after test
   removeLines.forEach(async (line) => {
     if (line! && typeof line === "number") {
-      await service.removeUDTValues(line);
+      const res = await service.removeUDTValues(line);
+      console.log(
+        `InterceptorTester::Removed UDTLineID ${line},with the following response: ${res} `
+      );
     }
   });
 
@@ -424,11 +452,12 @@ export async function JWTTesterPositive(client: Client, request: Request) {
           "Brought back the wrong object from PAPI"
         )
           .to.be.a("string")
-          .that.is.not.null.and.is.not.undefined.and.has.lengthOf(36),
+          .that.has.lengthOf(36).and.is.not.null.and.is.not.undefined,
         expect(
           validAccountDataForTest[0].Hidden,
           "Brought back the wrong object from PAPI"
-        ).to.be.a("boolean").that.is.not.null.and.is.not.undefined.and.is.false;
+        ).to.be.a("boolean").that.is.false.and.that.is.not.null.and.is.not
+          .undefined;
     });
   });
 

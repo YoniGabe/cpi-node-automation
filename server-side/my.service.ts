@@ -47,7 +47,7 @@ class MyService {
 
     return baseURL;
   }
-  //the below works according to https://pepperi.atlassian.net/browse/DI-18769 
+  //the below works according to https://pepperi.atlassian.net/browse/DI-18769
   // and https://apidesign.pepperi.com/not-in-use/webapi/get-region-webapi-baseurl
   async getWebAPIBaseURL() {
     let environment = jwtDecode(this.client.OAuthAccessToken)[
@@ -544,9 +544,24 @@ class MyService {
       "pepperi.datacenter"
     ];
 
-    environment = environment === "sandbox" ? "papi.staging" : "papi";
+    let apiRegion: string = "";
 
-    const URL = `https://${environment}.pepperi.com/V1.0/accounts?page_size=1`;
+    switch (environment) {
+      case "sandbox": {
+        apiRegion = "papi.staging";
+        break;
+      }
+      case "eu": {
+        apiRegion = "papi-eu";
+        break;
+      }
+      case "prod": {
+        apiRegion = "papi";
+        break;
+      }
+    }
+
+    const URL = `https://${apiRegion}.pepperi.com/V1.0/accounts?page_size=1&where=Hidden=false`;
     let getAcc;
     try {
       getAcc = await (
@@ -563,6 +578,53 @@ class MyService {
     }
 
     return getAcc;
+  }
+
+  async checkNodeVersion(varSecretKey: string) {
+    const nodeAddonUUID = "bb6ee826-1c6b-4a11-9758-40a46acb69c5";
+    let environment = jwtDecode(this.client.OAuthAccessToken)[
+      "pepperi.datacenter"
+    ];
+
+    let apiRegion: string = "";
+
+    switch (environment) {
+      case "sandbox": {
+        apiRegion = "papi.staging";
+        break;
+      }
+      case "eu": {
+        apiRegion = "papi-eu";
+        break;
+      }
+      case "prod": {
+        apiRegion = "papi";
+        break;
+      }
+    }
+
+    const nodeAddon = await this.papiClient.addons.installedAddons
+      .addonUUID(nodeAddonUUID)
+      .get();
+
+    const installedVersion = nodeAddon.Version;
+
+    const URL = `https://${apiRegion}.pepperi.com/v1.0/var/addons/versions?where=AddonUUID='${nodeAddonUUID}'&order_by=CreationDateTime DESC&page_size=1`;
+    //need to add another filter to the URL so it will bring back ONLY the latest version
+    const latestVersion = await (
+      await fetch(URL, {
+        method: "GET",
+        headers: {
+          Authorization: `${varSecretKey}`,
+          "Content-Type": "application/json",
+        },
+      })
+    ).json();
+
+    return {
+      latestVersion: latestVersion[0].Version,
+      installedVersion: installedVersion,
+    };
   }
 }
 
