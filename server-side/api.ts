@@ -83,11 +83,13 @@ export async function InitiateLoad(client: Client, request: Request) {
   });
   // remove UDT lines after test
   removeLines.forEach(async (line) => {
-    if (line! && typeof line === "number") {
+    try {
       const res = await service.removeUDTValues(line);
       console.log(
         `LoadTester::Removed UDTLineID ${line},with the following response: ${res} `
       );
+    } catch (err) {
+      console.log(`LoadTester::UDT Removal error: ${err}`);
     }
   });
   const testResults = await run();
@@ -250,11 +252,13 @@ export async function InterceptorTester(client: Client, request: Request) {
   });
   //remove UDT lines after test
   removeLines.forEach(async (line) => {
-    if (line! && typeof line === "number") {
+    try {
       const res = await service.removeUDTValues(line);
       console.log(
         `InterceptorTester::Removed UDTLineID ${line},with the following response: ${res} `
       );
+    } catch (err) {
+      console.log(`InterceptorTester:: UDT removal error: ${err}`);
     }
   });
 
@@ -320,7 +324,7 @@ export async function cleanseUDTLines(client: Client, request: Request) {
     }
   });
 }
-/**method to run Performence test */
+/**method to run Performence test*/
 export async function PerformenceTester(client: Client, request: Request) {
   const service = new MyService(client);
   const { describe, it, expect, run } = Tester("My test");
@@ -404,7 +408,7 @@ export async function PerformenceTester(client: Client, request: Request) {
   const testResults = await run();
   return testResults;
 }
-
+/**method to run JWTTesterPositive test - positive */
 export async function JWTTesterPositive(client: Client, request: Request) {
   const service = new MyService(client);
   const isLocal = false;
@@ -464,7 +468,7 @@ export async function JWTTesterPositive(client: Client, request: Request) {
   const testResults = await run();
   return testResults;
 }
-
+/**method to run JWTTesterPositive test - negative */
 export async function JWTTesterNegative(client: Client, request: Request) {
   const service = new MyService(client);
   const { describe, it, expect, run } = Tester("My test");

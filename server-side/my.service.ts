@@ -54,22 +54,7 @@ class MyService {
       "pepperi.datacenter"
     ];
 
-    let apiRegion: string = "";
-
-    switch (environment) {
-      case "sandbox": {
-        apiRegion = "papi.staging";
-        break;
-      }
-      case "eu": {
-        apiRegion = "papi-eu";
-        break;
-      }
-      case "prod": {
-        apiRegion = "papi";
-        break;
-      }
-    }
+    let apiRegion: string = await this.getAPIRegion();
 
     let URL = `https://${apiRegion}.pepperi.com/v1.0/webapi/base_url?Region='${environment}'`;
     const webAPIBaseURL = (
@@ -540,26 +525,7 @@ class MyService {
   }
 
   async getAccountViaAPI(JWT: string) {
-    let environment = jwtDecode(this.client.OAuthAccessToken)[
-      "pepperi.datacenter"
-    ];
-
-    let apiRegion: string = "";
-
-    switch (environment) {
-      case "sandbox": {
-        apiRegion = "papi.staging";
-        break;
-      }
-      case "eu": {
-        apiRegion = "papi-eu";
-        break;
-      }
-      case "prod": {
-        apiRegion = "papi";
-        break;
-      }
-    }
+    let apiRegion: string = await this.getAPIRegion();
 
     const URL = `https://${apiRegion}.pepperi.com/V1.0/accounts?page_size=1&where=Hidden=false`;
     let getAcc;
@@ -582,26 +548,8 @@ class MyService {
 
   async checkNodeVersion(varSecretKey: string) {
     const nodeAddonUUID = "bb6ee826-1c6b-4a11-9758-40a46acb69c5";
-    let environment = jwtDecode(this.client.OAuthAccessToken)[
-      "pepperi.datacenter"
-    ];
 
-    let apiRegion: string = "";
-
-    switch (environment) {
-      case "sandbox": {
-        apiRegion = "papi.staging";
-        break;
-      }
-      case "eu": {
-        apiRegion = "papi-eu";
-        break;
-      }
-      case "prod": {
-        apiRegion = "papi";
-        break;
-      }
-    }
+    let apiRegion: string = await this.getAPIRegion();
 
     const nodeAddon = await this.papiClient.addons.installedAddons
       .addonUUID(nodeAddonUUID)
@@ -625,6 +573,31 @@ class MyService {
       latestVersion: latestVersion[0].Version,
       installedVersion: installedVersion,
     };
+  }
+
+  async getAPIRegion(): Promise<string> {
+    let environment = jwtDecode(this.client.OAuthAccessToken)[
+      "pepperi.datacenter"
+    ];
+
+    let apiRegion: string = "";
+
+    switch (environment) {
+      case "sandbox": {
+        apiRegion = "papi.staging";
+        break;
+      }
+      case "eu": {
+        apiRegion = "papi-eu";
+        break;
+      }
+      case "prod": {
+        apiRegion = "papi";
+        break;
+      }
+    }
+
+    return apiRegion;
   }
 }
 

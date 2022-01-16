@@ -1,5 +1,4 @@
 import { Client, Request } from "@pepperi-addons/debug-server";
-import { PapiClient } from "@pepperi-addons/papi-sdk";
 const CPI_NODE_ADDON_UUID = "bb6ee826-1c6b-4a11-9758-40a46acb69c5";
 exports.install = async (client: Client, request: Request) => {
   // const papiClient = new PapiClient({

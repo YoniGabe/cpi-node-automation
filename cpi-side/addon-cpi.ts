@@ -20,6 +20,8 @@ enum OCEvents {
   Increment = "IncrementFieldValue",
   Decrement = "DecrementFieldValue",
   Button = "TSAButtonPressed",
+  preLoad = "PreLoadTransactionScope",
+  onLoad = "OnLoadTransactionScope"
 }
 /** A list of Order Center Data Views */
 const OC_DATA_VIEWS: string[] = [
@@ -640,6 +642,25 @@ export async function load(configuration: any) {
   interceptorArr = [];
   console.log("Finished setting up test variables");
 
+
+  // pepperi.events.intercept(
+  //   OCEvents.preLoad,
+  //   {},
+  //   async (data, next, main) => {
+  //  console.log("preLoadTransactionScope")
+  //  console.log(data);
+  //   }
+  // );
+
+  // pepperi.events.intercept(
+  //   OCEvents.onLoad,
+  //   {},
+  //   async (data, next, main) => {
+  //  console.log("OnLoadTransactionScope")
+  //  console.log(data);
+  //   }
+  // );
+
   //====================================ADAL================================================
   const adalData = await pepperi.api.adal
     .get({
@@ -928,8 +949,8 @@ router.use("/debug-tester", async (req, res) => {
   let accRes = await pepperi.app.accounts.add({
     type: { Name: "Customer" },
     object: {
-      ExternalID: "ExID" + Math.random(),
-      Name: "ExID" + Math.random(),
+      ExternalID: ExID,
+      Name: ExID,
     },
   });
 
@@ -942,16 +963,28 @@ router.use("/debug-tester", async (req, res) => {
       catalog: { Name: "Default Catalog" },
     },
   });
+  
+const transactionUUID = apiRes.id;
 
-  const transactionUUID = apiRes.id;
+  let lineRes = await pepperi.app.transactions.addLines({
+    transaction: { UUID: transactionUUID },
+    lines: [
+      {
+        item: { ExternalID: "CG1" },
+        lineData: { UnitsQuantity: quantitiesTotal },
+      },
+    ],
+  });
 
-  let dataObject = await pepperi.DataObject.Get(
-    "transactions",
-    transactionUUID
+const lineUUID = lineRes.result[0].id;
+
+  let lineDataObject = await pepperi.DataObject.Get(
+    "transaction_lines",
+    lineUUID
   );
 
-  const typeDef = dataObject?.typeDefinition;
-
+const parent = lineDataObject?.parent;
+console.log(parent);
   //console.log(typeDef?.resource); // returns "None" instead of the objects resource
 });
 /**Automation tests for CPINode */
@@ -10371,6 +10404,43 @@ router.get("/TransactionScope", async (req, res, next) => {
   //const get = OCManager.get()
   //const TrnScope = new TransactionScope();
   //GET BLLOrderCenterManager
+
+  let accRes = await pepperi.app.accounts.add({
+    type: { Name: "Customer" },
+    object: {
+      ExternalID: ExID,
+      Name: ExID,
+    },
+  });
+
+  const accountUUID = accRes.id;
+
+  let apiRes = await pepperi.app.transactions.add({
+    type: { Name: "DorS CPINode Sales Order" },
+    references: {
+      account: { UUID: accountUUID },
+      catalog: { Name: "Default Catalog" },
+    },
+  });
+  
+const transactionUUID = apiRes.id;
+
+  let lineRes = await pepperi.app.transactions.addLines({
+    transaction: { UUID: transactionUUID },
+    lines: [
+      {
+        item: { ExternalID: "CG1" },
+        lineData: { UnitsQuantity: quantitiesTotal },
+      },
+    ],
+  });
+
+const lineUUID = lineRes.result[0].id;
+
+  let lineDataObject = await pepperi.DataObject.Get(
+    "transaction_lines",
+    lineUUID
+  );
 
   //Trigger transaction scope for new transaction
 
