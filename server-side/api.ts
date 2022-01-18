@@ -37,21 +37,11 @@ export async function InitiateLoad(client: Client, request: Request) {
   //set test flag to Off
   const flagOff = await service.setTestFlag(false, false, 0); // deactivates test
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
-  await service.sleep(5000);
+  await service.sleep(10000);
   //need to add mocha and UDT get
   const udtData = await service.getUDTValues("LoadUDT", 2, "DESC");
-  //need to add test logic
-  const removeLines: number[] | undefined = [];
-  udtData.forEach(async (obj) => {
-    if (obj.InternalID! && typeof obj.InternalID === "number") {
-      try {
-        removeLines.push(obj.InternalID);
-      } catch (err) {
-        console.log(`Encountered the following error: ${err}`);
-      }
-    }
-  });
 
+  //mocha test
   describe("Load function automation test", async () => {
     it("Parsed test results", async () => {
       expect(
@@ -82,11 +72,16 @@ export async function InitiateLoad(client: Client, request: Request) {
     });
   });
   // remove UDT lines after test
-  removeLines.forEach(async (line) => {
+  udtData.forEach(async (line) => {
     try {
-      const res = await service.removeUDTValues(line);
+      const res = await service.updateUDTValues(
+        line.MapDataExternalID,
+        line.MainKey,
+        line.SecondaryKey,
+        true
+      );
       console.log(
-        `LoadTester::Removed UDTLineID ${line},with the following response: ${res} `
+        `LoadTester::Updated UDTLineID ${line.InternalID},with the following hidden status: ${res.Hidden} `
       );
     } catch (err) {
       console.log(`LoadTester::UDT Removal error: ${err}`);
@@ -224,14 +219,7 @@ export async function InterceptorTester(client: Client, request: Request) {
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(10000);
   const udtData = await service.getUDTValues("InterceptorsUDT", 1, "DESC");
-  const removeLines: number[] | undefined = [];
-  udtData.forEach(async (obj) => {
-    if (obj.InternalID! && typeof obj.InternalID === "number") {
-      removeLines.push(obj.InternalID);
-    }
-  });
-  console.log(udtData);
-  // some logic to finish the test -- MOCHA
+  //MOCHA
   describe("Interceptors automation test", async () => {
     it("Parsed test results", async () => {
       expect(
@@ -251,11 +239,16 @@ export async function InterceptorTester(client: Client, request: Request) {
     });
   });
   //remove UDT lines after test
-  removeLines.forEach(async (line) => {
+  udtData.forEach(async (line) => {
     try {
-      const res = await service.removeUDTValues(line);
+      const res = await service.updateUDTValues(
+        line.MapDataExternalID,
+        line.MainKey,
+        line.SecondaryKey,
+        true
+      );
       console.log(
-        `InterceptorTester::Removed UDTLineID ${line},with the following response: ${res} `
+        `InterceptorTester::Updated UDTLineID ${line.InternalID},with the following hidden status: ${res.Hidden} `
       );
     } catch (err) {
       console.log(`InterceptorTester:: UDT removal error: ${err}`);
@@ -468,7 +461,7 @@ export async function JWTTesterPositive(client: Client, request: Request) {
   const testResults = await run();
   return testResults;
 }
-/**method to run JWTTesterPositive test - negative */
+/**method to run JWTTesterNegative test - negative */
 export async function JWTTesterNegative(client: Client, request: Request) {
   const service = new MyService(client);
   const { describe, it, expect, run } = Tester("My test");

@@ -21,7 +21,7 @@ enum OCEvents {
   Decrement = "DecrementFieldValue",
   Button = "TSAButtonPressed",
   preLoad = "PreLoadTransactionScope",
-  onLoad = "OnLoadTransactionScope"
+  onLoad = "OnLoadTransactionScope",
 }
 /** A list of Order Center Data Views */
 const OC_DATA_VIEWS: string[] = [
@@ -642,7 +642,6 @@ export async function load(configuration: any) {
   interceptorArr = [];
   console.log("Finished setting up test variables");
 
-
   // pepperi.events.intercept(
   //   OCEvents.preLoad,
   //   {},
@@ -907,43 +906,6 @@ export async function load(configuration: any) {
 }
 
 export const router = Router();
-//examples
-router.use("/test", async (req, res, next) => {
-  try {
-    pepperi.events.intercept(
-      "RecalculateUIObject",
-      { UIObject: { context: { Name: "UserHomePage" } } },
-      async (data) => {
-        data.UIObject!.fields[0].title = "Testing1";
-      }
-    );
-
-    const uiPage = await pepperi.UIPage.Create("Home");
-    await uiPage.rebuild();
-
-    const apiRes = await pepperi.app.accounts.add({
-      type: { Name: "Customer" },
-      object: {
-        TSAParagraphTextAcc: "Hello World",
-      },
-    });
-    const accountUUID = apiRes.id;
-
-    const dataObject = await pepperi.DataObject.Get("accounts", accountUUID);
-
-    const fieldValue = await dataObject?.getFieldValue("TSAParagraphTextAcc");
-
-    const actions = uiPage.actions;
-    res.json({
-      hello: "world",
-      actions: actions,
-      dataObject: dataObject,
-      fieldValue: fieldValue,
-    });
-  } catch (err) {
-    next(err);
-  }
-});
 //debugger for specific code chunks
 router.use("/debug-tester", async (req, res) => {
   let accRes = await pepperi.app.accounts.add({
@@ -963,8 +925,8 @@ router.use("/debug-tester", async (req, res) => {
       catalog: { Name: "Default Catalog" },
     },
   });
-  
-const transactionUUID = apiRes.id;
+
+  const transactionUUID = apiRes.id;
 
   let lineRes = await pepperi.app.transactions.addLines({
     transaction: { UUID: transactionUUID },
@@ -976,15 +938,15 @@ const transactionUUID = apiRes.id;
     ],
   });
 
-const lineUUID = lineRes.result[0].id;
+  const lineUUID = lineRes.result[0].id;
 
   let lineDataObject = await pepperi.DataObject.Get(
     "transaction_lines",
     lineUUID
   );
 
-const parent = lineDataObject?.parent;
-console.log(parent);
+  const parent = lineDataObject?.parent;
+  console.log(parent);
   //console.log(typeDef?.resource); // returns "None" instead of the objects resource
 });
 /**Automation tests for CPINode */
@@ -1687,7 +1649,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
         it("Basic CRUD for Accessors and setAsignee", async () => {
           //=================================Accessors============================================
           console.log(
-            "Transaction - DataObject Starting Basic CRUD for Accessors (DI-18506 - dataObject.actionDateTime returns wrong value)"
+            "Transaction - DataObject Starting Basic CRUD for Accessors"
           );
 
           await dataObject?.setAssignee(userDataObject);
@@ -1833,6 +1795,138 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .that.is.equal("users").and.that.is.not.null.and.is.not.undefined;
           console.log(
             "Transaciton - DataObject Finished Basic CRUD for Accessors"
+          );
+        });
+        //test that performs calculations to other fields via triggering a specific participant field and the others calculate via rule engine
+        it("Basic CRUD for SetFieldValue and doCalculations for TSA fields", async () => {
+          console.log(
+            "Transaction - DataObject Starting Basic CRUD for SetFieldValue and doCalculations for TSA fields"
+          );
+          //=====================Positive============================
+          const insertedValue: number = randGenerator(1, 10);
+
+          await dataObject?.setFieldValue(
+            "TSAdoCalcTrigger",
+            insertedValue,
+            true
+          );
+
+          const getSingleLine = await dataObject?.getFieldValue(
+            "TSAdoCalcSingleLine"
+          );
+          expect(
+            getSingleLine,
+            "failed on Single line doCalculation not firing"
+          )
+            .to.be.a("string")
+            .that.is.equal("Single Line Text" + insertedValue);
+
+          const getDecimal = await dataObject?.getFieldValue(
+            "TSAdoCalcDecimal"
+          );
+          expect(getDecimal, "failed on Decimal doCalculation not firing")
+            .to.be.a("number")
+            .that.is.equal(2.5 + insertedValue);
+
+          const getLimitedLine = await dataObject?.getFieldValue(
+            "TSAdoCalcLimitedLine"
+          );
+          expect(
+            getLimitedLine,
+            "failed on Limited Line Text doCalculation not firing"
+          )
+            .to.be.a("string")
+            .that.is.equal("Limited Line Text" + insertedValue);
+
+          const getCB = await dataObject?.getFieldValue("TSAdoCalcCB");
+          expect(getCB, "failed on Checkbox doCalculation not firing")
+            .to.be.a("boolean")
+            .that.is.equal(5 < insertedValue);
+
+          const getParagraph = await dataObject?.getFieldValue(
+            "TSAdoCalcParagraph"
+          );
+          expect(
+            getParagraph,
+            "failed on Paragraph Text doCalculation not firing"
+          )
+            .to.be.a("string")
+            .that.is.equal("Paragraph Text" + insertedValue);
+
+          const getNumber = await dataObject?.getFieldValue("TSAdoCalcNumber");
+          expect(getNumber, "failed on Number doCalculation not firing")
+            .to.be.a("number")
+            .that.is.equal(2 + insertedValue);
+
+          //=====================Negative============================
+          const insertedValueNeg: number = randGenerator(1, 10);
+
+          await dataObject?.setFieldValue(
+            "TSAdoCalcTrigger",
+            insertedValueNeg,
+            false
+          );
+
+          const getSingleLineNeg = await dataObject?.getFieldValue(
+            "TSAdoCalcSingleLine"
+          );
+          expect(
+            getSingleLineNeg,
+            "failed on Single line negative doCalculation not firing"
+          )
+            .to.be.a("string")
+            .that.is.equal("Single Line Text" + insertedValue);
+
+          const getDecimalNeg = await dataObject?.getFieldValue(
+            "TSAdoCalcDecimal"
+          );
+          expect(
+            getDecimalNeg,
+            "failed on Decimal Negative doCalculation not firing"
+          )
+            .to.be.a("number")
+            .that.is.equal(2.5 + insertedValue);
+
+          const getLimitedLineNeg = await dataObject?.getFieldValue(
+            "TSAdoCalcLimitedLine"
+          );
+          expect(
+            getLimitedLineNeg,
+            "failed on Limited Line Text negative doCalculation not firing"
+          )
+            .to.be.a("string")
+            .that.is.equal("Limited Line Text" + insertedValue);
+
+          const getCBNeg = await dataObject?.getFieldValue("TSAdoCalcCB");
+          expect(
+            getCBNeg,
+            "failed on Checkbox negative doCalculation not firing"
+          )
+            .to.be.a("boolean")
+            .that.is.equal(5 < insertedValue);
+
+          const getParagraphNeg = await dataObject?.getFieldValue(
+            "TSAdoCalcParagraph"
+          );
+          expect(
+            getParagraphNeg,
+            "failed on Paragraph Text doCalculation not firing"
+          )
+            .to.be.a("string")
+            .that.is.equal("Paragraph Text" + insertedValue);
+
+          const getNumberNeg = await dataObject?.getFieldValue(
+            "TSAdoCalcNumber"
+          );
+          expect(
+            getNumberNeg,
+            "failed on Number Negative doCalculation not firing"
+          )
+            .to.be.a("number")
+            .that.is.equal(2 + insertedValue);
+
+          console.log(
+            "Transaction - DataObject Finished Basic CRUD for SetFieldValue and doCalculations for TSA fields"
           );
         });
       });
@@ -10422,8 +10516,8 @@ router.get("/TransactionScope", async (req, res, next) => {
       catalog: { Name: "Default Catalog" },
     },
   });
-  
-const transactionUUID = apiRes.id;
+
+  const transactionUUID = apiRes.id;
 
   let lineRes = await pepperi.app.transactions.addLines({
     transaction: { UUID: transactionUUID },
@@ -10435,7 +10529,7 @@ const transactionUUID = apiRes.id;
     ],
   });
 
-const lineUUID = lineRes.result[0].id;
+  const lineUUID = lineRes.result[0].id;
 
   let lineDataObject = await pepperi.DataObject.Get(
     "transaction_lines",

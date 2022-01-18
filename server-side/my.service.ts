@@ -387,6 +387,23 @@ class MyService {
     return removeUDTLineRes;
   }
 
+  async updateUDTValues(
+    tableName: string,
+    MainKey: string,
+    SecondaryKey: string,
+    Hidden? : boolean,
+    Values? : string[]
+  ) {
+    const updateUDTLineRes = await this.papiClient.userDefinedTables.upsert({
+      MapDataExternalID: tableName,
+      MainKey: MainKey,
+      SecondaryKey: SecondaryKey,
+      Values: Values ? Values : ["removed"],
+      Hidden: Hidden ? Hidden : true,
+    });
+    return updateUDTLineRes;
+  }
+
   async setTestFlag(
     LoadFlag: boolean,
     interceptorsFlag: boolean,
