@@ -1803,7 +1803,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             "Transaction - DataObject Starting Basic CRUD for SetFieldValue and doCalculations for TSA fields"
           );
           //=====================Positive============================
-          const insertedValue: number = randGenerator(1, 10);
+          const insertedValue: number = randGenerator(1, 9);
 
           await dataObject?.setFieldValue(
             "TSAdoCalcTrigger",
@@ -1858,8 +1858,41 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             .to.be.a("number")
             .that.is.equal(2 + insertedValue);
 
+          const getCurrency = await dataObject?.getFieldValue(
+            "TSAdoCalcCurrency"
+          );
+          expect(getCurrency, "failed on currency doCalculation not firing")
+            .to.be.a("number")
+            .that.is.equal(4 + insertedValue);
+
+          const getLink = await dataObject?.getFieldValue("TSAdoCalcLink");
+          expect(getLink, "failed on link doCalculation not firing")
+            .to.be.a("string")
+            .that.is.equal("www.google.com/" + insertedValue);
+
+          const getEmail = await dataObject?.getFieldValue("TSAdoCalcEmail");
+          expect(getEmail, "failed on email doCalculation not firing")
+            .to.be.a("string")
+            .that.is.equal("dor.s@pepperitest" + insertedValue + ".com");
+
+          const getHTML = await dataObject?.getFieldValue("TSAdoCalcHTML");
+          expect(getHTML, "failed on HTML doCalculation not firing")
+            .to.be.a("string")
+            .that.is.equal("<div><p>" + insertedValue + "</p></div>");
+          //formating issues,when resolved will uncomment the below
+          // const getDate = await dataObject?.getFieldValue("TSAdoCalcDate");
+          // console.log(getDate);
+          // expect(getDate, "failed on Date doCalculation not firing")
+          // .to.be.a("string")
+          // .that.is.equal("2022-0" + insertedValue + "-23T00:00:00Z");
+
+          // const getDateTime = await dataObject?.getFieldValue("TSAdoCalcDateTime");
+          // console.log(getDateTime);
+          // expect(getDateTime, "failed on DateTime doCalculation not firing")
+          // .to.be.a("string")
+          // .that.is.equal("2022-0" + insertedValue + "-23T21:22:23Z");
           //=====================Negative============================
-          const insertedValueNeg: number = randGenerator(1, 10);
+          const insertedValueNeg: number = randGenerator(1, 9);
 
           await dataObject?.setFieldValue(
             "TSAdoCalcTrigger",
@@ -1924,6 +1957,47 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           )
             .to.be.a("number")
             .that.is.equal(2 + insertedValue);
+
+          const getCurrencyNeg = await dataObject?.getFieldValue(
+            "TSAdoCalcCurrency"
+          );
+          expect(
+            getCurrencyNeg,
+            "failed on currency negative doCalculation not firing"
+          )
+            .to.be.a("number")
+            .that.is.equal(4 + insertedValue);
+
+          const getLinkNeg = await dataObject?.getFieldValue("TSAdoCalcLink");
+          expect(getLinkNeg, "failed on link negative doCalculation not firing")
+            .to.be.a("string")
+            .that.is.equal("www.google.com/" + insertedValue);
+
+          const getEmailNeg = await dataObject?.getFieldValue("TSAdoCalcEmail");
+          expect(
+            getEmailNeg,
+            "failed on email negative doCalculation not firing"
+          )
+            .to.be.a("string")
+            .that.is.equal("dor.s@pepperitest" + insertedValue + ".com");
+
+          const getHTMLNeg = await dataObject?.getFieldValue("TSAdoCalcHTML");
+          expect(getHTMLNeg, "failed on HTML negative doCalculation not firing")
+            .to.be.a("string")
+            .that.is.equal("<div><p>" + insertedValue + "</p></div>");
+
+            //formating issues,when resolved will uncomment the below
+            // const getDateNeg = await dataObject?.getFieldValue("TSAdoCalcDate");
+            // console.log(getDateNeg);
+            // expect(getDateNeg, "failed on Date negative doCalculation not firing")
+            // .to.be.a("string")
+            // .that.is.equal("2022-0" + insertedValue + "-22T00:00:00Z");
+  
+            // const getDateTimeNeg = await dataObject?.getFieldValue("TSAdoCalcDateTime");
+            // console.log(getDateTimeNeg);
+            // expect(getDateTimeNeg, "failed on DateTime negative doCalculation not firing")
+            // .to.be.a("string")
+            // .that.is.equal("2022-0" + insertedValue + "-23T20:22:23Z");
 
           console.log(
             "Transaction - DataObject Finished Basic CRUD for SetFieldValue and doCalculations for TSA fields"
