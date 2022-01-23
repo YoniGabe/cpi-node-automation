@@ -672,7 +672,8 @@ export async function load(configuration: any) {
   console.log("LoadTester::loadTestActive: " + adalData.TestActive);
   console.log("LoadTester::counter: " + adalData.TestRunCounter);
   console.log(
-    "LoadTester::InterceptorTestActive: " + adalData.InterceptorsTestActive
+    "InterceptorTester::InterceptorTestActive: " +
+      adalData.InterceptorsTestActive
   );
   const loadTestActive = adalData.TestActive;
   const loadTestCounter = adalData.TestRunCounter;
@@ -908,46 +909,19 @@ export async function load(configuration: any) {
 export const router = Router();
 //debugger for specific code chunks
 router.use("/debug-tester", async (req, res) => {
-  let accRes = await pepperi.app.accounts.add({
-    type: { Name: "Customer" },
-    object: {
-      ExternalID: ExID,
-      Name: ExID,
-    },
+  let itemResTypeDef = await pepperi.api.items.get({
+    key: { UUID: "E05D2C82-B236-4075-9587-7C52A3CB6021" }, //CG2
+    fields: ["InternalID", "ExternalID", "UUID"],
   });
 
-  const accountUUID = accRes.id;
-
-  let apiRes = await pepperi.app.transactions.add({
-    type: { Name: "DorS CPINode Sales Order" },
-    references: {
-      account: { UUID: accountUUID },
-      catalog: { Name: "Default Catalog" },
-    },
-  });
-
-  const transactionUUID = apiRes.id;
-
-  let lineRes = await pepperi.app.transactions.addLines({
-    transaction: { UUID: transactionUUID },
-    lines: [
-      {
-        item: { ExternalID: "CG1" },
-        lineData: { UnitsQuantity: quantitiesTotal },
-      },
-    ],
-  });
-
-  const lineUUID = lineRes.result[0].id;
-
-  let lineDataObject = await pepperi.DataObject.Get(
-    "transaction_lines",
-    lineUUID
+  let itemTypeDefUUID = itemResTypeDef.object.UUID;
+  let itemDataObjectTypeDef = await pepperi.DataObject.Get(
+    "items",
+    itemTypeDefUUID
   );
 
-  const parent = lineDataObject?.parent;
-  console.log(parent);
-  //console.log(typeDef?.resource); // returns "None" instead of the objects resource
+  const typeDef = itemDataObjectTypeDef?.typeDefinition;
+  console.log(typeDef);
 });
 /**Automation tests for CPINode */
 router.use("/automation-tests/:v/tests", async (req, res) => {
@@ -1013,7 +987,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
   const lineUUID = lineRes.result[0].id;
 
   let itemRes = await pepperi.api.items.get({
-    key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" },
+    key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3
     fields: ["InternalID", "ExternalID", "UUID"],
   });
 
@@ -1025,6 +999,17 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
   });
 
   const cnctUUID = cnctRes.id;
+
+  let itemResTypeDef = await pepperi.api.items.get({
+    key: { UUID: "E05D2C82-B236-4075-9587-7C52A3CB6021" }, //CG2
+    fields: ["InternalID", "ExternalID", "UUID"],
+  });
+
+  let itemTypeDefUUID = itemResTypeDef.object.UUID;
+  let itemDataObjectTypeDef = await pepperi.DataObject.Get(
+    "items",
+    itemTypeDefUUID
+  );
 
   let dataObject = await pepperi.DataObject.Get(
     "transactions",
@@ -1986,18 +1971,18 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             .to.be.a("string")
             .that.is.equal("<div><p>" + insertedValue + "</p></div>");
 
-            //formating issues,when resolved will uncomment the below
-            // const getDateNeg = await dataObject?.getFieldValue("TSAdoCalcDate");
-            // console.log(getDateNeg);
-            // expect(getDateNeg, "failed on Date negative doCalculation not firing")
-            // .to.be.a("string")
-            // .that.is.equal("2022-0" + insertedValue + "-22T00:00:00Z");
-  
-            // const getDateTimeNeg = await dataObject?.getFieldValue("TSAdoCalcDateTime");
-            // console.log(getDateTimeNeg);
-            // expect(getDateTimeNeg, "failed on DateTime negative doCalculation not firing")
-            // .to.be.a("string")
-            // .that.is.equal("2022-0" + insertedValue + "-23T20:22:23Z");
+          //formating issues,when resolved will uncomment the below
+          // const getDateNeg = await dataObject?.getFieldValue("TSAdoCalcDate");
+          // console.log(getDateNeg);
+          // expect(getDateNeg, "failed on Date negative doCalculation not firing")
+          // .to.be.a("string")
+          // .that.is.equal("2022-0" + insertedValue + "-22T00:00:00Z");
+
+          // const getDateTimeNeg = await dataObject?.getFieldValue("TSAdoCalcDateTime");
+          // console.log(getDateTimeNeg);
+          // expect(getDateTimeNeg, "failed on DateTime negative doCalculation not firing")
+          // .to.be.a("string")
+          // .that.is.equal("2022-0" + insertedValue + "-23T20:22:23Z");
 
           console.log(
             "Transaction - DataObject Finished Basic CRUD for SetFieldValue and doCalculations for TSA fields"
@@ -7349,7 +7334,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             "color: #bada55"
           );
         });
-        // need to add UIObject account details for accessors
+        
         it("CRUD testing on Account Details UIObject - Accessors", async () => {
           console.log(
             "%cDetails - Accounts - Accessors - UIObject Starting CRUD testing!",
@@ -9529,7 +9514,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               phrase + randDiscount
             );
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9547,7 +9531,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               phrase + randDiscount
             );
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9565,7 +9548,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               phrase + randDiscount
             );
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9580,7 +9562,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           try {
             await itemDataObject?.setFieldValue("TSADate", dateOnly);
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9593,7 +9574,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           try {
             await itemDataObject?.setFieldValue("TSADateTime", date);
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9609,7 +9589,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               randDiscount.toFixed(6)
             );
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9624,7 +9603,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           try {
             await itemDataObject?.setFieldValue("TSANumber", quantitiesTotal);
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9637,7 +9615,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           try {
             await itemDataObject?.setFieldValue("TSACurrency", quantitiesTotal);
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9650,7 +9627,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           try {
             await itemDataObject?.setFieldValue("TSACheckbox", randBool);
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9663,7 +9639,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           try {
             await itemDataObject?.setFieldValue("TSAEmail", userEmail);
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9676,7 +9651,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           try {
             await itemDataObject?.setFieldValue("TSAPhone", randPhone);
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9689,7 +9663,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           try {
             await itemDataObject?.setFieldValue("TSALink", link);
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9702,7 +9675,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           try {
             await itemDataObject?.setFieldValue("TSAHTML", HTML);
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9715,7 +9687,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           try {
             await itemDataObject?.setFieldValue("UPC", ExID);
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9728,7 +9699,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           try {
             await itemDataObject?.setFieldValue("LongDescription", name);
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9741,7 +9711,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           try {
             await itemDataObject?.setFieldValue("Price", quantitiesTotal);
           } catch (err) {
-            console.log(err);
             if (err instanceof Error) {
               expect(err.message)
                 .to.be.a("string")
@@ -9866,8 +9835,9 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const hidden = itemDataObject?.hidden;
           const internalID = itemDataObject?.internalID;
           const resource = itemDataObject?.resource;
-          const typeDef = itemDataObject?.typeDefinition;
+          const typeDef = itemDataObjectTypeDef?.typeDefinition; // CG2 special item with ATDID Sales Order
           const uuid = itemDataObject?.uuid;
+
           expect(hidden, "Failed on hidden accessor").to.be.a("boolean").that.is
             .false.and.is.not.null.and.is.not.undefined;
 
@@ -9880,9 +9850,38 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
 
           expect(internalID, "Failed on internalID accessor")
             .to.be.a("number")
-            .that.is.above(0).and.is.not.null.and.is.not.undefined;
+            .that.is.above(1).and.is.not.null.and.is.not.undefined;
 
           expect(uuid, "Failed on uuid accessor")
+            .to.be.a("string")
+            .that.has.lengthOf(36).and.is.not.null.and.is.not.undefined;
+
+          expect(
+            typeDef?.hidden,
+            "failed on typeDef.hidden accessor being true"
+          ).to.be.a("boolean").that.is.false;
+          expect(typeDef?.internalID, "failed on typeDef.internalID accessor")
+            .to.be.a("number")
+            .that.is.above(1);
+          expect(
+            typeDef?.name,
+            "failed on typeDef.name accessor not being Sales Order"
+          )
+            .to.be.a("string")
+            .and.is.equal("Sales Order");
+          expect(
+            typeDef?.resource,
+            "failed on typeDef.resource accessor not being types"
+          )
+            .to.be.a("string")
+            .and.is.equal("types");
+          expect(
+            typeDef?.type,
+            "failed on typeDef.type accessor not being transactions"
+          )
+            .to.be.a("string")
+            .and.is.equal("transactions");
+          expect(typeDef?.uuid, "Failed on typeDef.uuid accessor")
             .to.be.a("string")
             .that.has.lengthOf(36).and.is.not.null.and.is.not.undefined;
         });
@@ -9904,7 +9903,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               //       phrase + randDiscount
               //     }, Item is not editable`
               //   );
-              console.log(err);
             }
           }
 
@@ -9917,7 +9915,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
                 .that.is.equal(
                   `Error setting field TSANumberACT with value: ${phrase}, Error: Setting value for field: TSANumberACT failed with error: ILLEGAL_VALUE`
                 );
-              console.log(err);
             }
           }
 
@@ -9930,7 +9927,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
                 .that.is.equal(
                   `Error setting field TSANumberACT with value: ${randBool}, Error: Setting value for field: TSANumberACT failed with error: ILLEGAL_VALUE`
                 );
-              console.log(err);
             }
           }
 
@@ -9943,7 +9939,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
                 .that.is.equal(
                   `Error setting field TSADecimalACT with value: ${phrase}, Error: Setting value for field: TSADecimalACT failed with error: ILLEGAL_VALUE`
                 );
-              console.log(err);
             }
           }
 
@@ -9956,7 +9951,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
                 .that.is.equal(
                   `Error setting field TSADecimalACT with value: ${randBool}, Error: Setting value for field: TSADecimalACT failed with error: ILLEGAL_VALUE`
                 );
-              console.log(err);
             }
           }
 
@@ -9969,7 +9963,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
                 .that.is.equal(
                   `Error setting field TSACurrencyACT with value: ${phrase}, Error: Setting value for field: TSACurrencyACT failed with error: ILLEGAL_VALUE`
                 );
-              console.log(err);
             }
           }
 
@@ -9982,7 +9975,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
                 .that.is.equal(
                   `Error setting field TSACurrencyACT with value: ${randBool}, Error: Setting value for field: TSACurrencyACT failed with error: ILLEGAL_VALUE`
                 );
-              console.log(err);
             }
           }
 
@@ -9995,7 +9987,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
                 .that.is.equal(
                   `Error setting field TSACheckboxACT with value: ${phrase}, Error: Setting value for field: TSACheckboxACT failed with error: ILLEGAL_VALUE`
                 );
-              console.log(err);
             }
           }
 
@@ -10008,7 +9999,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
                 .that.is.equal(
                   `Error setting field TSACheckboxACT with value: ${randZip}, Error: Setting value for field: TSACheckboxACT failed with error: ILLEGAL_VALUE`
                 );
-              console.log(err);
             }
           }
 
@@ -10022,7 +10012,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
                 .that.is.equal(
                   `Error setting field TSADateACT with value: ${randBool}, Error: Setting value for field: TSADateACT failed with error: ILLEGAL_VALUE`
                 );
-              console.log(err);
             }
           }
 
@@ -10038,7 +10027,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             );
           } catch (err) {
             if (err instanceof Error) {
-              console.log(err);
               expect(err.message)
                 .to.be.a("string")
                 .that.is.equal(
@@ -10051,7 +10039,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             await actDataObject?.setFieldValue("PlannedDuration", phrase);
           } catch (err) {
             if (err instanceof Error) {
-              console.log(err);
               expect(err.message)
                 .to.be.a("string")
                 .that.is.equal(
@@ -10064,7 +10051,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             await actDataObject?.setFieldValue("PlannedDuration", randBool);
           } catch (err) {
             if (err instanceof Error) {
-              console.log(err);
               expect(err.message)
                 .to.be.a("string")
                 .that.is.equal(
@@ -10080,7 +10066,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             );
           } catch (err) {
             if (err instanceof Error) {
-              console.log(err);
               expect(err.message)
                 .to.be.a("string")
                 .that.is.equal(
@@ -10093,7 +10078,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             await actDataObject?.setFieldValue("SubmissionGeoCodeLAT", name);
           } catch (err) {
             if (err instanceof Error) {
-              console.log(err);
               expect(err.message)
                 .to.be.a("string")
                 .that.is.equal(
@@ -10106,7 +10090,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             await actDataObject?.setFieldValue("x", name);
           } catch (err) {
             if (err instanceof Error) {
-              console.log(err);
               expect(err.message)
                 .to.be.a("string")
                 .that.is.equal(
@@ -10123,7 +10106,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             await uiObject?.setFieldValue("x", phrase);
           } catch (err) {
             if (err instanceof Error) {
-              console.log(err);
               expect(err.message)
                 .to.be.a("string")
                 .that.is.equal(

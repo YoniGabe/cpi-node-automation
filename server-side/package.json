@@ -31,7 +31,7 @@
     "dependencies": {
         "@pepperi-addons/client-api": "^1.0.12",
         "@pepperi-addons/debug-server": "0.0.30",
-        "@pepperi-addons/papi-sdk": "^1.28.4",
+        "@pepperi-addons/papi-sdk": "^1.29.1",
         "@types/node-fetch": "^2.5.7",
         "chai": "4.2.0",
         "mocha": "7.2.0",
