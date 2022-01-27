@@ -391,8 +391,8 @@ class MyService {
     tableName: string,
     MainKey: string,
     SecondaryKey: string,
-    Hidden? : boolean,
-    Values? : string[]
+    Hidden?: boolean,
+    Values?: string[]
   ) {
     const updateUDTLineRes = await this.papiClient.userDefinedTables.upsert({
       MapDataExternalID: tableName,
@@ -563,18 +563,26 @@ class MyService {
     return getAcc;
   }
 
-  async checkNodeVersion(varSecretKey: string) {
-    const nodeAddonUUID = "bb6ee826-1c6b-4a11-9758-40a46acb69c5";
+  async checkAddonVersion(
+    varSecretKey: string,
+    addonUUIDToCheck: string,
+    phased?: boolean
+  ) {
+    const addonUUID = addonUUIDToCheck;
 
     let apiRegion: string = await this.getAPIRegion();
 
-    const nodeAddon = await this.papiClient.addons.installedAddons
-      .addonUUID(nodeAddonUUID)
+    const addon = await this.papiClient.addons.installedAddons
+      .addonUUID(addonUUID)
       .get();
 
-    const installedVersion = nodeAddon.Version;
+    const installedVersion = addon.Version;
+    const name = addon.Addon.Name;
 
-    const URL = `https://${apiRegion}.pepperi.com/v1.0/var/addons/versions?where=AddonUUID='${nodeAddonUUID}'&order_by=CreationDateTime DESC&page_size=1`;
+    let URL = `https://${apiRegion}.pepperi.com/v1.0/var/addons/versions?where=AddonUUID='${addonUUID}'&order_by=CreationDateTime DESC&page_size=1`;
+    phased === true
+      ? (URL = `https://${apiRegion}.pepperi.com/v1.0/var/addons/versions?where=AddonUUID='${addonUUID}' AND Phased='${phased.toString()}'&order_by=CreationDateTime DESC&page_size=1`)
+      : null;
     //need to add another filter to the URL so it will bring back ONLY the latest version
     const latestVersion = await (
       await fetch(URL, {
@@ -587,6 +595,7 @@ class MyService {
     ).json();
 
     return {
+      addonName: name,
       latestVersion: latestVersion[0].Version,
       installedVersion: installedVersion,
     };

@@ -95,6 +95,15 @@ export async function AddonAPITester(client: Client, request: Request) {
   const service = new MyService(client);
   const isLocal = false;
   const varSecretKey = request.body.varKey;
+  // object to hold addon uuid and phased status -> for versions output
+  const addonsKVP = [
+    { uuid: "bb6ee826-1c6b-4a11-9758-40a46acb69c5", phased: false }, // cpi-node
+    { uuid: "00000000-0000-0000-0000-0000003eba91", phased: true }, // cpas
+    { uuid: "00000000-0000-0000-0000-000000000a91", phased: true }, // papi
+    { uuid: "00000000-0000-0000-0000-000000abcdef", phased: true }, // cpapi
+    { uuid: "00000000-0000-0000-0000-00000000ada1", phased: true }, // adal
+    { uuid: "00000000-0000-0000-0000-000000040fa9", phased: true }, // pns
+  ];
   const { describe, it, expect, run } = Tester("My test");
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
@@ -103,30 +112,49 @@ export async function AddonAPITester(client: Client, request: Request) {
     webAPIBaseURL = "http://localhost:8093";
   }
 
-  const gottenVersions = await service.checkNodeVersion(varSecretKey);
+  const gottenVersions: {
+    addonName: string | undefined;
+    latestVersion: any;
+    installedVersion: string | undefined;
+  }[] = [];
+
+  addonsKVP.forEach(async (value) => {
+    const addonData = await service.checkAddonVersion(
+      varSecretKey,
+      value.uuid,
+      value.phased
+    );
+    gottenVersions.push(addonData);
+  });
+
   const routerTester = await service.routerTester(webAPIBaseURL, accessToken);
 
   describe("AddonAPI and version automation test", async () => {
-    it("Version Parsed test results", async () => {
-      expect(
-        gottenVersions.installedVersion,
-        "Failed on current version input being empty or not as expected"
-      )
-        .to.be.a("string")
-        .that.lengthOf.above(0).is.not.undefined.and.is.not.empty;
-      expect(
-        gottenVersions.latestVersion,
-        "Failed on latest version input being empty or not as expected"
-      )
-        .to.be.a("string")
-        .that.lengthOf.above(0).is.not.undefined.and.is.not.empty;
-      expect(
-        gottenVersions.installedVersion,
-        "Failed on CPINode latest version not being installed"
-      )
-        .to.be.a("string")
-        .that.is.equal(gottenVersions.latestVersion).and.is.not.undefined.and.is
-        .not.empty;
+    gottenVersions.forEach(async (addonData) => {
+      const addonName = addonData.addonName;
+      const installedVersion = addonData.installedVersion;
+      const latestVersion = addonData.latestVersion;
+
+      it(`${addonName} | Version: ${installedVersion} | Latest Version: ${latestVersion}`, async () => {
+        expect(
+          installedVersion,
+          `Failed on current version input being empty or not as expected for ${addonName}`
+        )
+          .to.be.a("string")
+          .that.lengthOf.above(0).is.not.undefined.and.is.not.empty;
+        expect(
+          latestVersion,
+          `Failed on latest version input being empty or not as expected for ${addonName}`
+        )
+          .to.be.a("string")
+          .that.lengthOf.above(0).is.not.undefined.and.is.not.empty;
+        expect(
+          gottenVersions.length,
+          "failed due to having missing addon versions from API"
+        )
+          .to.be.a("number")
+          .that.is.equal(6);
+      });
     });
 
     it("AddonAPI Parsed test results", async () => {

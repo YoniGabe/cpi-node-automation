@@ -10,8 +10,8 @@ import {
   Account,
   Contact,
   Transaction,
+  TransactionScope,
 } from "@pepperi-addons/cpi-node";
-//import { BLLOrderCenterManager } from "@pepperi-addons/cpi-node/build/cpi-side/wrappers";
 
 /** A list of events */
 enum OCEvents {
@@ -244,6 +244,10 @@ let link: string;
 let HTML: string;
 let randDays: number;
 let interceptorArr: number[];
+let preLoadGetLine: TransactionLine | undefined | number = 1;
+let preLoadGetLines: TransactionLine[] | undefined;
+let onLoadGetLine: TransactionLine | undefined;
+let onLoadGetLines: TransactionLine[] | undefined;
 const addonUUID = "2b39d63e-0982-4ada-8cbb-737b03b9ee58";
 const adalTableName = "Load_Test";
 
@@ -642,25 +646,8 @@ export async function load(configuration: any) {
   interceptorArr = [];
   console.log("Finished setting up test variables");
 
-  // pepperi.events.intercept(
-  //   OCEvents.preLoad,
-  //   {},
-  //   async (data, next, main) => {
-  //  console.log("preLoadTransactionScope")
-  //  console.log(data);
-  //   }
-  // );
-
-  // pepperi.events.intercept(
-  //   OCEvents.onLoad,
-  //   {},
-  //   async (data, next, main) => {
-  //  console.log("OnLoadTransactionScope")
-  //  console.log(data);
-  //   }
-  // );
-
   //====================================ADAL================================================
+  //need to add trigger to adal table for TransactionScope test -> when preparing server side
   const adalData = await pepperi.api.adal
     .get({
       addon: addonUUID,
@@ -669,15 +656,64 @@ export async function load(configuration: any) {
     })
     .then((obj) => obj.object);
   //console.log(adalData);
-  console.log("LoadTester::loadTestActive: " + adalData.TestActive);
-  console.log("LoadTester::counter: " + adalData.TestRunCounter);
-  console.log(
-    "InterceptorTester::InterceptorTestActive: " +
-      adalData.InterceptorsTestActive
-  );
   const loadTestActive = adalData.TestActive;
   const loadTestCounter = adalData.TestRunCounter;
   const InterceptorsTestActive = adalData.InterceptorsTestActive;
+  const TrnScopeTestActive = true; //stub till ADAL is sorted
+
+  console.log("LoadTester::loadTestActive: " + loadTestActive);
+  console.log("LoadTester::counter: " + loadTestCounter);
+  console.log(
+    "InterceptorTester::InterceptorTestActive: " + InterceptorsTestActive
+  );
+  console.log(
+    "TrnScopeTester::TrnScopeTestActive: " + TrnScopeTestActive // stub
+  );
+
+  if (TrnScopeTestActive === true) {
+    //========================TransactionScope Interceptors===================================
+    pepperi.events.intercept(OCEvents.preLoad, {}, async (data, next, main) => {
+      console.log("preLoadTransactionScope interceptor");
+      let itemRes = await pepperi.api.items.get({
+        key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3
+        fields: ["InternalID", "ExternalID", "UUID"],
+      });
+
+      let itemUUID = itemRes.object.UUID;
+
+      let itemDataObject: Item | undefined = await pepperi.DataObject.Get(
+        "items",
+        itemUUID
+      );
+      const Transaction = data.DataObject as Transaction;
+      //saving data in global variable (saves only when test runs)
+      preLoadGetLine = await Transaction.transactionScope?.getLine(
+        itemDataObject as Item
+      ); // should get undefined
+      preLoadGetLines = await Transaction.transactionScope?.getLines(); // should return empty array
+      interceptorArr.push(0); //checking order of interceptors
+    });
+
+    pepperi.events.intercept(OCEvents.onLoad, {}, async (data, next, main) => {
+      console.log("OnLoadTransactionScope interceptor");
+      let itemRes = await pepperi.api.items.get({
+        key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3
+        fields: ["InternalID", "ExternalID", "UUID"],
+      });
+
+      let itemUUID = itemRes.object.UUID;
+
+      let itemDataObject: Item | undefined = await pepperi.DataObject.Get(
+        "items",
+        itemUUID
+      );
+      const Transaction = data.DataObject as Transaction;
+      //saving data in global variable (saves only when test runs)
+      onLoadGetLine = await Transaction.transactionScope?.getLine(itemDataObject as Item); // should return item normally -> accepts itemDataObject
+      onLoadGetLines = await Transaction.transactionScope?.getLines(); // should return all catalog items
+      interceptorArr.push(1); //checking order of interceptors
+    });
+  }
 
   //==========================Load inserts into UDT/ADAL====================================
   if (
@@ -7334,7 +7370,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             "color: #bada55"
           );
         });
-        
+
         it("CRUD testing on Account Details UIObject - Accessors", async () => {
           console.log(
             "%cDetails - Accounts - Accessors - UIObject Starting CRUD testing!",
@@ -10550,11 +10586,9 @@ router.get("/PerformenceTest", async (req, res, next) => {
 });
 //==========================TransactionScope tests===================================
 router.get("/TransactionScope", async (req, res, next) => {
-  console.log("Inside TransactionScope test");
-  //const get = OCManager.get()
-  //const TrnScope = new TransactionScope();
-  //GET BLLOrderCenterManager
-
+  console.log("Starting TransactionScope test");
+  const { describe, it, expect, run } = Tester("My test");
+  //setting up objects
   let accRes = await pepperi.app.accounts.add({
     type: { Name: "Customer" },
     object: {
@@ -10566,7 +10600,7 @@ router.get("/TransactionScope", async (req, res, next) => {
   const accountUUID = accRes.id;
 
   let apiRes = await pepperi.app.transactions.add({
-    type: { Name: "DorS CPINode Sales Order" },
+    type: { Name: "Transaction Scope Sales Order" },
     references: {
       account: { UUID: accountUUID },
       catalog: { Name: "Default Catalog" },
@@ -10574,23 +10608,87 @@ router.get("/TransactionScope", async (req, res, next) => {
   });
 
   const transactionUUID = apiRes.id;
-
-  let lineRes = await pepperi.app.transactions.addLines({
-    transaction: { UUID: transactionUUID },
-    lines: [
-      {
-        item: { ExternalID: "CG1" },
-        lineData: { UnitsQuantity: quantitiesTotal },
-      },
-    ],
-  });
-
-  const lineUUID = lineRes.result[0].id;
-
-  let lineDataObject = await pepperi.DataObject.Get(
-    "transaction_lines",
-    lineUUID
+  let DataObject: Transaction | undefined = await pepperi.DataObject.Get(
+    "transactions",
+    transactionUUID
   );
+
+  const preLoadTrnScope = DataObject?.transactionScope; //-> suppose to be undefined -> if OC not loaded should return undefined
+
+  let itemRes = await pepperi.api.items.get({
+    key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3
+    fields: ["InternalID", "ExternalID", "UUID"],
+  });
+  //isInTransition -> if its in a middle of transition
+  //AvailableTransition -> should return possible transition
+
+  let itemUUID = itemRes.object.UUID;
+
+  let itemDataObject: Item | undefined = await pepperi.DataObject.Get(
+    "items",
+    itemUUID
+  );
+
+  const TrnScope = await pepperi.TransactionScope.Get(
+    DataObject as Transaction
+  ); // supposed to be equal to transaction.TrnScope after the load
+  
+  //object for OnLoadTransactionScope itself after load
+  const onLoadTrnScope = DataObject?.transactionScope; //-> suppose to be equal to TrnScope
+
+  console.log("preLoad getLines/Line");
+  console.log(preLoadGetLine);
+  console.log(preLoadGetLines);
+  console.log("got TransactionScope");
+  console.log(TrnScope);
+  console.log("onLoad getLines/Line");
+  console.log(onLoadGetLine);
+  console.log(onLoadGetLines);
+  
+  const getLine = await TrnScope.getLine(itemDataObject as Item);
+  console.log("TrnScope.getLine");
+  console.log(getLine);
+
+  const getLines = await TrnScope.getLines();
+  console.log("TrnScope.getLines");
+  console.log(getLines[0], getLines[1]);
+
+  const inTransition = await DataObject?.inTransition();
+  const availableTransition = await DataObject?.availableTransitions();
+  
+  console.log("inTransition");
+  console.log(inTransition);
+
+  console.log("availableTransition")
+  console.log(availableTransition);
+
+  describe("TransactionScope automation test", async () => {
+    console.log("TransactionScopeTester:: inside mocha section");
+
+    it("preLoad Transaction Scope and Triggers sequence", async () => {
+      expect(
+        preLoadTrnScope,
+        "Failed on TransactionScope returning a value before it loaded"
+      ).to.be.equal(undefined);
+      expect(interceptorArr, "Failed on TrnScope interceptors sequence")
+        .to.be.an("array")
+        .with.lengthOf(2)
+        .and.eql([0, 1]);
+    });
+
+    it("onLoad Transaction Scope - getLine and getLines", async () => {
+      expect(TrnScope,"Failed on TrnScope that was brought via Get").to.be.an("object").that.is.not.null.and.is.not.undefined;
+    });
+
+    it("preLoad Transaction Scope - Interceptors", async () => {
+      expect(preLoadGetLine,"Failed on preLoadGetLine having data").to.be.equal(undefined);
+      expect(preLoadGetLines,"Failed on preLoadGetLines returning an array with data").that.is.an("array").with.lengthOf(0).that.is.eql([]);
+    });
+
+    it("onLoad Transaction Scope - Interceptors", async () => {});
+
+    it("inTransitions and availableTransition", async () => {});
+  });
 
   //Trigger transaction scope for new transaction
 
@@ -10600,13 +10698,14 @@ router.get("/TransactionScope", async (req, res, next) => {
 
   //Test getLine() before load -> should return undefined
 
-  //Test getLines() before load -> should return scoped items
+  //Test getLines() before load -> should return empty array
 
   //Test getLine() after load -> should return search scope item
 
   //Test getLines() after load -> should return scoped items
 
-  //Possibly trigger from lihi
+  const testResult = await run();
+  res.json(testResult);
 });
 //===========================JWT from CPISide========================================
 router.get("/JWT", async (req, res, next) => {
