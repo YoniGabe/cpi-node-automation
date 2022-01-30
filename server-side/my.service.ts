@@ -407,7 +407,8 @@ class MyService {
   async setTestFlag(
     LoadFlag: boolean,
     interceptorsFlag: boolean,
-    counter?: number
+    counter?: number,
+    TrnScopeFlag?: boolean
   ) {
     const body = {
       Key: "testKey1",
@@ -423,6 +424,7 @@ class MyService {
       TestRunCounter: counter ? counter : 0,
       TestActive: LoadFlag,
       InterceptorsTestActive: interceptorsFlag,
+      TrnScopeTestActive: TrnScopeFlag ? TrnScopeFlag : false
     };
 
     const upsert = await this.upsertToADAL("Load_Test", body);
@@ -477,7 +479,7 @@ class MyService {
   ) {
     //make request to the CPISide tests
     let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/automation-tests/${testName}/tests`;
-    if (testName === "ClientAPI/ADAL") {
+    if (testName === "ClientAPI/ADAL" || testName === "TransactionScope") {
       URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/${testName}`;
     }
     const testResults = await (

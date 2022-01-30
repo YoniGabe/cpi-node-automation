@@ -659,7 +659,7 @@ export async function load(configuration: any) {
   const loadTestActive = adalData.TestActive;
   const loadTestCounter = adalData.TestRunCounter;
   const InterceptorsTestActive = adalData.InterceptorsTestActive;
-  const TrnScopeTestActive = true; //stub till ADAL is sorted
+  const TrnScopeTestActive = true; //stub till ADAL is sorted adalData.TrnScopeTestActive
 
   console.log("LoadTester::loadTestActive: " + loadTestActive);
   console.log("LoadTester::counter: " + loadTestCounter);
@@ -709,7 +709,9 @@ export async function load(configuration: any) {
       );
       const Transaction = data.DataObject as Transaction;
       //saving data in global variable (saves only when test runs)
-      onLoadGetLine = await Transaction.transactionScope?.getLine(itemDataObject as Item); // should return item normally -> accepts itemDataObject
+      onLoadGetLine = await Transaction.transactionScope?.getLine(
+        itemDataObject as Item
+      ); // should return item normally -> accepts itemDataObject
       onLoadGetLines = await Transaction.transactionScope?.getLines(); // should return all catalog items
       interceptorArr.push(1); //checking order of interceptors
     });
@@ -10586,7 +10588,9 @@ router.get("/PerformenceTest", async (req, res, next) => {
 });
 //==========================TransactionScope tests===================================
 router.get("/TransactionScope", async (req, res, next) => {
-  console.log("Starting TransactionScope test");
+  console.log(
+    "TransactionScopeTester:: Started TransactionScope automation test"
+  );
   const { describe, it, expect, run } = Tester("My test");
   //setting up objects
   let accRes = await pepperi.app.accounts.add({
@@ -10612,6 +10616,7 @@ router.get("/TransactionScope", async (req, res, next) => {
     "transactions",
     transactionUUID
   );
+  console.log("TransactionScopeTester:: got transaction dataobject section");
 
   const preLoadTrnScope = DataObject?.transactionScope; //-> suppose to be undefined -> if OC not loaded should return undefined
 
@@ -10632,38 +10637,28 @@ router.get("/TransactionScope", async (req, res, next) => {
   const TrnScope = await pepperi.TransactionScope.Get(
     DataObject as Transaction
   ); // supposed to be equal to transaction.TrnScope after the load
-  
+  console.log("TransactionScopeTester:: got transaction scope");
+
   //object for OnLoadTransactionScope itself after load
   const onLoadTrnScope = DataObject?.transactionScope; //-> suppose to be equal to TrnScope
 
-  console.log("preLoad getLines/Line");
-  console.log(preLoadGetLine);
-  console.log(preLoadGetLines);
-  console.log("got TransactionScope");
-  console.log(TrnScope);
-  console.log("onLoad getLines/Line");
-  console.log(onLoadGetLine);
-  console.log(onLoadGetLines);
-  
+  const onLoadgetLine = await onLoadTrnScope?.getLine(itemDataObject as Item);
+
+  const onLoadgetLines = await onLoadTrnScope?.getLines();
+
   const getLine = await TrnScope.getLine(itemDataObject as Item);
-  console.log("TrnScope.getLine");
-  console.log(getLine);
 
   const getLines = await TrnScope.getLines();
-  console.log("TrnScope.getLines");
-  console.log(getLines[0], getLines[1]);
 
   const inTransition = await DataObject?.inTransition();
-  const availableTransition = await DataObject?.availableTransitions();
-  
-  console.log("inTransition");
-  console.log(inTransition);
 
-  console.log("availableTransition")
-  console.log(availableTransition);
+  const availableTransition = await DataObject?.availableTransitions();
+  console.log(
+    "TransactionScopeTester:: got all tests objects,iniating mocha.."
+  );
 
   describe("TransactionScope automation test", async () => {
-    console.log("TransactionScopeTester:: inside mocha section");
+    console.log("TransactionScopeTester:: Started mocha section");
 
     it("preLoad Transaction Scope and Triggers sequence", async () => {
       expect(
@@ -10677,33 +10672,634 @@ router.get("/TransactionScope", async (req, res, next) => {
     });
 
     it("onLoad Transaction Scope - getLine and getLines", async () => {
-      expect(TrnScope,"Failed on TrnScope that was brought via Get").to.be.an("object").that.is.not.null.and.is.not.undefined;
+      expect(TrnScope, "Failed on TrnScope that was brought via Get").to.be.an(
+        "object"
+      ).that.is.not.null.and.is.not.undefined;
+      expect(
+        TrnScope,
+        "Failed on TrnScope not equals onLoadTrnScope"
+      ).to.be.deep.equal(onLoadTrnScope);
+      //=====================getLine======================
+      expect(getLine, "Failed on getLine returning empty").to.be.an("object")
+        .that.is.not.null.and.is.not.undefined;
+      expect(getLine?.children, "Failed on getLine.children returning a value")
+        .to.be.an("array")
+        .with.lengthOf(0);
+      expect(
+        getLine?.hidden,
+        "Failed on getLine.hidden returning true"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        getLine?.internalID,
+        "Failed on getLine.internalID returning wrong value"
+      )
+        .to.be.a("number")
+        .that.is.above(-1);
+      expect(
+        getLine?.parent,
+        "Failed on getLine.parent returning a value"
+      ).to.be.equal(undefined);
+      expect(getLine?.resource, "Failed on resource returning the wrong value")
+        .to.be.a("string")
+        .that.is.equal("transaction_lines");
+      expect(getLine?.uuid, "Failed on getLine.UUID retruning the wrong value")
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+      expect(
+        getLine?.transaction,
+        "Failed on getLine.Transaction returning empty"
+      ).to.be.an("object").that.is.not.undefined.and.is.not.empty;
+      expect(
+        getLine?.item.hidden,
+        "Failed on getLine.item.hidden returning true"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        getLine?.item.uuid,
+        "Failed on getLine.item.UUID retruning the wrong value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+      expect(
+        getLine?.item.resource,
+        "Failed on getLine.item.resource returning the wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal("items");
+      expect(
+        getLine?.item.internalID,
+        "Failed on getLine.item.internalID returning wrong value"
+      )
+        .to.be.a("number")
+        .that.is.above(1);
+      //=====================getLines======================
+      expect(getLines, "Failed on getLines returning wrong array length")
+        .to.be.an("array")
+        .that.has.lengthOf(109);
+      expect(getLines[0], "Failed on getLines returning empty").to.be.an(
+        "object"
+      ).that.is.not.null.and.is.not.undefined;
+      expect(
+        getLines[0]?.children,
+        "Failed on getLines.children returning a value"
+      )
+        .to.be.an("array")
+        .with.lengthOf(6);
+      expect(
+        getLines[0]?.hidden,
+        "Failed on getLines.hidden returning true"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        getLines[0]?.internalID,
+        "Failed on getLines.internalID returning wrong value"
+      )
+        .to.be.a("number")
+        .that.is.above(-1);
+      expect(
+        getLines[0]?.parent,
+        "Failed on getLines.parent returning a value"
+      ).to.be.equal(undefined);
+      expect(
+        getLines[0]?.resource,
+        "Failed on getLinesresource returning the wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal("transaction_lines");
+      expect(
+        getLines[0]?.uuid,
+        "Failed on getLines.UUID retruning the wrong value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+      expect(
+        getLines[0]?.transaction,
+        "Failed on getLines.Transaction returning empty"
+      ).to.be.an("object").that.is.not.undefined.and.is.not.empty;
+      expect(
+        getLines[0]?.item.hidden,
+        "Failed on getLines.item.hidden returning true"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        getLines[0]?.item.uuid,
+        "Failed on getLines.item.UUID retruning the wrong value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+      expect(
+        getLines[0]?.item.resource,
+        "Failed on getLines.item.resource returning the wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal("items");
+      expect(
+        getLines[0]?.item.internalID,
+        "Failed on getLines.item.internalID returning wrong value"
+      )
+        .to.be.a("number")
+        .that.is.above(1);
+
+      expect(getLines[1], "Failed on getLines returning empty").to.be.an(
+        "object"
+      ).that.is.not.null.and.is.not.undefined;
+      expect(
+        getLines[1]?.children,
+        "Failed on getLines.children returning a value"
+      )
+        .to.be.an("array")
+        .with.lengthOf(6);
+      expect(
+        getLines[1]?.hidden,
+        "Failed on getLines.hidden returning true"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        getLines[1]?.internalID,
+        "Failed on getLines.internalID returning wrong value"
+      )
+        .to.be.a("number")
+        .that.is.above(-1);
+      expect(
+        getLines[1]?.parent,
+        "Failed on getLines.parent returning a value"
+      ).to.be.equal(undefined);
+      expect(
+        getLines[1]?.resource,
+        "Failed on getLinesresource returning the wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal("transaction_lines");
+      expect(
+        getLines[1]?.uuid,
+        "Failed on getLines.UUID retruning the wrong value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+      expect(
+        getLines[1]?.transaction,
+        "Failed on getLines.Transaction returning empty"
+      ).to.be.an("object").that.is.not.undefined.and.is.not.empty;
+      expect(
+        getLines[1]?.item.hidden,
+        "Failed on getLines.item.hidden returning true"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        getLines[1]?.item.uuid,
+        "Failed on getLines.item.UUID retruning the wrong value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+      expect(
+        getLines[1]?.item.resource,
+        "Failed on getLines.item.resource returning the wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal("items");
+      expect(
+        getLines[1]?.item.internalID,
+        "Failed on getLines.item.internalID returning wrong value"
+      )
+        .to.be.a("number")
+        .that.is.above(1);
+      //========================onLoadedTrnScope.getLine==========================
+      expect(
+        onLoadTrnScope,
+        "Failed on TrnScope that was brought via Get"
+      ).to.be.an("object").that.is.not.null.and.is.not.undefined;
+      expect(
+        onLoadgetLine,
+        "Failed on onLoadgetLine getLine returning empty"
+      ).to.be.an("object").that.is.not.null.and.is.not.undefined;
+      expect(
+        onLoadgetLine?.children,
+        "Failed on onLoadgetLine getLine.children returning a value"
+      )
+        .to.be.an("array")
+        .with.lengthOf(0);
+      expect(
+        onLoadgetLine?.hidden,
+        "Failed on onLoadgetLine getLine.hidden returning true"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        onLoadgetLine?.internalID,
+        "Failed on onLoadgetLine getLine.internalID returning wrong value"
+      )
+        .to.be.a("number")
+        .that.is.above(-1);
+      expect(
+        onLoadgetLine?.parent,
+        "Failed on onLoadgetLine getLine.parent returning a value"
+      ).to.be.equal(undefined);
+      expect(
+        onLoadgetLine?.resource,
+        "Failed on onLoadgetLine resource returning the wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal("transaction_lines");
+      expect(
+        onLoadgetLine?.uuid,
+        "Failed on onLoadgetLine getLine.UUID retruning the wrong value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+      expect(
+        onLoadgetLine?.transaction,
+        "Failed on onLoadgetLine getLine.Transaction returning empty"
+      ).to.be.an("object").that.is.not.undefined.and.is.not.empty;
+      expect(
+        onLoadgetLine?.item.hidden,
+        "Failed on onLoadgetLine getLine.item.hidden returning true"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        onLoadgetLine?.item.uuid,
+        "Failed on onLoadgetLine getLine.item.UUID retruning the wrong value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+      expect(
+        onLoadgetLine?.item.resource,
+        "Failed on onLoadgetLine getLine.item.resource returning the wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal("items");
+      expect(
+        onLoadgetLine?.item.internalID,
+        "Failed on onLoadgetLine getLine.item.internalID returning wrong value"
+      )
+        .to.be.a("number")
+        .that.is.above(1);
+      //=====================onLoadedTrnScope.getLines======================
+      expect(onLoadgetLines, "Failed on getLines returning wrong array length")
+        .to.be.an("array")
+        .that.has.lengthOf(109);
+      if (onLoadgetLines) {
+        expect(
+          onLoadgetLines[0],
+          "Failed on onLoadgetLines getLines returning empty"
+        ).to.be.an("object").that.is.not.null.and.is.not.undefined;
+        expect(
+          onLoadgetLines[0]?.children,
+          "Failed on onLoadgetLines getLines.children returning a value"
+        )
+          .to.be.an("array")
+          .with.lengthOf(6);
+        expect(
+          onLoadgetLines[0]?.hidden,
+          "Failed on onLoadgetLines getLines.hidden returning true"
+        ).to.be.a("boolean").that.is.false;
+        expect(
+          onLoadgetLines[0]?.internalID,
+          "Failed on onLoadgetLines getLines.internalID returning wrong value"
+        )
+          .to.be.a("number")
+          .that.is.above(-1);
+        expect(
+          onLoadgetLines[0]?.parent,
+          "Failed on onLoadgetLines getLines.parent returning a value"
+        ).to.be.equal(undefined);
+        expect(
+          onLoadgetLines[0]?.resource,
+          "Failed on onLoadgetLines getLinesresource returning the wrong value"
+        )
+          .to.be.a("string")
+          .that.is.equal("transaction_lines");
+        expect(
+          onLoadgetLines[0]?.uuid,
+          "Failed on onLoadgetLines getLines.UUID retruning the wrong value"
+        )
+          .to.be.a("string")
+          .that.has.lengthOf(36);
+        expect(
+          onLoadgetLines[0]?.transaction,
+          "Failed on  onLoadgetLinesgetLines.Transaction returning empty"
+        ).to.be.an("object").that.is.not.undefined.and.is.not.empty;
+        expect(
+          onLoadgetLines[0]?.item.hidden,
+          "Failed on onLoadgetLines getLines.item.hidden returning true"
+        ).to.be.a("boolean").that.is.false;
+        expect(
+          onLoadgetLines[0]?.item.uuid,
+          "Failed on onLoadgetLines getLines.item.UUID retruning the wrong value"
+        )
+          .to.be.a("string")
+          .that.has.lengthOf(36);
+        expect(
+          onLoadgetLines[0]?.item.resource,
+          "Failed on onLoadgetLines getLines.item.resource returning the wrong value"
+        )
+          .to.be.a("string")
+          .that.is.equal("items");
+        expect(
+          onLoadgetLines[0]?.item.internalID,
+          "Failed on onLoadgetLines getLines.item.internalID returning wrong value"
+        )
+          .to.be.a("number")
+          .that.is.above(1);
+
+        expect(
+          onLoadgetLines[1],
+          "Failed on onLoadgetLines getLines returning empty"
+        ).to.be.an("object").that.is.not.null.and.is.not.undefined;
+        expect(
+          onLoadgetLines[1]?.children,
+          "Failed on onLoadgetLines getLines.children returning a value"
+        )
+          .to.be.an("array")
+          .with.lengthOf(6);
+        expect(
+          onLoadgetLines[1]?.hidden,
+          "Failed on onLoadgetLines getLines.hidden returning true"
+        ).to.be.a("boolean").that.is.false;
+        expect(
+          onLoadgetLines[1]?.internalID,
+          "Failed on onLoadgetLines getLines.internalID returning wrong value"
+        )
+          .to.be.a("number")
+          .that.is.above(-1);
+        expect(
+          onLoadgetLines[1]?.parent,
+          "Failed on onLoadgetLines getLines.parent returning a value"
+        ).to.be.equal(undefined);
+        expect(
+          onLoadgetLines[1]?.resource,
+          "Failed on onLoadgetLines getLinesresource returning the wrong value"
+        )
+          .to.be.a("string")
+          .that.is.equal("transaction_lines");
+        expect(
+          onLoadgetLines[1]?.uuid,
+          "Failed on onLoadgetLines getLines.UUID retruning the wrong value"
+        )
+          .to.be.a("string")
+          .that.has.lengthOf(36);
+        expect(
+          onLoadgetLines[1]?.transaction,
+          "Failed on onLoadgetLines getLines.Transaction returning empty"
+        ).to.be.an("object").that.is.not.undefined.and.is.not.empty;
+        expect(
+          onLoadgetLines[1]?.item.hidden,
+          "Failed on onLoadgetLines getLines.item.hidden returning true"
+        ).to.be.a("boolean").that.is.false;
+        expect(
+          onLoadgetLines[1]?.item.uuid,
+          "Failed on onLoadgetLines getLines.item.UUID retruning the wrong value"
+        )
+          .to.be.a("string")
+          .that.has.lengthOf(36);
+        expect(
+          onLoadgetLines[1]?.item.resource,
+          "Failed on onLoadgetLines getLines.item.resource returning the wrong value"
+        )
+          .to.be.a("string")
+          .that.is.equal("items");
+        expect(
+          onLoadgetLines[1]?.item.internalID,
+          "Failed on onLoadgetLines getLines.item.internalID returning wrong value"
+        )
+          .to.be.a("number")
+          .that.is.above(1);
+      }
     });
 
     it("preLoad Transaction Scope - Interceptors", async () => {
-      expect(preLoadGetLine,"Failed on preLoadGetLine having data").to.be.equal(undefined);
-      expect(preLoadGetLines,"Failed on preLoadGetLines returning an array with data").that.is.an("array").with.lengthOf(0).that.is.eql([]);
+      expect(
+        preLoadGetLine,
+        "Failed on preLoadGetLine having data"
+      ).to.be.equal(undefined);
+      expect(
+        preLoadGetLines,
+        "Failed on preLoadGetLines returning an array with data"
+      )
+        .that.is.an("array")
+        .with.lengthOf(0)
+        .that.is.eql([]);
     });
 
-    it("onLoad Transaction Scope - Interceptors", async () => {});
+    it("onLoad Transaction Scope - Interceptors", async () => {
+      //=====================getLine======================
+      expect(onLoadGetLine, "Failed on onLoadGetLine returning empty").to.be.an(
+        "object"
+      ).that.is.not.null.and.is.not.undefined;
+      expect(
+        onLoadGetLine?.children,
+        "Failed on onLoadGetLine.children returning a value"
+      )
+        .to.be.an("array")
+        .with.lengthOf(0);
+      expect(
+        onLoadGetLine?.hidden,
+        "Failed on onLoadGetLine.hidden returning true"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        onLoadGetLine?.internalID,
+        "Failed on onLoadGetLine.internalID returning wrong value"
+      )
+        .to.be.a("number")
+        .that.is.above(-1);
+      expect(
+        onLoadGetLine?.parent,
+        "Failed on onLoadGetLine.parent returning a value"
+      ).to.be.equal(undefined);
+      expect(
+        onLoadGetLine?.resource,
+        "Failed on resource returning the wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal("transaction_lines");
+      expect(
+        onLoadGetLine?.uuid,
+        "Failed on onLoadGetLine.UUID retruning the wrong value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+      expect(
+        onLoadGetLine?.transaction,
+        "Failed on onLoadGetLine.Transaction returning empty"
+      ).to.be.an("object").that.is.not.undefined.and.is.not.empty;
+      expect(
+        onLoadGetLine?.item.hidden,
+        "Failed on onLoadGetLine.item.hidden returning true"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        onLoadGetLine?.item.uuid,
+        "Failed on onLoadGetLine.item.UUID retruning the wrong value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+      expect(
+        onLoadGetLine?.item.resource,
+        "Failed on onLoadGetLine.item.resource returning the wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal("items");
+      expect(
+        onLoadGetLine?.item.internalID,
+        "Failed on onLoadGetLine.item.internalID returning wrong value"
+      )
+        .to.be.a("number")
+        .that.is.above(1);
+      //=====================onLoadGetLines======================
+      if (onLoadGetLines) {
+        expect(
+          onLoadGetLines,
+          "Failed on onLoadGetLines returning wrong array length"
+        )
+          .to.be.an("array")
+          .that.has.lengthOf(109);
+        expect(
+          onLoadGetLines[0],
+          "Failed on onLoadGetLines returning empty"
+        ).to.be.an("object").that.is.not.null.and.is.not.undefined;
+        expect(
+          onLoadGetLines[0]?.children,
+          "Failed on onLoadGetLines.children returning a value"
+        )
+          .to.be.an("array")
+          .with.lengthOf(6);
+        expect(
+          onLoadGetLines[0]?.hidden,
+          "Failed on onLoadGetLines.hidden returning true"
+        ).to.be.a("boolean").that.is.false;
+        expect(
+          onLoadGetLines[0]?.internalID,
+          "Failed on onLoadGetLines.internalID returning wrong value"
+        )
+          .to.be.a("number")
+          .that.is.above(-1);
+        expect(
+          onLoadGetLines[0]?.parent,
+          "Failed on onLoadGetLines.parent returning a value"
+        ).to.be.equal(undefined);
+        expect(
+          onLoadGetLines[0]?.resource,
+          "Failed on onLoadGetLinesresource returning the wrong value"
+        )
+          .to.be.a("string")
+          .that.is.equal("transaction_lines");
+        expect(
+          onLoadGetLines[0]?.uuid,
+          "Failed on onLoadGetLines.UUID retruning the wrong value"
+        )
+          .to.be.a("string")
+          .that.has.lengthOf(36);
+        expect(
+          onLoadGetLines[0]?.transaction,
+          "Failed on onLoadGetLines.Transaction returning empty"
+        ).to.be.an("object").that.is.not.undefined.and.is.not.empty;
+        expect(
+          onLoadGetLines[0]?.item.hidden,
+          "Failed on onLoadGetLines.item.hidden returning true"
+        ).to.be.a("boolean").that.is.false;
+        expect(
+          onLoadGetLines[0]?.item.uuid,
+          "Failed on onLoadGetLines.item.UUID retruning the wrong value"
+        )
+          .to.be.a("string")
+          .that.has.lengthOf(36);
+        expect(
+          onLoadGetLines[0]?.item.resource,
+          "Failed on onLoadGetLines.item.resource returning the wrong value"
+        )
+          .to.be.a("string")
+          .that.is.equal("items");
+        expect(
+          onLoadGetLines[0]?.item.internalID,
+          "Failed on onLoadGetLines.item.internalID returning wrong value"
+        )
+          .to.be.a("number")
+          .that.is.above(1);
 
-    it("inTransitions and availableTransition", async () => {});
+        expect(
+          onLoadGetLines[1],
+          "Failed on onLoadGetLines returning empty"
+        ).to.be.an("object").that.is.not.null.and.is.not.undefined;
+        expect(
+          onLoadGetLines[1]?.children,
+          "Failed on onLoadGetLines.children returning a value"
+        )
+          .to.be.an("array")
+          .with.lengthOf(6);
+        expect(
+          onLoadGetLines[1]?.hidden,
+          "Failed on onLoadGetLines.hidden returning true"
+        ).to.be.a("boolean").that.is.false;
+        expect(
+          onLoadGetLines[1]?.internalID,
+          "Failed on onLoadGetLines.internalID returning wrong value"
+        )
+          .to.be.a("number")
+          .that.is.above(-1);
+        expect(
+          onLoadGetLines[1]?.parent,
+          "Failed on onLoadGetLines.parent returning a value"
+        ).to.be.equal(undefined);
+        expect(
+          onLoadGetLines[1]?.resource,
+          "Failed on onLoadGetLinesresource returning the wrong value"
+        )
+          .to.be.a("string")
+          .that.is.equal("transaction_lines");
+        expect(
+          onLoadGetLines[1]?.uuid,
+          "Failed on onLoadGetLines.UUID retruning the wrong value"
+        )
+          .to.be.a("string")
+          .that.has.lengthOf(36);
+        expect(
+          onLoadGetLines[1]?.transaction,
+          "Failed on onLoadGetLines.Transaction returning empty"
+        ).to.be.an("object").that.is.not.undefined.and.is.not.empty;
+        expect(
+          onLoadGetLines[1]?.item.hidden,
+          "Failed on onLoadGetLines.item.hidden returning true"
+        ).to.be.a("boolean").that.is.false;
+        expect(
+          onLoadGetLines[1]?.item.uuid,
+          "Failed on onLoadGetLines.item.UUID retruning the wrong value"
+        )
+          .to.be.a("string")
+          .that.has.lengthOf(36);
+        expect(
+          onLoadGetLines[1]?.item.resource,
+          "Failed on onLoadGetLines.item.resource returning the wrong value"
+        )
+          .to.be.a("string")
+          .that.is.equal("items");
+        expect(
+          onLoadGetLines[1]?.item.internalID,
+          "Failed on onLoadGetLines.item.internalID returning wrong value"
+        )
+          .to.be.a("number")
+          .that.is.above(1);
+      }
+    });
+
+    it("inTransitions and availableTransition", async () => {
+      expect(inTransition, "Failed on inTransition returning false").to.be.a(
+        "boolean"
+      ).that.is.true;
+      if (availableTransition) {
+        expect(
+          availableTransition[0].Title,
+          "Failed on available transition's wrong title"
+        )
+          .to.be.a("string")
+          .that.is.equal("Create");
+        expect(
+          availableTransition[0].UUID,
+          "Failed on available transition's UUID retruning the wrong value"
+        )
+          .to.be.a("string")
+          .that.has.lengthOf(36);
+      }
+    });
+    console.log("TransactionScopeTester:: Finished mocha section");
   });
-
-  //Trigger transaction scope for new transaction
-
-  //Trigger transaction scope for old transaction
-
-  //run the following tests:
-
-  //Test getLine() before load -> should return undefined
-
-  //Test getLines() before load -> should return empty array
-
-  //Test getLine() after load -> should return search scope item
-
-  //Test getLines() after load -> should return scoped items
-
+  //runs the following tests:
+  //Test getLine() before load -> should return undefined - done
+  //Test getLines() before load -> should return empty array - done
+  //Test getLine() after load -> should return search scope item - done
+  //Test getLines() after load -> should return scoped items - done
+  console.log(
+    "TransactionScopeTester:: Finished TransactionScope automation test"
+  );
   const testResult = await run();
   res.json(testResult);
 });

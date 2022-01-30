@@ -429,6 +429,37 @@ export async function PerformenceTester(client: Client, request: Request) {
   const testResults = await run();
   return testResults;
 }
+/**method to run TransactionScope test*/ //need to test
+export async function TrasactionScopeTester(client: Client, request: Request) {
+  const service = new MyService(client);
+  const isLocal = false;
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+
+  if (isLocal) {
+    accessToken = "c8cff29a-56f6-4489-a21a-79534785fb85"; //fill in from CPINode debugger
+    webAPIBaseURL = "http://localhost:8093";
+  }
+  //run in case sync is running before tests
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  //activate test flag on Load function
+  await service.setTestFlag(false, false, 0, true);
+  //sync again to trigger the test interceptors
+  const initSync = await service.initSync(accessToken, webAPIBaseURL);
+  //wait till sync is over
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(5000);
+  //get mocha tests results from cpiSide
+  const testResults = await service.runCPISideTest(
+    accessToken,
+    webAPIBaseURL,
+    "TransactionScope"
+  );
+  //deactive adal tesk trigger
+  await service.setTestFlag(false, false, 0, false);
+  //return test results
+  return testResults;
+}
 /**method to run JWTTesterPositive test - positive */
 export async function JWTTesterPositive(client: Client, request: Request) {
   const service = new MyService(client);
