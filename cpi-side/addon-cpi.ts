@@ -659,7 +659,7 @@ export async function load(configuration: any) {
   const loadTestActive = adalData.TestActive;
   const loadTestCounter = adalData.TestRunCounter;
   const InterceptorsTestActive = adalData.InterceptorsTestActive;
-  const TrnScopeTestActive = true; //stub till ADAL is sorted adalData.TrnScopeTestActive
+  const TrnScopeTestActive = adalData.TrnScopeTestActive;
 
   console.log("LoadTester::loadTestActive: " + loadTestActive);
   console.log("LoadTester::counter: " + loadTestCounter);

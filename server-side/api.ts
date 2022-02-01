@@ -445,11 +445,11 @@ export async function TrasactionScopeTester(client: Client, request: Request) {
   //activate test flag on Load function
   await service.setTestFlag(false, false, 0, true);
   //sync again to trigger the test interceptors
-  const initSync = await service.initSync(accessToken, webAPIBaseURL);
+  const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
   //wait till sync is over
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(5000);
-  //get mocha tests results from cpiSide
+  //run and get mocha tests results from cpiSide
   const testResults = await service.runCPISideTest(
     accessToken,
     webAPIBaseURL,
@@ -457,6 +457,9 @@ export async function TrasactionScopeTester(client: Client, request: Request) {
   );
   //deactive adal tesk trigger
   await service.setTestFlag(false, false, 0, false);
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(5000);
   //return test results
   return testResults;
 }
