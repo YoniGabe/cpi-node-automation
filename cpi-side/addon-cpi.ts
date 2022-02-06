@@ -11136,13 +11136,13 @@ router.get("/TransactionScope", async (req, res, next) => {
         .to.be.a("number")
         .that.is.above(1);
       //=====================onLoadGetLines======================
+      expect(
+        onLoadGetLines,
+        "Failed on onLoadGetLines returning wrong array length"
+      )
+        .to.be.an("array")
+        .that.has.lengthOf(109);
       if (onLoadGetLines) {
-        expect(
-          onLoadGetLines,
-          "Failed on onLoadGetLines returning wrong array length"
-        )
-          .to.be.an("array")
-          .that.has.lengthOf(109);
         expect(
           onLoadGetLines[0],
           "Failed on onLoadGetLines returning empty"
@@ -11275,6 +11275,10 @@ router.get("/TransactionScope", async (req, res, next) => {
       expect(inTransition, "Failed on inTransition returning false").to.be.a(
         "boolean"
       ).that.is.true;
+      expect(
+        availableTransition,
+        "Failed on availableTransition returning emoty object"
+      ).to.be.an("object").that.is.not.null.and.is.not.empty;
       if (availableTransition) {
         expect(
           availableTransition[0].Title,
