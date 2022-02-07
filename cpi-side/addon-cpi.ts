@@ -5,222 +5,13 @@ import {
   Item,
   TransactionLine,
   UIField,
-  UIObject,
   User,
   Account,
   Contact,
   Transaction,
-  TransactionScope,
 } from "@pepperi-addons/cpi-node";
-
-/** A list of events */
-enum OCEvents {
-  Recalculate = "RecalculateUIObject",
-  SetField = "SetFieldValue",
-  Increment = "IncrementFieldValue",
-  Decrement = "DecrementFieldValue",
-  Button = "TSAButtonPressed",
-  preLoad = "PreLoadTransactionScope",
-  onLoad = "OnLoadTransactionScope",
-}
-/** A list of Order Center Data Views */
-const OC_DATA_VIEWS: string[] = [
-  "OrderCenterGrid", //gridview
-  "OrderCenterView1", //cards
-  "OrderCenterView2", //Small
-  "OrderCenterView3", //Medium
-  "OrderCenterItemFullPage",
-  "OrderCenterVariant",
-  "OrderCenterBarcodeGridline",
-  "OrderCenterBarcodeLinesView",
-  "OrderCenterItemDetails",
-];
-/** A list of Cart Data Views */
-const CART_DATA_VIEWS: string[] = ["OrderCartGrid", "OrderCartView1"];
-/** A list of GL/general UIObject Data Views */
-const GENERIC_DATA_VIEWS: dataType = {
-  ListView: "ListView",
-  UserHomePage: "UserHomePage",
-};
-/** account geo data for tests */
-interface accountGeoData {
-  City: string;
-  Country: string;
-  Street: string;
-  Latitude?: number;
-  Longtitude?: number;
-}
-
-const accountData1: accountGeoData = {
-  City: "Havelberg",
-  Country: "Germany",
-  Street: "Pritzwalker Str.70",
-  Latitude: 52.83634,
-  Longtitude: 12.0816,
-};
-
-const accountData2: accountGeoData = {
-  City: "Rostock",
-  Country: "Germany",
-  Street: "Seidenstraße 5",
-  Latitude: 54.0902,
-  Longtitude: 12.14491,
-};
-
-const accountData3: accountGeoData = {
-  City: "Wedemark",
-  Country: "Germany",
-  Street: "Langer Acker 1",
-  Latitude: 52.51669,
-  Longtitude: 9.73096,
-};
-
-const accountData4: accountGeoData = {
-  City: "Radeberg",
-  Country: "Germany",
-  Street: "Pulsnitzer Str. 33",
-  Latitude: 51.12013,
-  Longtitude: 13.92224,
-};
-
-const accounDataArr: accountGeoData[] = [
-  accountData1,
-  accountData2,
-  accountData3,
-  accountData4,
-];
-
-interface dataType {
-  [key: string]: string;
-}
-/** Interface for dataAndFieldTypeMapObj */
-interface dataAndFieldTypeMap {
-  [key: string]: string[];
-}
-/** Interface for getFields func  -- not in use */
-interface fieldKVPair {
-  [key: string]: UIField | string;
-}
-/** Data and Field type aggregator */
-const dataAndFieldTypeMapObj: dataAndFieldTypeMap = {
-  None: ["None"],
-  String: [
-    "TextBox",
-    "LimitedLengthTextBox",
-    "TextArea",
-    "TextHeader",
-    "CalculatedString",
-    "MapDataString",
-    "Email",
-    "Phone",
-    "Link",
-    "None",
-  ],
-  Bool: ["Boolean", "BooleanText", "CalculatedBool"],
-  Date: ["Date", "LimitedDate", "CalculatedDate"],
-  DateTime: ["DateAndTime"],
-  Integer: [
-    "NumberInteger",
-    "NumberIntegerQuantitySelector",
-    "NumberIntegerForMatrix",
-    "Duration",
-    "CalculatedInt",
-    "MapDataInt",
-  ],
-  Double: [
-    "NumberReal",
-    "NumberRealQuantitySelector",
-    "NumberRealForMatrix",
-    "CalculatedReal",
-    "MapDataReal",
-    "Currency",
-  ],
-  MultipleStringValues: [
-    "MultiTickBoxToComboBox",
-    "EmptyMultiTickBox",
-    "MapDataDropDown",
-  ],
-};
-/**DataType KVP object --not in use */
-const dataTypeObj: dataType = {
-  None: "None",
-  Date: "Date",
-  Bool: "Bool",
-  JsonBool: "JsonBool",
-  Integer: "Integer",
-  Double: "Double",
-  String: "String",
-  DateTime: "DateTime",
-  MultipleStringValues: "MultipleStringValues",
-  Guid: "Guid",
-  SingleStringValue: "SingleStringValue",
-  ObjectRef: "ObjectRef",
-};
-//FieldType KVP object
-const fieldTypeObj: dataType = {
-  None: "None",
-  TextBox: "TextBox",
-  LimitedLengthTextBox: "LimitedLengthTextBox",
-  TextArea: "TextArea",
-  TextHeader: "TextHeader",
-  Date: "Date",
-  DateAndTime: "DateAndTime",
-  NumberInteger: "NumberInteger",
-  NumberReal: "NumberReal",
-  Currency: "Currency",
-  Boolean: "Boolean",
-  ComboBox: "ComboBox",
-  MultiTickBox: "MultiTickBox",
-  Separator: "Separator",
-  Address: "Address",
-  Percentage: "Percentage",
-  EmptyComboBox: "EmptyComboBox",
-  InternalLink: "InternalLink",
-  Email: "Email",
-  LimitedDate: "LimitedDate",
-  Image: "Image",
-  MultiTickBoxToComboBox: "MultiTickBoxToComboBox",
-  EmptyMultiTickBox: "EmptyMultiTickBox",
-  Totals: "Totals",
-  Attachment: "Attachment",
-  Signature: "Signature",
-  Link: "Link",
-  ImageURL: "ImageURL",
-  NumberIntegerQuantitySelector: "NumberIntegerQuantitySelector",
-  NumberRealQuantitySelector: "NumberRealQuantitySelector",
-  NumberIntegerForMatrix: "NumberIntegerForMatrix",
-  NumberRealForMatrix: "NumberRealForMatrix",
-  Images: "Images",
-  Indicators: "Indicators",
-  CalculatedReal: "CalculatedReal",
-  CalculatedInt: "CalculatedInt",
-  CalculatedString: "CalculatedString",
-  CalculatedDate: "CalculatedDate",
-  CalculatedBool: "CalculatedBool",
-  MapDataDropDown: "MapDataDropDown",
-  MapDataReal: "MapDataReal",
-  MapDataString: "MapDataString",
-  MapDataInt: "MapDataInt",
-  Sum: "Sum",
-  Phone: "Phone",
-  UrlForApi: "UrlForApi",
-  ManyToManyUrlForApi: "ManyToManyUrlForApi",
-  ReferenceType: "ReferenceType",
-  GuidReferenceType: "GuidReferenceType",
-  Button: "Button",
-  UIControlFieldType_InternalPage: "UIControlFieldType_InternalPage",
-  Duration: "Duration",
-  ListOfObjects: "ListOfObjects",
-  Package: "Package",
-  RelatedObjectsCards: "RelatedObjectsCards",
-  BooleanText: "BooleanText",
-};
-/**ScreenSize object */
-const screenSize: dataType = {
-  Tablet: "Tablet",
-  Phablet: "Phablet",
-  Landscape: "Landscape",
-};
+import generalService from "./services/general.service";
+import { OCEvents, GENERIC_DATA_VIEWS , accounDataArr, fieldTypeObj, screenSize, addonUUID, adalTableName } from "./services/data.service";
 
 //**Test data variables */
 let accountGeoIndex: number;
@@ -248,44 +39,12 @@ let preLoadGetLine: TransactionLine | undefined | number = 1;
 let preLoadGetLines: TransactionLine[] | undefined;
 let onLoadGetLine: TransactionLine | undefined;
 let onLoadGetLines: TransactionLine[] | undefined;
-const addonUUID = "2b39d63e-0982-4ada-8cbb-737b03b9ee58";
-const adalTableName = "Load_Test";
 
 /**randGenerator for numeric fields */
 function randGenerator(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-/**Data and field aggregator check -- not in use*/
-async function dataFieldTypeAggregator(dataType: string, fieldType: string) {
-  if (dataType && fieldType) {
-    return dataAndFieldTypeMapObj[dataType].includes(fieldType);
-  }
-}
-/**getFields in bulk -- not in use */
-async function getFields(uiObject: UIObject) {
-  let uiFieldsArr: UIField[] = uiObject.fields;
-  let getArr = new Map<string, string>();
-  uiFieldsArr.forEach(async (field) => {
-    if (field.fieldID !== undefined) {
-      const getField = await uiObject.getField(field.fieldID!);
-      if (getField !== undefined) {
-        getArr.set(
-          field.fieldID,
-          "type is:" +
-            getField.type +
-            " and formattedValue is:" +
-            getField.formattedValue +
-            " value:" +
-            getField.value
-        );
-      }
-    }
-  });
-  if (getArr!) {
-    return getArr;
-  }
-  return undefined;
-}
+
 /**initiates test data for all objects */
 export async function initTestData(
   dataObject:
@@ -11278,7 +11037,7 @@ router.get("/TransactionScope", async (req, res, next) => {
       expect(
         availableTransition,
         "Failed on availableTransition returning emoty object"
-      ).to.be.an("object").that.is.not.null.and.is.not.empty;
+      ).to.be.an("array").that.is.not.null.and.is.not.empty;
       if (availableTransition) {
         expect(
           availableTransition[0].Title,
@@ -11294,6 +11053,18 @@ router.get("/TransactionScope", async (req, res, next) => {
           .that.has.lengthOf(36);
       }
     });
+
+    it("Negative Trnasaction Scope tests", async () => {
+      //1.load hidden item from transaction scope
+      //2.Load hidden transaction to transaction scope
+      //
+      let negativeDataObject = {};
+     try {
+     
+     } catch {
+
+     }
+    })
     console.log("TransactionScopeTester:: Finished mocha section");
   });
   //runs the following tests:
