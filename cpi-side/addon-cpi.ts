@@ -11,7 +11,15 @@ import {
   Transaction,
 } from "@pepperi-addons/cpi-node";
 import generalService from "./services/general.service";
-import { OCEvents, GENERIC_DATA_VIEWS , accounDataArr, fieldTypeObj, screenSize, addonUUID, adalTableName } from "./services/data.service";
+import {
+  OCEvents,
+  GENERIC_DATA_VIEWS,
+  accounDataArr,
+  fieldTypeObj,
+  screenSize,
+  addonUUID,
+  adalTableName,
+} from "./services/data.service";
 
 //**Test data variables */
 let accountGeoIndex: number;
@@ -40,12 +48,7 @@ let preLoadGetLines: TransactionLine[] | undefined;
 let onLoadGetLine: TransactionLine | undefined;
 let onLoadGetLines: TransactionLine[] | undefined;
 
-/**randGenerator for numeric fields */
-function randGenerator(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-/**initiates test data for all objects */
+/**initiates test data for all objects - cannot be moved to general.service due to it using variables from this file */
 export async function initTestData(
   dataObject:
     | Transaction
@@ -359,28 +362,16 @@ export async function initTestData(
   return dataObject;
 }
 
-/**formats date to ISO */
-function dateFormatter(date: string, time?: boolean, removeChar?: boolean) {
-  if (time) {
-    let concatedDateTime = date.split(".");
-    if (removeChar) {
-      concatedDateTime = date.split("Z");
-    }
-    return concatedDateTime[0].toString();
-  }
-  const concatedDate = date.split("T");
-  return concatedDate[0].toString();
-}
 /** Load function - setup for interceptors/load tests*/
 export async function load(configuration: any) {
   console.log("cpi side works!");
   console.log("Setting up test variables");
-
-  accountGeoIndex = randGenerator(0, 3);
-  randZip = randGenerator(1, 100000);
+  const service = new generalService();
+  accountGeoIndex = await service.randGenerator(0, 3);
+  randZip = await service.randGenerator(1, 100000);
   randDiscount = Math.random();
   randPhone = Math.floor(Math.random() * 1000000).toString();
-  quantitiesTotal = randGenerator(1, 200);
+  quantitiesTotal = await service.randGenerator(1, 200);
   userEmail =
     "Email" +
     Math.floor(Math.random() * 1000000).toString() +
@@ -391,17 +382,17 @@ export async function load(configuration: any) {
   phrase = "I am Iron Man ";
   randBool = Math.random() < 0.5;
   ExID = "CPINode testing " + Math.floor(Math.random() * 1000000).toString();
-  rand30 = randGenerator(1, 30);
-  rand60 = randGenerator(31, 60);
-  rand90 = randGenerator(61, 90);
-  randAbove = randGenerator(91, 1000);
+  rand30 = await service.randGenerator(1, 30);
+  rand60 = await service.randGenerator(31, 60);
+  rand90 = await service.randGenerator(61, 90);
+  randAbove = await service.randGenerator(91, 1000);
   date = new Date().toISOString();
-  dateTime = dateFormatter(date, true);
-  dateOnly = dateFormatter(date);
+  dateTime = await service.dateFormatter(date, true);
+  dateOnly = await service.dateFormatter(date);
   link = "https://amphibiaweb.org/species/7276";
   HTML =
     "<h1>This is an HTMLFormattedTextField</h1><hr/><p>and it works,<b>even for bold</b></p><hr/>";
-  randDays = randGenerator(10, 100);
+  randDays = await service.randGenerator(10, 100);
   interceptorArr = [];
   console.log("Finished setting up test variables");
 
@@ -723,6 +714,7 @@ router.use("/debug-tester", async (req, res) => {
 /**Automation tests for CPINode */
 router.use("/automation-tests/:v/tests", async (req, res) => {
   console.log("inside main test function CPISide");
+  const service = new generalService();
   const { describe, it, expect, run } = Tester("My test");
   const bgColor: string = "#659DBD";
   const color: string = "#FBEEC1";
@@ -904,7 +896,9 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getDeliveryDate = await lineDataObject?.getFieldValue(
             "DeliveryDate"
           );
-          const getDeliveryDateFormat = dateFormatter(getDeliveryDate);
+          const getDeliveryDateFormat = await service.dateFormatter(
+            getDeliveryDate
+          );
           expect(getDeliveryDateFormat, "Failed on getDeliveryDate")
             .to.be.a("string")
             .that.is.equal(dateOnly).and.is.not.null.and.is.not.undefined;
@@ -942,14 +936,14 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getTSADateLines = await lineDataObject?.getFieldValue(
             "TSADateLines"
           );
-          const getTSADateLinesFormat = dateFormatter(getTSADateLines);
+          const getTSADateLinesFormat = await service.dateFormatter(getTSADateLines);
           expect(getTSADateLinesFormat, "Failed on getTSADateLines")
             .to.be.a("string")
             .that.is.equal(dateOnly).and.is.not.null.and.is.not.undefined;
           const getTSADateTimeLines = await lineDataObject?.getFieldValue(
             "TSADateTimeLines"
           );
-          const getTSADateTimeLinesFormat = dateFormatter(
+          const getTSADateTimeLinesFormat = await service.dateFormatter(
             getTSADateTimeLines,
             true,
             true
@@ -1211,7 +1205,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getTSADateField = await dataObject?.getFieldValue(
             "TSADateField"
           );
-          let formattedDate = dateFormatter(getTSADateField);
+          let formattedDate = await service.dateFormatter(getTSADateField);
           expect(formattedDate, "fell on getTSADateField")
             .to.be.a("string")
             .and.is.equal(dateOnly);
@@ -1219,12 +1213,15 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getTSADateTimeField = await dataObject?.getFieldValue(
             "TSADateTimeField"
           );
-          let formattedDateTime: any = dateFormatter(
+          let formattedDateTime: any = await service.dateFormatter(
             getTSADateTimeField,
             true,
             true
           );
-          const expectedDateTimeValue = dateFormatter(dateTime, true);
+          const expectedDateTimeValue = await service.dateFormatter(
+            dateTime,
+            true
+          );
           expect(formattedDateTime, "Failed on getTSADateTimeField")
             .to.be.a("string")
             .and.is.equal(expectedDateTimeValue);
@@ -1349,7 +1346,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getDeliveryDate = await dataObject?.getFieldValue(
             "DeliveryDate"
           );
-          let formattedDate = dateFormatter(getDeliveryDate);
+          let formattedDate = await service.dateFormatter(getDeliveryDate);
           expect(formattedDate, "Fell on getDeliveryDate")
             .to.be.a("string")
             .and.is.equal(dateOnly);
@@ -1585,7 +1582,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             "Transaction - DataObject Starting Basic CRUD for SetFieldValue and doCalculations for TSA fields"
           );
           //=====================Positive============================
-          const insertedValue: number = randGenerator(1, 9);
+          const insertedValue: number = await service.randGenerator(1, 9);
 
           await dataObject?.setFieldValue(
             "TSAdoCalcTrigger",
@@ -1674,7 +1671,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           // .to.be.a("string")
           // .that.is.equal("2022-0" + insertedValue + "-23T21:22:23Z");
           //=====================Negative============================
-          const insertedValueNeg: number = randGenerator(1, 9);
+          const insertedValueNeg: number = await service.randGenerator(1, 9);
 
           await dataObject?.setFieldValue(
             "TSAdoCalcTrigger",
@@ -1819,19 +1816,19 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getTSADateAcc = await accDataObject?.getFieldValue(
             "TSADateAcc"
           );
-          const formattedDate = dateFormatter(getTSADateAcc);
+          const formattedDate = await service.dateFormatter(getTSADateAcc);
           expect(formattedDate).to.be.a("string").and.is.equal(dateOnly).and.is
             .not.null.and.is.not.undefined;
 
           const getTSADateTimeAcc = await accDataObject?.getFieldValue(
             "TSADateTimeAcc"
           );
-          let formattedDateTime: any = dateFormatter(
+          let formattedDateTime: any = await service.dateFormatter(
             getTSADateTimeAcc,
             true,
             true
           );
-          const expectedDateTimeValue = dateFormatter(dateTime, true);
+          const expectedDateTimeValue = await service.dateFormatter(dateTime, true);
           expect(formattedDateTime, "Failed on getTSADateTimeAcc")
             .to.be.a("string")
             .and.is.equal(expectedDateTimeValue);
@@ -2080,19 +2077,19 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getTSADateFieldACT = await actDataObject?.getFieldValue(
             "TSADateACT"
           );
-          let formattedDate = dateFormatter(getTSADateFieldACT);
+          let formattedDate = await service.dateFormatter(getTSADateFieldACT);
           expect(formattedDate, "fell on getTSADateACT")
             .to.be.a("string")
             .and.is.equal(dateOnly);
           const getTSADateTimeAct = await actDataObject?.getFieldValue(
             "TSADateTimeACT"
           );
-          let formattedDateTime: any = dateFormatter(
+          let formattedDateTime: any = await service.dateFormatter(
             getTSADateTimeAct,
             true,
             true
           );
-          const expectedDateTimeValue = dateFormatter(dateTime, true);
+          const expectedDateTimeValue = await service.dateFormatter(dateTime, true);
           expect(formattedDateTime, "Failed on getTSADateTimeAct")
             .to.be.a("string")
             .and.is.equal(expectedDateTimeValue);
@@ -2375,7 +2372,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             .that.is.equal(HTML).and.that.is.not.null.and.is.not.undefined;
 
           const getTSADate = await cnctDataObject?.getFieldValue("TSADateCnct");
-          const formattedDate = dateFormatter(getTSADate);
+          const formattedDate = await service.dateFormatter(getTSADate);
           expect(formattedDate, "Failed on getTSADate")
             .to.be.a("string")
             .that.is.equal(dateOnly).and.that.is.not.null.and.is.not.undefined;
@@ -2383,7 +2380,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getTSADateTime = await cnctDataObject?.getFieldValue(
             "TSADateTimeCnct"
           );
-          const formattedDateTime = dateFormatter(getTSADateTime, true, true);
+          const formattedDateTime = await service.dateFormatter(getTSADateTime, true, true);
           expect(formattedDateTime, "Failed on getTSADateTime")
             .to.be.a("string")
             .that.is.equal(dateTime).and.that.is.not.null.and.is.not.undefined;
@@ -2430,7 +2427,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             .that.is.equal(2).and.that.is.not.null.and.is.not.undefined;
 
           const getBirthday = await cnctDataObject?.getFieldValue("Birthday");
-          const formattedBirthday = dateFormatter(getBirthday);
+          const formattedBirthday = await service.dateFormatter(getBirthday);
           expect(formattedBirthday, "Failed on getMobile")
             .to.be.a("string")
             .that.is.equal(dateOnly).and.that.is.not.null.and.is.not.undefined;
@@ -2972,18 +2969,18 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .and.is.equal(phrase + randDiscount);
           //need to go back to here
           const getTSADateField = await uiObject?.getField("TSADateField");
-          let formattedDate = dateFormatter(getTSADateField!.value);
+          let formattedDate = await service.dateFormatter(getTSADateField!.value);
           expect(formattedDate, "fell on getTSADateField")
             .to.be.a("string")
             .and.is.equal(dateOnly);
           const getTSADateTimeField = await uiObject?.getField(
             "TSADateTimeField"
           );
-          let formattedDateTime: any = dateFormatter(
+          let formattedDateTime: any = await service.dateFormatter(
             getTSADateTimeField!.value,
             true
           );
-          const expectedDateTimeValue = dateFormatter(dateTime, true);
+          const expectedDateTimeValue = await service.dateFormatter(dateTime, true);
           expect(formattedDateTime, "Failed on getTSADateTimeField")
             .to.be.a("string")
             .and.is.equal(expectedDateTimeValue);
@@ -3180,7 +3177,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             .and.is.equal(quantitiesTotal.toFixed(2));
 
           const getDeliveryDate = await uiObject?.getField("DeliveryDate");
-          let formattedDateSystem = dateFormatter(getDeliveryDate!.value);
+          let formattedDateSystem = await service.dateFormatter(getDeliveryDate!.value);
           expect(formattedDateSystem, "Fell on getDeliveryDate")
             .to.be.a("string")
             .and.is.equal(dateOnly);
@@ -6571,7 +6568,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getTSADateField = await dataObject?.getFieldValue(
             "TSADateField"
           );
-          const formattedDate = dateFormatter(getTSADateField);
+          const formattedDate = await service.dateFormatter(getTSADateField);
           expect(formattedDate, "fell on getTSADateField")
             .to.be.a("string")
             .and.is.equal("2005-07-27");
@@ -6693,7 +6690,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getDeliveryDate = await dataObject?.getFieldValue(
             "DeliveryDate"
           ); //currently not working
-          let formattedDate2 = dateFormatter(getDeliveryDate);
+          let formattedDate2 = await service.dateFormatter(getDeliveryDate);
           // expect(getDeliveryDate, "Fell on getDeliveryDate")
           //   .to.be.a("string")
           //   .and.is.equal("27-07-2005");
@@ -6883,20 +6880,20 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .undefined;
 
           const getTSADateAcc = await accUIObject?.getField("TSADateAcc");
-          const formattedDate = dateFormatter(getTSADateAcc!.value);
+          const formattedDate = await service.dateFormatter(getTSADateAcc!.value);
           expect(formattedDate).to.be.a("string").and.is.equal(dateOnly).and.is
             .not.null.and.is.not.undefined;
 
           const getTSADateTimeAcc = await accUIObject?.getField(
             "TSADateTimeAcc"
           );
-          let formattedDateTime: any = dateFormatter(
+          let formattedDateTime: any = await service.dateFormatter(
             getTSADateTimeAcc!.value,
             true,
             true
           );
           const formattedTrimmed = formattedDateTime.split(".");
-          const expectedDateTimeValue = dateFormatter(dateTime, true);
+          const expectedDateTimeValue = await service.dateFormatter(dateTime, true);
           expect(formattedTrimmed[0], "Failed on getTSADateTimeAcc")
             .to.be.a("string")
             .and.is.equal(expectedDateTimeValue);
@@ -11059,12 +11056,9 @@ router.get("/TransactionScope", async (req, res, next) => {
       //2.Load hidden transaction to transaction scope
       //
       let negativeDataObject = {};
-     try {
-     
-     } catch {
-
-     }
-    })
+      try {
+      } catch {}
+    });
     console.log("TransactionScopeTester:: Finished mocha section");
   });
   //runs the following tests:
