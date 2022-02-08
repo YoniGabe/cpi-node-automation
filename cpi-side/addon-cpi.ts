@@ -11,7 +11,7 @@ import {
   Transaction,
 } from "@pepperi-addons/cpi-node";
 import generalService from "./services/general.service";
-import {
+import  DataService, {
   OCEvents,
   GENERIC_DATA_VIEWS,
   accounDataArr,
@@ -366,33 +366,29 @@ export async function initTestData(
 export async function load(configuration: any) {
   console.log("cpi side works!");
   console.log("Setting up test variables");
-  const service = new generalService();
-  accountGeoIndex = await service.randGenerator(0, 3);
-  randZip = await service.randGenerator(1, 100000);
-  randDiscount = Math.random();
-  randPhone = Math.floor(Math.random() * 1000000).toString();
-  quantitiesTotal = await service.randGenerator(1, 200);
-  userEmail =
-    "Email" +
-    Math.floor(Math.random() * 1000000).toString() +
-    "@" +
-    Math.floor(Math.random() * 1000000).toString() +
-    ".com";
-  name = "Tony Stark";
-  phrase = "I am Iron Man ";
-  randBool = Math.random() < 0.5;
-  ExID = "CPINode testing " + Math.floor(Math.random() * 1000000).toString();
-  rand30 = await service.randGenerator(1, 30);
-  rand60 = await service.randGenerator(31, 60);
-  rand90 = await service.randGenerator(61, 90);
-  randAbove = await service.randGenerator(91, 1000);
-  date = new Date().toISOString();
-  dateTime = await service.dateFormatter(date, true);
-  dateOnly = await service.dateFormatter(date);
-  link = "https://amphibiaweb.org/species/7276";
-  HTML =
-    "<h1>This is an HTMLFormattedTextField</h1><hr/><p>and it works,<b>even for bold</b></p><hr/>";
-  randDays = await service.randGenerator(10, 100);
+  const dataService = new DataService();
+
+  //STOPPEED HEREEEEEEEEEEEEEEEEEEEEEE-314819409
+  accountGeoIndex = await dataService.getAccountGeoIndex();
+  randZip = await dataService.getRandZip();
+  randDiscount = await dataService.getRandDiscount();
+  randPhone = await dataService.getRandPhone();
+  quantitiesTotal = await dataService.getQuantitiesTotal();
+  userEmail = await dataService.getEmail();
+  name = await dataService.getName();
+  phrase = await dataService.getPhrase();
+  randBool = await dataService.getRandBool();
+  ExID = await dataService.getExID();
+  rand30 = await dataService.getRand30();
+  rand60 = await dataService.getRand60();
+  rand90 = await dataService.getRand90();
+  randAbove = await dataService.getRandAbove();
+  date = await dataService.getDate();
+  dateTime = await dataService.getDateTime(date,true);
+  dateOnly = await dataService.getDateOnly(date);
+  link = await dataService.getLink();
+  HTML = await dataService.getHTML();
+  randDays = await dataService.getRandDays();
   interceptorArr = [];
   console.log("Finished setting up test variables");
 
