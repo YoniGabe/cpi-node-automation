@@ -368,7 +368,6 @@ export async function load(configuration: any) {
   console.log("Setting up test variables");
   const dataService = new DataService();
 
-  //STOPPEED HEREEEEEEEEEEEEEEEEEEEEEE-314819409
   accountGeoIndex = await dataService.getAccountGeoIndex();
   randZip = await dataService.getRandZip();
   randDiscount = await dataService.getRandDiscount();
@@ -11087,3 +11086,4 @@ router.get("/JWT", async (req, res, next) => {
     });
   }
 });
+
