@@ -2,6 +2,7 @@ import MyService from "./my.service";
 import { Client, Request } from "@pepperi-addons/debug-server";
 import Tester from "./tester";
 import { AddonData } from "@pepperi-addons/papi-sdk";
+import ScriptService from "./scripts.service";
 
 // add functions here
 // this function will run on the 'api/foo' endpoint
@@ -553,4 +554,26 @@ export async function JWTTesterNegative(client: Client, request: Request) {
 
   const testResults = await run();
   return testResults;
+}
+
+export async function scriptsListTester(client: Client, request: Request) {
+  const scriptsService = new ScriptService(client);
+  const service = new MyService(client);
+  const apiRegion: string = await service.getAPIRegion();
+  // let webAPIBaseURL = await service.getWebAPIBaseURL();
+  // let accessToken = await service.getAccessToken(webAPIBaseURL);
+
+  const FindOptions = {
+    //     where?: string;
+    //     order_by?: string;
+    //     page?: number;
+    //     page_size?: number;
+    //     include_nested?: boolean;
+    //     full_mode?: boolean;
+    //     include_deleted?: boolean;
+    //     is_distinct?: boolean;
+  }; // need to figure what we're going to use,just for tests
+  const response = await scriptsService.getScriptsWithFindOptions(FindOptions);
+
+  return response;
 }

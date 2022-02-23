@@ -48,6 +48,7 @@ let preLoadGetLines: TransactionLine[] | undefined;
 let onLoadGetLine: TransactionLine | undefined;
 let onLoadGetLines: TransactionLine[] | undefined;
 
+
 /**initiates test data for all objects - cannot be moved to general.service due to it using variables from this file */
 export async function initTestData(
   dataObject:
@@ -391,6 +392,7 @@ export async function load(configuration: any) {
   interceptorArr = [];
   console.log("Finished setting up test variables");
 
+
   //====================================ADAL================================================
   //need to add trigger to adal table for TransactionScope test -> when preparing server side
   const adalData = await pepperi.api.adal
@@ -405,14 +407,14 @@ export async function load(configuration: any) {
   const loadTestCounter = adalData.TestRunCounter;
   const InterceptorsTestActive = adalData.InterceptorsTestActive;
   const TrnScopeTestActive = adalData.TrnScopeTestActive;
-
+  
   console.log("LoadTester::loadTestActive: " + loadTestActive);
   console.log("LoadTester::counter: " + loadTestCounter);
   console.log(
     "InterceptorTester::InterceptorTestActive: " + InterceptorsTestActive
   );
   console.log(
-    "TrnScopeTester::TrnScopeTestActive: " + TrnScopeTestActive // stub
+    "TrnScopeTester::TrnScopeTestActive: " + TrnScopeTestActive
   );
 
   if (TrnScopeTestActive === true) {
@@ -692,19 +694,46 @@ export async function load(configuration: any) {
 export const router = Router();
 //debugger for specific code chunks
 router.use("/debug-tester", async (req, res) => {
-  let itemResTypeDef = await pepperi.api.items.get({
-    key: { UUID: "E05D2C82-B236-4075-9587-7C52A3CB6021" }, //CG2
-    fields: ["InternalID", "ExternalID", "UUID"],
+  console.log(
+    "Start"
+  );
+  //setting up objects
+  let accRes = await pepperi.app.accounts.add({
+    type: { Name: "Customer" },
+    object: {
+      ExternalID: ExID,
+      Name: ExID,
+    },
   });
 
-  let itemTypeDefUUID = itemResTypeDef.object.UUID;
-  let itemDataObjectTypeDef = await pepperi.DataObject.Get(
-    "items",
-    itemTypeDefUUID
+  const accountUUID = accRes.id;
+
+  let apiRes = await pepperi.app.transactions.add({
+    type: { Name: "Transaction Scope Sales Order" },
+    references: {
+      account: { UUID: accountUUID },
+      catalog: { Name: "Default Catalog" },
+    },
+  });
+
+  console.log(
+    "finished clientAPI transaction and account setup"
   );
 
-  const typeDef = itemDataObjectTypeDef?.typeDefinition;
-  console.log(typeDef);
+  const transactionUUID = apiRes.id;
+  let DataObject: Transaction | undefined = await pepperi.DataObject.Get(
+    "transactions",
+    transactionUUID
+  );
+  console.log("Got transaction dataobject");
+  console.log(DataObject);
+
+  const TrnScope = await pepperi.TransactionScope.Get(
+    DataObject as Transaction
+  ); // supposed to be equal to transaction.TrnScope after the load
+  console.log("Got TrnasactionScope.Get TrnScope");
+  console.log(TrnScope);
+  console.log("end");
 });
 /**Automation tests for CPINode */
 router.use("/automation-tests/:v/tests", async (req, res) => {
@@ -9918,7 +9947,6 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
   const testResult = await run();
   res.json(testResult);
 });
-
 //setup routers for AddonAPI automation tests
 router.get("/addon-api/get", (req, res) => {
   console.log("AddonAPI test currently on CPISide - GET with query params");
@@ -9935,7 +9963,6 @@ router.get("/addon-api/get", (req, res) => {
   }
   res.json({ result: "failure" });
 });
-
 router.post("/addon-api/post", async (req, res) => {
   console.log("AddonAPI test currently on CPISide - POST with body params");
   const bodyParams = req.body.a;
@@ -9951,7 +9978,6 @@ router.post("/addon-api/post", async (req, res) => {
   }
   res.json({ result: "failure" });
 });
-
 router.use("/addon-api/:v/use", async (req, res, next) => {
   console.log("AddonAPI test currently on CPISide - USE with params");
   const params = req.params.v;

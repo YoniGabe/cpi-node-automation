@@ -3,7 +3,6 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import config from '../addon.config.json';
-import path from 'path'
 
 export default config.PublishConfig.CPISide.map(endpoint => {
     return {
