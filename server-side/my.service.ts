@@ -627,6 +627,22 @@ class MyService {
 
     return apiRegion;
   }
+
+  async EmitEvent(webAPIBaseURL: string,accessToken: string,options) {
+        //webapi.sandbox.pepperi.com/16.80.3/webapi/Service1.svc/v1/
+        const URL = `${webAPIBaseURL}/Service1.svc/v1/EmitEvent`;
+        const EmitEvent = await (
+          await fetch(URL, {
+            method: "POST",
+            body: JSON.stringify(options),
+            headers: {
+              PepperiSessionToken: accessToken,
+              "Content-Type": "application/json",
+            },
+          })
+        ).json();
+        return EmitEvent;
+  }
 }
 
 export default MyService;

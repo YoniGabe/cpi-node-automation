@@ -2,7 +2,7 @@ import MyService from "./my.service";
 import { Client, Request } from "@pepperi-addons/debug-server";
 import Tester from "./tester";
 import { AddonData } from "@pepperi-addons/papi-sdk";
-import ScriptService from "./scripts.service";
+import ScriptService, { scriptObjectsUUID } from "./scripts.service";
 
 // add functions here
 // this function will run on the 'api/foo' endpoint
@@ -555,7 +555,7 @@ export async function JWTTesterNegative(client: Client, request: Request) {
   const testResults = await run();
   return testResults;
 }
-
+//========================Scripts============================================
 export async function scriptsListTester(client: Client, request: Request) {
   const scriptsService = new ScriptService(client);
   const service = new MyService(client);
@@ -576,4 +576,133 @@ export async function scriptsListTester(client: Client, request: Request) {
   const response = await scriptsService.getScriptsWithFindOptions(FindOptions);
 
   return response;
+}
+//need to finish get from scripts list to filter the relevant ClientAPI scripts
+export async function scriptClientAPITester(client: Client, request: Request) {
+  console.log("scriptClientAPITester::Test started");
+  const scriptsService = new ScriptService(client);
+  const service = new MyService(client);
+  const { describe, it, expect, run } = Tester("My test");
+  console.log("scriptClientAPITester::before getting scripts list");
+  const clientAPIScriptList = await scriptsService.getAllScripts();
+  console.log("scriptClientAPITester::after getting scripts list");
+  const map = new Map();
+  //when this endpoint will allow filtering by name -> will be refactored
+  for (const script of clientAPIScriptList) {
+    if (script.Name.includes("ClientAPI")) {
+      const Description = script.Description;
+      switch (Description) {
+        case "item get":
+          map.set(script.Key, [scriptObjectsUUID.itemUUID, script.Name]);
+          break;
+        case "activity get":
+          map.set(script.Key, [scriptObjectsUUID.activityUUID, script.Name]);
+          break;
+        case "line add":
+          map.set(script.Key, [scriptObjectsUUID.transactionUUID, script.Name]);
+          break;
+        case "transaction get":
+          map.set(script.Key, [scriptObjectsUUID.transactionUUID, script.Name]);
+          break;
+        case "account get":
+          map.set(script.Key, [scriptObjectsUUID.accountUUID, script.Name]);
+          break;
+        case "account add":
+          map.set(script.Key, [scriptObjectsUUID.accountExID, script.Name]);
+          break;
+        case "transaction add":
+          map.set(script.Key, [scriptObjectsUUID.accountUUID, script.Name]);
+          break;
+        case "activity add":
+          map.set(script.Key, [scriptObjectsUUID.accountUUID, script.Name]);
+          break;
+        case "contact add":
+          map.set(script.Key, [scriptObjectsUUID.accountUUID, script.Name]);
+          break;
+      }
+    }
+  }
+
+  const resultsArr: any[] = [];
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  await service.sleep(5000);
+
+  describe("Scripts clientAPI automation test", async () => {
+    for (const [key, value] of map) {
+      console.log(key);
+      console.log(value);
+      const Data = {
+        Data: { UUID: value[0].toString() },
+      };
+      console.log(
+        `scriptClientAPITester::currently running ${value[1]} script`
+      );
+      const response = await scriptsService.runSimpleScript(
+        webAPIBaseURL,
+        accessToken,
+        key,
+        Data
+      );
+      await service.sleep(2000);
+      resultsArr.push(response);
+      it(`Parsed test results for ${value[1]} script `, async () => {
+        expect(response).to.be.an("object");
+        //need to add test for success
+        //need to add test for general clientAPI structure
+        //note the expections in objects (one is different)
+      });
+    }
+    console.log(resultsArr);
+  });
+
+  // const testResults = await run();
+  // return testResults;
+  return resultsArr;
+}
+
+export async function scriptsNegativeTester(client: Client, request: Request) {
+  console.log("scriptsNegativeTester::Test started");
+  const scriptsService = new ScriptService(client);
+  const service = new MyService(client);
+  const { describe, it, expect, run } = Tester("My test");
+  console.log("scriptsNegativeTester::before getting scripts list");
+  const scripstList = await scriptsService.getAllScripts();
+  console.log("scriptsNegativeTester::after getting scripts list");
+  const map = new Map();
+  //when this endpoint will allow filtering by name -> will be refactored
+  for (const script of scripstList) {
+    if (script.Name.includes("Security") || script.Name.includes("Negative")) {
+      const Description = script.Description;
+      //need to change according to negative logic and requests
+      switch (Description) {
+        case "Security":
+          map.set(script.Key, [scriptObjectsUUID.itemUUID, script.Name]);
+          break;
+        case "Negative":
+          map.set(script.Key, [scriptObjectsUUID.itemUUID, script.Name]);
+          break;
+      }
+    }
+  }
+
+  const resultsArr: any[] = [];
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  await service.sleep(5000);
+}
+//=======================client actions=======================================
+export async function clientActionsTester(client: Client, request: Request) {
+  const service = new MyService(client);
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  const options = {
+    EventKey: "TSAButtonPressed",
+    EventData: {},
+  };
+  const clientAction = await service.EmitEvent(
+    webAPIBaseURL,
+    accessToken,
+    options
+  );
 }

@@ -392,6 +392,15 @@ export async function load(configuration: any) {
   interceptorArr = [];
   console.log("Finished setting up test variables");
 
+  pepperi.events.intercept(
+    OCEvents.Button,
+    {  },
+    async (data, next, main) => {
+      console.log("button pressed!");
+      //pepperi.client.alert("my first alert","putin is douchebag");
+      await next(main);
+    }
+  );
 
   //====================================ADAL================================================
   //need to add trigger to adal table for TransactionScope test -> when preparing server side
@@ -697,43 +706,8 @@ router.use("/debug-tester", async (req, res) => {
   console.log(
     "Start"
   );
-  //setting up objects
-  let accRes = await pepperi.app.accounts.add({
-    type: { Name: "Customer" },
-    object: {
-      ExternalID: ExID,
-      Name: ExID,
-    },
-  });
-
-  const accountUUID = accRes.id;
-
-  let apiRes = await pepperi.app.transactions.add({
-    type: { Name: "Transaction Scope Sales Order" },
-    references: {
-      account: { UUID: accountUUID },
-      catalog: { Name: "Default Catalog" },
-    },
-  });
-
-  console.log(
-    "finished clientAPI transaction and account setup"
-  );
-
-  const transactionUUID = apiRes.id;
-  let DataObject: Transaction | undefined = await pepperi.DataObject.Get(
-    "transactions",
-    transactionUUID
-  );
-  console.log("Got transaction dataobject");
-  console.log(DataObject);
-
-  const TrnScope = await pepperi.TransactionScope.Get(
-    DataObject as Transaction
-  ); // supposed to be equal to transaction.TrnScope after the load
-  console.log("Got TrnasactionScope.Get TrnScope");
-  console.log(TrnScope);
   console.log("end");
+
 });
 /**Automation tests for CPINode */
 router.use("/automation-tests/:v/tests", async (req, res) => {

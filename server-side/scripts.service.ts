@@ -1,11 +1,18 @@
 import {
   PapiClient,
-  InstalledAddon,
   FindOptions,
 } from "@pepperi-addons/papi-sdk";
 import { Client } from "@pepperi-addons/debug-server";
 import fetch from "node-fetch";
-import jwtDecode from "jwt-decode";
+
+
+export const scriptObjectsUUID = {
+  itemUUID: "393acff4-406a-40f8-9d79-a8c16bc0cbc7",
+  activityUUID: "19394430-40dd-49c8-9879-d7a74441f5e0",
+  transactionUUID: "4d0ffdf7-5de2-425f-8864-1635f4ba3fb1",
+  accountUUID: "8d81508a-148b-4170-8c1c-db52ef08789c",
+  accountExID: "account" + Math.random(),
+};
 
 class ScriptService {
   papiClient: PapiClient;
@@ -17,10 +24,6 @@ class ScriptService {
       addonSecretKey: client.AddonSecretKey,
       addonUUID: client.AddonUUID,
     });
-  }
-
-  getAddons(): Promise<InstalledAddon[]> {
-    return this.papiClient.addons.installedAddons.find({});
   }
 
   //POST {CPAS_BASE_URL}/addons/api/ADDONUUID/addon-cpi/:key/run
@@ -49,7 +52,7 @@ class ScriptService {
         body: JSON.stringify(Data),
         headers: {
           PepperiSessionToken: accessToken,
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
       })
     ).json();
