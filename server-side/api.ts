@@ -1,8 +1,11 @@
-import MyService from "./my.service";
+import MyService from "./services/my.service";
 import { Client, Request } from "@pepperi-addons/debug-server";
 import Tester from "./tester";
 import { AddonData } from "@pepperi-addons/papi-sdk";
-import ScriptService, { scriptObjectsUUID } from "./scripts.service";
+import ScriptService, { scriptObjectsUUID } from "./services/scripts.service";
+import ClientActionsService from "./services/clientActions.service";
+import { actionsTestData } from "./classes/clientActionsBase";
+
 
 // add functions here
 // this function will run on the 'api/foo' endpoint
@@ -556,14 +559,14 @@ export async function JWTTesterNegative(client: Client, request: Request) {
   return testResults;
 }
 //========================Scripts============================================
+//
 export async function scriptsListTester(client: Client, request: Request) {
   const scriptsService = new ScriptService(client);
   const service = new MyService(client);
-  const apiRegion: string = await service.getAPIRegion();
   // let webAPIBaseURL = await service.getWebAPIBaseURL();
   // let accessToken = await service.getAccessToken(webAPIBaseURL);
 
-  const FindOptions = {
+  let FindOptions = {
     //     where?: string;
     //     order_by?: string;
     //     page?: number;
@@ -572,12 +575,15 @@ export async function scriptsListTester(client: Client, request: Request) {
     //     full_mode?: boolean;
     //     include_deleted?: boolean;
     //     is_distinct?: boolean;
+    page: 2,
+    page_size: 4,
+    include_deleted: true,
   }; // need to figure what we're going to use,just for tests
   const response = await scriptsService.getScriptsWithFindOptions(FindOptions);
 
   return response;
 }
-//need to finish get from scripts list to filter the relevant ClientAPI scripts
+
 export async function scriptClientAPITester(client: Client, request: Request) {
   console.log("scriptClientAPITester::Test started");
   const scriptsService = new ScriptService(client);
@@ -616,49 +622,90 @@ export async function scriptClientAPITester(client: Client, request: Request) {
         case "activity add":
           map.set(script.Key, [scriptObjectsUUID.accountUUID, script.Name]);
           break;
-        case "contact add":
-          map.set(script.Key, [scriptObjectsUUID.accountUUID, script.Name]);
-          break;
       }
     }
   }
-
-  const resultsArr: any[] = [];
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
-  await service.sleep(5000);
+  const connectAccount = await scriptsService.connectAccount(
+    webAPIBaseURL,
+    accessToken,
+    scriptObjectsUUID.accountUUID
+  );
+  await service.sleep(2000);
 
   describe("Scripts clientAPI automation test", async () => {
     for (const [key, value] of map) {
-      console.log(key);
-      console.log(value);
-      const Data = {
-        Data: { UUID: value[0].toString() },
-      };
-      console.log(
-        `scriptClientAPITester::currently running ${value[1]} script`
-      );
-      const response = await scriptsService.runSimpleScript(
-        webAPIBaseURL,
-        accessToken,
-        key,
-        Data
-      );
-      await service.sleep(2000);
-      resultsArr.push(response);
+      let response;
+      it(`Initializing ${value[1]} script data `, async () => {
+        const Data = {
+          Data: { UUID: value[0].toString() },
+        };
+        console.log(
+          `scriptClientAPITester::currently running ${value[1]} script`
+        );
+        response = await scriptsService.runScript(
+          webAPIBaseURL,
+          accessToken,
+          key,
+          Data
+        );
+      });
       it(`Parsed test results for ${value[1]} script `, async () => {
-        expect(response).to.be.an("object");
-        //need to add test for success
-        //need to add test for general clientAPI structure
-        //note the expections in objects (one is different)
+        expect(
+          response.Result,
+          "Failed on ClientAPI returning empty object"
+        ).to.be.an("object").that.is.not.null.and.undefined;
+        expect(
+          response.Result.success,
+          "Failed on ClientAPI returning"
+        ).to.be.a("boolean").that.is.true;
+        if (
+          typeof response.Result.result === "object" &&
+          response.Result.result.length === undefined
+        ) {
+          expect(
+            response.Result.result,
+            "Failed on result returning with the wrong type"
+          ).to.be.an("object").that.is.not.null.and.undefined;
+          if (response.Result.result.UUID) {
+            expect(
+              response.Result.result.UUID,
+              "Failed on result returning without UUID"
+            ).to.be.a("string").that.is.not.null.and.undefined;
+          }
+        } else if (typeof response.Result.object === "object") {
+          expect(
+            response.Result.object,
+            "Failed on result returning with the wrong type"
+          ).to.be.an("object").that.is.not.null.and.undefined;
+          if (response.Result.object.UUID) {
+            expect(
+              response.Result.object.UUID,
+              "Failed on result returning without UUID"
+            ).to.be.a("string").that.is.not.null.and.undefined;
+          }
+        } else if (
+          response.Result.result !== undefined &&
+          response.Result.result.length === 1
+        ) {
+          expect(
+            response.Result.result[0],
+            "Failed on result returning with the wrong type"
+          ).to.be.an("object").that.is.not.null.and.undefined;
+          if (response.Result.result[0].UUID) {
+            expect(
+              response.Result.result[0].UUID,
+              "Failed on result returning without UUID"
+            ).to.be.a("string").that.is.not.null.and.undefined;
+          }
+        }
       });
     }
-    console.log(resultsArr);
   });
 
-  // const testResults = await run();
-  // return testResults;
-  return resultsArr;
+  const testResults = await run();
+  return testResults;
 }
 
 export async function scriptsNegativeTester(client: Client, request: Request) {
@@ -694,15 +741,28 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
 //=======================client actions=======================================
 export async function clientActionsTester(client: Client, request: Request) {
   const service = new MyService(client);
+  const clientActionsService = new ClientActionsService(client);
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
-  const options = {
-    EventKey: "TSAButtonPressed",
-    EventData: {},
+  await service.sleep(5000);
+  const arr = ["TSAAlert"]; // "TSAHUD", "TSACaptureGeo", "TSAScanBarcode"];
+  for (const button of arr) {
+    const options = {
+      EventKey: "TSAButtonPressed",
+      EventData: JSON.stringify({
+        FieldID: button,
+        // ScriptKey: "29d51eeb-a62b-4d50-9fd4-59b209f440b6",
+        // ScriptParams: { Data: {} },
+      }),
+    };
+    const clientAction = await clientActionsService.EmitClientEvent(
+      webAPIBaseURL,
+      accessToken,
+      options
+    );
+  }
+  const actions = actionsTestData;
+  return {
+    actions: actions,
   };
-  const clientAction = await service.EmitEvent(
-    webAPIBaseURL,
-    accessToken,
-    options
-  );
 }

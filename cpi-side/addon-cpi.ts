@@ -391,16 +391,61 @@ export async function load(configuration: any) {
   randDays = await dataService.getRandDays();
   interceptorArr = [];
   console.log("Finished setting up test variables");
+  const clientActionsTestActive = true;
+  if(clientActionsTestActive === true) {
 
   pepperi.events.intercept(
     OCEvents.Button,
-    {  },
+    { FieldID: "TSAAlert" },
     async (data, next, main) => {
-      console.log("button pressed!");
-      //pepperi.client.alert("my first alert","putin is douchebag");
+      console.log("button pressed! on alert");
+      const alert = await pepperi.client.alert("my first alert","putin is douchebag");
+      // const alert1 = await pepperi.client.alert("my first alert","putin is douchebag");
+      // const alert2 = await pepperi.client.alert("my first alert","putin is douchebag");
+      // const alert3 = await pepperi.client.alert("my first alert","putin is douchebag");
+      console.log(alert);
       await next(main);
     }
   );
+
+  pepperi.events.intercept(
+    OCEvents.Button,
+    { FieldID: "TSAHUD" },
+    async (data, next, main) => {
+      console.log("button pressed! on hud");
+      const options = {
+        canceled:false,
+        result: "yeye"
+      };
+      //const hud = await pepperi.client.showHUD(options);
+      //console.log(hud);
+      await next(main);
+    }
+  );
+
+  pepperi.events.intercept(
+    OCEvents.Button,
+    { FieldID: "TSACaptureGeo" },
+    async (data, next, main) => {
+      console.log("button pressed! on captureGeo");
+      //const alert = pepperi.client.alert("my first alert","putin is douchebag");
+     // console.log(alert);
+      await next(main);
+    }
+  );
+
+  pepperi.events.intercept(
+    OCEvents.Button,
+    { FieldID: "TSAScanBarcode" },
+    async (data, next, main) => {
+      console.log("button pressed! on scanBarcode");
+      //const alert = pepperi.client.alert("my first alert","putin is douchebag");
+      //console.log(alert);
+      await next(main);
+    }
+  );
+
+  }
 
   //====================================ADAL================================================
   //need to add trigger to adal table for TransactionScope test -> when preparing server side
