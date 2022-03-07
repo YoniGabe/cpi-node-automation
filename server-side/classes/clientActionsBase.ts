@@ -1,6 +1,4 @@
 
-export let actionsTestData = new Map()
-
 export default class ClientActionBase {
   Data: string;
   Type: string;
@@ -18,4 +16,5 @@ export default class ClientActionBase {
       },
     };
   }
+
 }

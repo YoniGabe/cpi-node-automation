@@ -400,10 +400,11 @@ export async function load(configuration: any) {
     async (data, next, main) => {
       console.log("button pressed! on alert");
       const alert = await pepperi.client.alert("my first alert","putin is douchebag");
-      // const alert1 = await pepperi.client.alert("my first alert","putin is douchebag");
+      const confirm = await pepperi.client.confirm("this is a confirm","putin is a huylo");
       // const alert2 = await pepperi.client.alert("my first alert","putin is douchebag");
       // const alert3 = await pepperi.client.alert("my first alert","putin is douchebag");
       console.log(alert);
+      console.log(confirm);
       await next(main);
     }
   );

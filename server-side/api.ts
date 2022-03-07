@@ -4,8 +4,6 @@ import Tester from "./tester";
 import { AddonData } from "@pepperi-addons/papi-sdk";
 import ScriptService, { scriptObjectsUUID } from "./services/scripts.service";
 import ClientActionsService from "./services/clientActions.service";
-import { actionsTestData } from "./classes/clientActionsBase";
-
 
 // add functions here
 // this function will run on the 'api/foo' endpoint
@@ -719,34 +717,170 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
   const map = new Map();
   //when this endpoint will allow filtering by name -> will be refactored
   for (const script of scripstList) {
-    if (script.Name.includes("Security") || script.Name.includes("Negative")) {
+    if (
+      script.Description.includes("Security") ||
+      script.Description.includes("Negative")
+    ) {
       const Description = script.Description;
       //need to change according to negative logic and requests
       switch (Description) {
         case "Security":
-          map.set(script.Key, [scriptObjectsUUID.itemUUID, script.Name]);
+          map.set(script.Key, script.Name);
           break;
         case "Negative":
-          map.set(script.Key, [scriptObjectsUUID.itemUUID, script.Name]);
+          map.set(script.Key, script.Name);
+          break;
+        default:
           break;
       }
     }
   }
 
-  const resultsArr: any[] = [];
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
-  await service.sleep(5000);
+  service.sleep(2000);
+
+  const randNumber = Math.floor((Math.random() + 1) * 1000);
+
+  describe("Scripts Negative automation test", async () => {
+    for (const [key, value] of map) {
+      let response;
+      let Data;
+      //currently dialog does not return ac exception
+      it(`Initializing ${value} script data `, async () => {
+        console.log(key);
+        console.log(value);
+        if (value.includes("Sleep") || value.includes("process.exit(1)")) {
+          Data = {
+            Data: { ms: randNumber },
+          };
+        } else {
+          Data = {
+            Data: {
+              xxxx: randNumber,
+              y: randNumber * 2,
+              myText: "start",
+              myText2: "end",
+            },
+          };
+        }
+        console.log(`scriptsNegativeTester::currently running ${value} script`);
+        response = await scriptsService.runScript(
+          webAPIBaseURL,
+          accessToken,
+          key,
+          Data
+        );
+        console.log(`scriptsNegativeTester::finished running ${value} script`);
+      });
+      it(`Parsed test results for ${value} script `, async () => {
+        switch (value) {
+          case "Sleep":
+            expect(
+              response,
+              "failed on sleep script returning the wrong response"
+            ).to.be.an("object").that.is.not.null.and.undefined;
+            expect(
+              response.Result,
+              "Failed on sleep script returning wrong response value"
+            )
+              .to.be.a("string")
+              .that.is.equal(`waited ${randNumber / 1000} secs`);
+            break;
+
+          case "process.exit(1)":
+            expect(
+              response,
+              "Failed on process.exit(1) script returning the wrong output"
+            ).to.be.an("object").that.is.not.null.and.undefined;
+            expect(
+              response.Error,
+              "script returning wrong error for process.exit(1)"
+            )
+              .to.be.a("string")
+              .that.is.equal("process.exit is not a function");
+            break;
+
+          case "Dialog":
+            expect(
+              response,
+              "Failed on Dialog script returning the wrong output"
+            ).to.be.an("object").that.is.not.null.and.undefined;
+            expect(
+              response.fault,
+              "script returning wrong error for Dialog"
+            ).to.be.an("object").that.is.not.null.and.undefined;
+            expect(
+              response.fault.detail.errorcode,
+              "Failed on dialog script returning wrong errorcode"
+            )
+              .to.be.a("string")
+              .that.is.equal("Timeout");
+            expect(
+              response.fault.faultstring,
+              "Failed on dialog script returning wrong faultstring"
+            )
+              .to.be.a("string")
+              .that.is.equal("Took longer than 10 seconds");
+            break;
+
+          default:
+            break;
+        }
+      });
+    }
+  });
+
+  const testResults = await run();
+  return testResults;
+}
+
+export async function scriptsPositiveTester(client: Client, request: Request) {
+  console.log("scriptsPositiveTester::Test started");
+  const scriptsService = new ScriptService(client);
+  const service = new MyService(client);
+  const { describe, it, expect, run } = Tester("My test");
+  console.log("scriptsPositiveTester::before getting scripts list");
+  const scripstList = await scriptsService.getAllScripts();
+  console.log("scriptsPositiveTester::after getting scripts list");
+  const map = new Map();
+  //when this endpoint will allow filtering by name -> will be refactored
+  //when this endpoint will allow filtering by name -> will be refactored
+  for (const script of scripstList) {
+    if (script.Description.includes("Positive")) {
+      const Description = script.Description;
+      //need to change according to negative logic and requests
+      switch (Description) {
+        case "Positive":
+          map.set(script.Key, script.Name);
+          break;
+
+        default:
+          break;
+      }
+    }
+  }
+
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  service.sleep(2000);
 }
 //=======================client actions=======================================
 export async function clientActionsTester(client: Client, request: Request) {
+  console.log("clientActionsTester::Test started");
   const service = new MyService(client);
   const clientActionsService = new ClientActionsService(client);
+  const { describe, it, expect, run } = Tester("My test");
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
-  await service.sleep(5000);
+  await service.sleep(3000);
   const arr = ["TSAAlert"]; // "TSAHUD", "TSACaptureGeo", "TSAScanBarcode"];
+  global["map"] = new Map<string, any>();
+  console.log(
+    "clientActionsTester::Triggering buttonPressed event to get client actions"
+  );
   for (const button of arr) {
+    console.log(`clientActionsTester::Started triggering ${button}`);
     const options = {
       EventKey: "TSAButtonPressed",
       EventData: JSON.stringify({
@@ -760,9 +894,39 @@ export async function clientActionsTester(client: Client, request: Request) {
       accessToken,
       options
     );
+    console.log(`clientActionsTester::Finished triggering ${button}`);
   }
-  const actions = actionsTestData;
-  return {
-    actions: actions,
+  const actions = global["map"];
+  const arrActions: any[] = [];
+
+  describe("Client Actions Automation test", async () => {
+    for (const [key, value] of actions) {
+      const Object = JSON.parse(value);
+      const parsedActionData = JSON.parse(Object.Value);
+      const Type = parsedActionData.Type;
+      console.log(parsedActionData);
+      arrActions.push(parsedActionData);
+
+      switch (Type) {
+        case "Dialog":
+          it(`Client Actions Automation - ${Type}`, async () => {
+            expect(parsedActionData,"Failed on actions data returning with the wrong type").to.be.an("object").that.is.not.undefined.and.null;
+            expect(parsedActionData.Type,"Failed on Dialog client action returning the wrong type").to.be.a("string").that.is.equal("Dialog");
+            expect(parsedActionData.Data.Title,"Failed on title returning wrong value/type").to.be.a("string").that.is.equal("my first alert");
+            expect(parsedActionData.Data.Content,"Failed on content returning wrong value/type").to.be.a("string").that.is.equal("my first alert");
+            expect(parsedActionData.Data.isHtml,"Failed on isHtml returning wrong value/type").to.be.a("boolean").that.is.false;
+          });
+          break;
+
+        default:
+          break;
+      }
+    }
+  });
+  console.log("clientActionsTester::Test Finished");
+  const testResults = await run();
+  //return testResults;
+    return {
+    actions: arrActions,
   };
 }
