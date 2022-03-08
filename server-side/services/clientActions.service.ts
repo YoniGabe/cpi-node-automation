@@ -37,13 +37,12 @@ class ClientActionsService {
     let res = await this.EmitEvent(webAPIBaseURL, accessToken, options);
     const parsedActions = JSON.parse(res.Value);
     console.log(parsedActions);
-    //stop condition -- if actions returns empty recurssion stops
+    //stop condition -- if actions returns empty recurssion returns to the previous iteration
     if (Object.entries(parsedActions).length === 0) {
       return;
     } // note that the callback EmitEvent does not return any values;
     let action = (await this.generateClientAction(res)) as ClientActionBase;
     const parsedData = await this.parseActionDataForTest(action.Data);
-    console.log(parsedData);
     map.set(parsedData.Data.Actions[0].key, action.Data);
     const resTest = await action.Test(action.Data);
     let result = resTest.resObject;

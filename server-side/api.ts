@@ -845,7 +845,6 @@ export async function scriptsPositiveTester(client: Client, request: Request) {
   console.log("scriptsPositiveTester::after getting scripts list");
   const map = new Map();
   //when this endpoint will allow filtering by name -> will be refactored
-  //when this endpoint will allow filtering by name -> will be refactored
   for (const script of scripstList) {
     if (script.Description.includes("Positive")) {
       const Description = script.Description;
@@ -866,19 +865,23 @@ export async function scriptsPositiveTester(client: Client, request: Request) {
   service.sleep(2000);
 }
 //=======================client actions=======================================
+//https://pepperi-addons.github.io/client-actions-docs/
 export async function clientActionsTester(client: Client, request: Request) {
   console.log("clientActionsTester::Test started");
+  //services setup and perconditions setup
   const service = new MyService(client);
   const clientActionsService = new ClientActionsService(client);
   const { describe, it, expect, run } = Tester("My test");
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
-  await service.sleep(3000);
+  await service.sleep(3000); //waiting for CPAS session to go up
   const arr = ["TSAAlert"]; // "TSAHUD", "TSACaptureGeo", "TSAScanBarcode"];
+  //setting up global map for client actions test data
   global["map"] = new Map<string, any>();
   console.log(
     "clientActionsTester::Triggering buttonPressed event to get client actions"
   );
+  //looping on each field to trigger cpi-side related events -> these will trigger the corresponding client actions
   for (const button of arr) {
     console.log(`clientActionsTester::Started triggering ${button}`);
     const options = {
@@ -889,6 +892,7 @@ export async function clientActionsTester(client: Client, request: Request) {
         // ScriptParams: { Data: {} },
       }),
     };
+    //calling recursive function - event loop to run all client actions in existant for the current event
     const clientAction = await clientActionsService.EmitClientEvent(
       webAPIBaseURL,
       accessToken,
@@ -896,26 +900,214 @@ export async function clientActionsTester(client: Client, request: Request) {
     );
     console.log(`clientActionsTester::Finished triggering ${button}`);
   }
-  const actions = global["map"];
+  //getting actions back from global map after client actions responses (event loop finished)
+  const actions = global["map"]; //key - client action UUID,value - data
   const arrActions: any[] = [];
 
-  describe("Client Actions Automation test", async () => {
+  describe("Client Actions Automation positive test", async () => {
     for (const [key, value] of actions) {
       const Object = JSON.parse(value);
       const parsedActionData = JSON.parse(Object.Value);
       const Type = parsedActionData.Type;
-      console.log(parsedActionData);
+      const Title = parsedActionData.Data.Title;
       arrActions.push(parsedActionData);
-
+      //filter test action according to type
       switch (Type) {
+        //dialog client actions functions test
         case "Dialog":
-          it(`Client Actions Automation - ${Type}`, async () => {
-            expect(parsedActionData,"Failed on actions data returning with the wrong type").to.be.an("object").that.is.not.undefined.and.null;
-            expect(parsedActionData.Type,"Failed on Dialog client action returning the wrong type").to.be.a("string").that.is.equal("Dialog");
-            expect(parsedActionData.Data.Title,"Failed on title returning wrong value/type").to.be.a("string").that.is.equal("my first alert");
-            expect(parsedActionData.Data.Content,"Failed on content returning wrong value/type").to.be.a("string").that.is.equal("my first alert");
-            expect(parsedActionData.Data.isHtml,"Failed on isHtml returning wrong value/type").to.be.a("boolean").that.is.false;
+          it(`Client Actions Automation - ${Type} - ${Title} `, async () => {
+            //general tests for all action types
+            expect(
+              parsedActionData,
+              "Failed on actions data returning with the wrong type"
+            ).to.be.an("object").that.is.not.undefined.and.null;
+            expect(
+              parsedActionData.Type,
+              "Failed on Dialog client action returning the wrong type"
+            )
+              .to.be.a("string")
+              .that.is.equal("Dialog");
+            expect(
+              parsedActionData.Data.IsHtml,
+              "Failed on isHtml returning wrong value/type"
+            ).to.be.a("boolean").that.is.false;
+            expect(
+              parsedActionData.callback,
+              "Failed on callback returning wrong value/type"
+            )
+              .to.be.a("string")
+              .that.has.lengthOf(36);
+            //filter actions tests accodring to subtype as listed below
+            switch (Title) {
+              //alert test
+              case "alert":
+                expect(
+                  parsedActionData.Data.Title,
+                  "Failed on title returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("alert");
+                expect(
+                  parsedActionData.Data.Content,
+                  "Failed on content returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("putin is douchebag");
+                expect(
+                  parsedActionData.Data.Actions,
+                  "Failed on actions not returning as an array"
+                )
+                  .to.be.an("array")
+                  .with.lengthOf(1);
+                expect(
+                  parsedActionData.Data.Actions[0],
+                  "Failed on Actions[0] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[0].key,
+                  "Failed on Actions[0].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[0].title,
+                  "Failed on Actions[0].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("Ok");
+                break;
+              //confirm test
+              case "confirm":
+                expect(
+                  parsedActionData.Data.Title,
+                  "Failed on title returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("confirm");
+                expect(
+                  parsedActionData.Data.Content,
+                  "Failed on content returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("putin is a huylo");
+                expect(
+                  parsedActionData.Data.Actions,
+                  "Failed on actions not returning as an array"
+                )
+                  .to.be.an("array")
+                  .with.lengthOf(2);
+                expect(
+                  parsedActionData.Data.Actions[0],
+                  "Failed on Actions[0] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[0].key,
+                  "Failed on Actions[0].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[0].title,
+                  "Failed on Actions[0].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("Ok");
+                expect(
+                  parsedActionData.Data.Actions[1],
+                  "Failed on Actions[1] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[1].key,
+                  "Failed on Actions[1].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[1].title,
+                  "Failed on Actions[1].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("Cancel");
+                break;
+              //showDialog test
+              case "showDialog":
+                expect(
+                  parsedActionData.Data.Title,
+                  "Failed on title returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("showDialog");
+                expect(
+                  parsedActionData.Data.Content,
+                  "Failed on content returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("putin pashul nahuy dibilnaya tvar");
+                expect(
+                  parsedActionData.Data.Actions,
+                  "Failed on actions not returning as an array"
+                )
+                  .to.be.an("array")
+                  .with.lengthOf(3);
+                expect(
+                  parsedActionData.Data.Actions[0],
+                  "Failed on Actions[0] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[0].key,
+                  "Failed on Actions[0].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[0].title,
+                  "Failed on Actions[0].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("not cool putin");
+                expect(
+                  parsedActionData.Data.Actions[1],
+                  "Failed on Actions[1] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[1].key,
+                  "Failed on Actions[1].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[1].title,
+                  "Failed on Actions[1].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("really not cool putin");
+                expect(
+                  parsedActionData.Data.Actions[2],
+                  "Failed on Actions[2] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[2].key,
+                  "Failed on Actions[2].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[2].title,
+                  "Failed on Actions[2].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("putin is a boomer");
+                break;
+              default:
+                break;
+            }
           });
+          break;
+        case "HUD":
+          break;
+        case "ScanBarcode":
+          break;
+        case "GeoLocation":
           break;
 
         default:
@@ -925,8 +1117,8 @@ export async function clientActionsTester(client: Client, request: Request) {
   });
   console.log("clientActionsTester::Test Finished");
   const testResults = await run();
-  //return testResults;
-    return {
-    actions: arrActions,
-  };
+  return testResults;
+  // return {
+  //   actions: arrActions,
+  // };
 }

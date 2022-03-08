@@ -11,7 +11,7 @@ import {
   Transaction,
 } from "@pepperi-addons/cpi-node";
 import generalService from "./services/general.service";
-import  DataService, {
+import DataService, {
   OCEvents,
   GENERIC_DATA_VIEWS,
   accounDataArr,
@@ -47,7 +47,6 @@ let preLoadGetLine: TransactionLine | undefined | number = 1;
 let preLoadGetLines: TransactionLine[] | undefined;
 let onLoadGetLine: TransactionLine | undefined;
 let onLoadGetLines: TransactionLine[] | undefined;
-
 
 /**initiates test data for all objects - cannot be moved to general.service due to it using variables from this file */
 export async function initTestData(
@@ -384,68 +383,85 @@ export async function load(configuration: any) {
   rand90 = await dataService.getRand90();
   randAbove = await dataService.getRandAbove();
   date = await dataService.getDate();
-  dateTime = await dataService.getDateTime(date,true);
+  dateTime = await dataService.getDateTime(date, true);
   dateOnly = await dataService.getDateOnly(date);
   link = await dataService.getLink();
   HTML = await dataService.getHTML();
   randDays = await dataService.getRandDays();
   interceptorArr = [];
   console.log("Finished setting up test variables");
+
+  //will add to scheme of ADAL triggers when test will be finalized
   const clientActionsTestActive = true;
-  if(clientActionsTestActive === true) {
+  if (clientActionsTestActive === true) {
+    pepperi.events.intercept(
+      OCEvents.Button,
+      { FieldID: "TSAAlert" },
+      async (data, next, main) => {
+        console.log(
+          "clientActionsTester::button pressed! starting Dialog client actions interceptor"
+        );
+        const alert = await pepperi.client.alert("alert", "putin is douchebag");
+        const confirm = await pepperi.client.confirm(
+          "confirm",
+          "putin is a huylo"
+        );
+        const showDialog = await pepperi.client.showDialog({
+          title: "showDialog",
+          content: "putin pashul nahuy dibilnaya tvar",
+          actions: [
+            { title: "not cool putin", value: 1 },
+            { title: "really not cool putin", value: 2 },
+            { title: "putin is a boomer", value: 3 },
+          ],
+        });
 
-  pepperi.events.intercept(
-    OCEvents.Button,
-    { FieldID: "TSAAlert" },
-    async (data, next, main) => {
-      console.log("button pressed! on alert");
-      const alert = await pepperi.client.alert("my first alert","putin is douchebag");
-      const confirm = await pepperi.client.confirm("this is a confirm","putin is a huylo");
-      // const alert2 = await pepperi.client.alert("my first alert","putin is douchebag");
-      // const alert3 = await pepperi.client.alert("my first alert","putin is douchebag");
-      console.log(alert);
-      console.log(confirm);
-      await next(main);
-    }
-  );
+        console.log(alert);
+        console.log(confirm);
+        console.log(showDialog);
+        console.log(
+          "clientActionsTester::button pressed! finished Dialog client actions interceptor"
+        );
+        await next(main);
+      }
+    );
 
-  pepperi.events.intercept(
-    OCEvents.Button,
-    { FieldID: "TSAHUD" },
-    async (data, next, main) => {
-      console.log("button pressed! on hud");
-      const options = {
-        canceled:false,
-        result: "yeye"
-      };
-      //const hud = await pepperi.client.showHUD(options);
-      //console.log(hud);
-      await next(main);
-    }
-  );
+    pepperi.events.intercept(
+      OCEvents.Button,
+      { FieldID: "TSAHUD" },
+      async (data, next, main) => {
+        console.log("button pressed! on hud");
+        const options = {
+          canceled: false,
+          result: "yeye",
+        };
+        //const hud = await pepperi.client.showHUD(options);
+        //console.log(hud);
+        await next(main);
+      }
+    );
 
-  pepperi.events.intercept(
-    OCEvents.Button,
-    { FieldID: "TSACaptureGeo" },
-    async (data, next, main) => {
-      console.log("button pressed! on captureGeo");
-      //const alert = pepperi.client.alert("my first alert","putin is douchebag");
-     // console.log(alert);
-      await next(main);
-    }
-  );
+    pepperi.events.intercept(
+      OCEvents.Button,
+      { FieldID: "TSACaptureGeo" },
+      async (data, next, main) => {
+        console.log("button pressed! on captureGeo");
+        //const alert = pepperi.client.alert("my first alert","putin is douchebag");
+        // console.log(alert);
+        await next(main);
+      }
+    );
 
-  pepperi.events.intercept(
-    OCEvents.Button,
-    { FieldID: "TSAScanBarcode" },
-    async (data, next, main) => {
-      console.log("button pressed! on scanBarcode");
-      //const alert = pepperi.client.alert("my first alert","putin is douchebag");
-      //console.log(alert);
-      await next(main);
-    }
-  );
-
+    pepperi.events.intercept(
+      OCEvents.Button,
+      { FieldID: "TSAScanBarcode" },
+      async (data, next, main) => {
+        console.log("button pressed! on scanBarcode");
+        //const alert = pepperi.client.alert("my first alert","putin is douchebag");
+        //console.log(alert);
+        await next(main);
+      }
+    );
   }
 
   //====================================ADAL================================================
@@ -462,15 +478,13 @@ export async function load(configuration: any) {
   const loadTestCounter = adalData.TestRunCounter;
   const InterceptorsTestActive = adalData.InterceptorsTestActive;
   const TrnScopeTestActive = adalData.TrnScopeTestActive;
-  
+
   console.log("LoadTester::loadTestActive: " + loadTestActive);
   console.log("LoadTester::counter: " + loadTestCounter);
   console.log(
     "InterceptorTester::InterceptorTestActive: " + InterceptorsTestActive
   );
-  console.log(
-    "TrnScopeTester::TrnScopeTestActive: " + TrnScopeTestActive
-  );
+  console.log("TrnScopeTester::TrnScopeTestActive: " + TrnScopeTestActive);
 
   if (TrnScopeTestActive === true) {
     //========================TransactionScope Interceptors===================================
@@ -749,11 +763,8 @@ export async function load(configuration: any) {
 export const router = Router();
 //debugger for specific code chunks
 router.use("/debug-tester", async (req, res) => {
-  console.log(
-    "Start"
-  );
+  console.log("Start");
   console.log("end");
-
 });
 /**Automation tests for CPINode */
 router.use("/automation-tests/:v/tests", async (req, res) => {
@@ -980,7 +991,9 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getTSADateLines = await lineDataObject?.getFieldValue(
             "TSADateLines"
           );
-          const getTSADateLinesFormat = await service.dateFormatter(getTSADateLines);
+          const getTSADateLinesFormat = await service.dateFormatter(
+            getTSADateLines
+          );
           expect(getTSADateLinesFormat, "Failed on getTSADateLines")
             .to.be.a("string")
             .that.is.equal(dateOnly).and.is.not.null.and.is.not.undefined;
@@ -1872,7 +1885,10 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             true,
             true
           );
-          const expectedDateTimeValue = await service.dateFormatter(dateTime, true);
+          const expectedDateTimeValue = await service.dateFormatter(
+            dateTime,
+            true
+          );
           expect(formattedDateTime, "Failed on getTSADateTimeAcc")
             .to.be.a("string")
             .and.is.equal(expectedDateTimeValue);
@@ -2133,7 +2149,10 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             true,
             true
           );
-          const expectedDateTimeValue = await service.dateFormatter(dateTime, true);
+          const expectedDateTimeValue = await service.dateFormatter(
+            dateTime,
+            true
+          );
           expect(formattedDateTime, "Failed on getTSADateTimeAct")
             .to.be.a("string")
             .and.is.equal(expectedDateTimeValue);
@@ -2424,7 +2443,11 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
           const getTSADateTime = await cnctDataObject?.getFieldValue(
             "TSADateTimeCnct"
           );
-          const formattedDateTime = await service.dateFormatter(getTSADateTime, true, true);
+          const formattedDateTime = await service.dateFormatter(
+            getTSADateTime,
+            true,
+            true
+          );
           expect(formattedDateTime, "Failed on getTSADateTime")
             .to.be.a("string")
             .that.is.equal(dateTime).and.that.is.not.null.and.is.not.undefined;
@@ -3013,7 +3036,9 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .and.is.equal(phrase + randDiscount);
           //need to go back to here
           const getTSADateField = await uiObject?.getField("TSADateField");
-          let formattedDate = await service.dateFormatter(getTSADateField!.value);
+          let formattedDate = await service.dateFormatter(
+            getTSADateField!.value
+          );
           expect(formattedDate, "fell on getTSADateField")
             .to.be.a("string")
             .and.is.equal(dateOnly);
@@ -3024,7 +3049,10 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             getTSADateTimeField!.value,
             true
           );
-          const expectedDateTimeValue = await service.dateFormatter(dateTime, true);
+          const expectedDateTimeValue = await service.dateFormatter(
+            dateTime,
+            true
+          );
           expect(formattedDateTime, "Failed on getTSADateTimeField")
             .to.be.a("string")
             .and.is.equal(expectedDateTimeValue);
@@ -3221,7 +3249,9 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             .and.is.equal(quantitiesTotal.toFixed(2));
 
           const getDeliveryDate = await uiObject?.getField("DeliveryDate");
-          let formattedDateSystem = await service.dateFormatter(getDeliveryDate!.value);
+          let formattedDateSystem = await service.dateFormatter(
+            getDeliveryDate!.value
+          );
           expect(formattedDateSystem, "Fell on getDeliveryDate")
             .to.be.a("string")
             .and.is.equal(dateOnly);
@@ -6924,7 +6954,9 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
               .undefined;
 
           const getTSADateAcc = await accUIObject?.getField("TSADateAcc");
-          const formattedDate = await service.dateFormatter(getTSADateAcc!.value);
+          const formattedDate = await service.dateFormatter(
+            getTSADateAcc!.value
+          );
           expect(formattedDate).to.be.a("string").and.is.equal(dateOnly).and.is
             .not.null.and.is.not.undefined;
 
@@ -6937,7 +6969,10 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
             true
           );
           const formattedTrimmed = formattedDateTime.split(".");
-          const expectedDateTimeValue = await service.dateFormatter(dateTime, true);
+          const expectedDateTimeValue = await service.dateFormatter(
+            dateTime,
+            true
+          );
           expect(formattedTrimmed[0], "Failed on getTSADateTimeAcc")
             .to.be.a("string")
             .and.is.equal(expectedDateTimeValue);
@@ -11132,4 +11167,3 @@ router.get("/JWT", async (req, res, next) => {
     });
   }
 });
-
