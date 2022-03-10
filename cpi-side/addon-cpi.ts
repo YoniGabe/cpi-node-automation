@@ -443,22 +443,41 @@ export async function load(configuration: any) {
 
     pepperi.events.intercept(
       OCEvents.Button,
-      { FieldID: "TSACaptureGeo" },
+      { FieldID: "TSAScanBarcode" },
       async (data, next, main) => {
         console.log("button pressed! on captureGeo");
-        //const alert = pepperi.client.alert("my first alert","putin is douchebag");
-        // console.log(alert);
+        const barcode = await pepperi.client.scanBarcode();
+        console.log(barcode);
         await next(main);
       }
     );
 
     pepperi.events.intercept(
       OCEvents.Button,
-      { FieldID: "TSAScanBarcode" },
+      { FieldID: "TSACaptureGeo" },
       async (data, next, main) => {
-        console.log("button pressed! on scanBarcode");
-        //const alert = pepperi.client.alert("my first alert","putin is douchebag");
-        //console.log(alert);
+        console.log(
+          "clientActionsTester::button pressed! starting captureGeo client actions interceptor"
+        );
+        const captureHigh = await pepperi.client.captureGeoLocation({
+          accuracy: "High",
+          maxWaitTime: 300,
+        });
+        const captureMed = await pepperi.client.captureGeoLocation({
+          accuracy: "Medium",
+          maxWaitTime: 200,
+        });
+        const captureLow = await pepperi.client.captureGeoLocation({
+          accuracy: "Low",
+          maxWaitTime: 400,
+        });
+
+        console.log(captureHigh);
+        console.log(captureMed);
+        console.log(captureLow);
+        console.log(
+          "clientActionsTester::button pressed! finished captureGeo client actions interceptor"
+        );
         await next(main);
       }
     );
@@ -10448,6 +10467,7 @@ router.get("/TransactionScope", async (req, res, next) => {
     "transactions",
     transactionUUID
   );
+  console.log(DataObject);
   console.log("TransactionScopeTester:: got transaction dataobject section");
 
   const preLoadTrnScope = DataObject?.transactionScope; //-> suppose to be undefined -> if OC not loaded should return undefined

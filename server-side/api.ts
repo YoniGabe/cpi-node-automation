@@ -860,9 +860,89 @@ export async function scriptsPositiveTester(client: Client, request: Request) {
     }
   }
 
+  const testValuesObject = {
+    number: { number: 10, string: "strung", boolean: false, object: undefined },
+    string: { number: 9, string: "string", boolean: false, object: undefined },
+    boolean: { number: 9, string: "strung", boolean: true, object: undefined },
+    object: { number: 9, string: "strung", boolean: false, object: undefined },
+  };
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
-  service.sleep(2000);
+  await service.sleep(2000);
+  describe("Scripts Negative automation test", async () => {
+    for (const [key, value] of map) {
+      switch (value) {
+        case "WithParameters":
+          for (const [testKey, testValue] of Object.entries(testValuesObject)) {
+            let Data;
+            let response;
+
+            Data = {
+              Data: testValue,
+            };
+
+            it(`Initializing ${value} - ${testKey} script data `, async () => {
+              console.log(
+                `scriptsNegativeTester::currently running ${value} - ${testKey} script`
+              );
+              response = await scriptsService.runScript(
+                webAPIBaseURL,
+                accessToken,
+                key,
+                Data
+              );
+            });
+            it(`Parsed test results for ${value} - ${testKey} script data `, async () => {
+              const responseType = typeof response.Result;
+              switch (responseType) {
+                case "string":
+                  expect(
+                    response.Result,
+                    "Failed on string type not returning the correct type"
+                  )
+                    .to.be.a("string")
+                    .that.is.equal("string");
+                  break;
+                case "boolean":
+                  expect(
+                    response.Result,
+                    "Failed on boolean type not returning the correct type"
+                  )
+                    .to.be.a("boolean")
+                    .that.is.equal(true);
+                  break;
+                case "number":
+                  expect(
+                    response.Result,
+                    "Failed on number type not returning the correct type"
+                  )
+                    .to.be.a("number")
+                    .that.is.equal(10);
+                  break;
+                case "object":
+                  expect(
+                    response.Result,
+                    "Failed on object type not returning the correct type"
+                  )
+                    .to.be.a("object")
+                    .that.is.deep.equal({
+                      string: "strung",
+                      number: 9,
+                      boolean: false,
+                    });
+                default:
+                  break;
+              }
+            });
+          }
+          break;
+        default:
+          break;
+      }
+    }
+  });
+  const testResults = await run();
+  return testResults;
 }
 //=======================client actions=======================================
 //https://pepperi-addons.github.io/client-actions-docs/
@@ -875,7 +955,7 @@ export async function clientActionsTester(client: Client, request: Request) {
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   await service.sleep(3000); //waiting for CPAS session to go up
-  const arr = ["TSAAlert"]; // "TSAHUD", "TSACaptureGeo", "TSAScanBarcode"];
+  const arr = ["TSAAlert", "TSACaptureGeo"]; // "TSAHUD", "TSACaptureGeo", "TSAScanBarcode"];
   //setting up global map for client actions test data
   global["map"] = new Map<string, any>();
   console.log(
@@ -909,13 +989,15 @@ export async function clientActionsTester(client: Client, request: Request) {
       const Object = JSON.parse(value);
       const parsedActionData = JSON.parse(Object.Value);
       const Type = parsedActionData.Type;
-      const Title = parsedActionData.Data.Title;
+      const Title = parsedActionData.Data.Title
+        ? parsedActionData.Data.Title
+        : parsedActionData.Data.Accuracy;
       arrActions.push(parsedActionData);
       //filter test action according to type
       switch (Type) {
         //dialog client actions functions test
         case "Dialog":
-          it(`Client Actions Automation - ${Type} - ${Title} `, async () => {
+          it(`Client Actions Automation - ${Type} - ${Title}`, async () => {
             //general tests for all action types
             expect(
               parsedActionData,
@@ -1105,9 +1187,71 @@ export async function clientActionsTester(client: Client, request: Request) {
           break;
         case "HUD":
           break;
-        case "ScanBarcode":
+        case "Barcode":
           break;
         case "GeoLocation":
+          it(`Client Actions Automation - ${Type} - ${Title}`, async () => {
+            expect(
+              parsedActionData,
+              "Failed on actions data returning with the wrong type"
+            ).to.be.an("object").that.is.not.undefined.and.null;
+            expect(
+              parsedActionData.Type,
+              "Failed on CaptureGeo client action returning the wrong type"
+            )
+              .to.be.a("string")
+              .that.is.equal("GeoLocation");
+            expect(
+              parsedActionData.callback,
+              "Failed on callback returning wrong value/type"
+            )
+              .to.be.a("string")
+              .that.has.lengthOf(36);
+            switch (Title) {
+              case "Low":
+                expect(
+                  parsedActionData.Data.Accuracy,
+                  "Failed on Accuracy returning wrong value"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Low");
+                expect(
+                  parsedActionData.Data.MaxWaitTime,
+                  "Failed on MaxWaitTime returning the wrong value"
+                )
+                  .to.be.a("number")
+                  .that.is.equal(400);
+                break;
+              case "Medium":
+                expect(
+                  parsedActionData.Data.Accuracy,
+                  "Failed on Accuracy returning wrong value"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Medium");
+                expect(
+                  parsedActionData.Data.MaxWaitTime,
+                  "Failed on MaxWaitTime returning the wrong value"
+                )
+                  .to.be.a("number")
+                  .that.is.equal(200);
+                break;
+              case "High":
+                expect(
+                  parsedActionData.Data.Accuracy,
+                  "Failed on Accuracy returning wrong value"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("High");
+                expect(
+                  parsedActionData.Data.MaxWaitTime,
+                  "Failed on MaxWaitTime returning the wrong value"
+                )
+                  .to.be.a("number")
+                  .that.is.equal(300);
+                break;
+            }
+          });
           break;
 
         default:

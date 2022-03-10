@@ -3,6 +3,8 @@ import { Client } from "@pepperi-addons/debug-server";
 import fetch from "node-fetch";
 import ClientActionBase from "../classes/clientActionsBase";
 import ClientActionDialogTest from "../classes/clientActionsDialog";
+import ClientActionGeoLocationTest from "../classes/clientActionsGeoLocation";
+import ClientActionBarcodeScanTest from "../classes/clientActionsScanBarcode";
 
 class ClientActionsService {
   papiClient: PapiClient;
@@ -37,13 +39,24 @@ class ClientActionsService {
     let res = await this.EmitEvent(webAPIBaseURL, accessToken, options);
     const parsedActions = JSON.parse(res.Value);
     console.log(parsedActions);
+    const Type = parsedActions.Type;
     //stop condition -- if actions returns empty recurssion returns to the previous iteration
     if (Object.entries(parsedActions).length === 0) {
       return;
     } // note that the callback EmitEvent does not return any values;
     let action = (await this.generateClientAction(res)) as ClientActionBase;
     const parsedData = await this.parseActionDataForTest(action.Data);
-    map.set(parsedData.Data.Actions[0].key, action.Data);
+    switch (Type) {
+      case "Dialog":
+        map.set(parsedData.Data.Actions[0].key, action.Data);
+        break;
+      case "GeoLocation":
+        map.set(parsedActions.callback, action.Data);
+        break;
+      case "Barcode":
+        map.set(parsedActions.callback, action.Data);
+        break;
+    }
     const resTest = await action.Test(action.Data);
     let result = resTest.resObject;
     const testedOPtions = {
@@ -63,7 +76,14 @@ class ClientActionsService {
       case "Dialog":
         action = new ClientActionDialogTest(Data, actionType);
         break;
-
+      case "Barcode":
+        action = new ClientActionBarcodeScanTest(Data, actionType);
+        break;
+      case "GeoLocation":
+        action = new ClientActionGeoLocationTest(Data, actionType);
+        break;
+      case "HUD":
+        break;
       default:
         break;
     }
