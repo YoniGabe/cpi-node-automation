@@ -5,6 +5,7 @@ import ClientActionBase from "../classes/clientActionsBase";
 import ClientActionDialogTest from "../classes/clientActionsDialog";
 import ClientActionGeoLocationTest from "../classes/clientActionsGeoLocation";
 import ClientActionBarcodeScanTest from "../classes/clientActionsScanBarcode";
+import ClientActionHUDTest from "../classes/clientActionsHUD";
 
 class ClientActionsService {
   papiClient: PapiClient;
@@ -56,6 +57,15 @@ class ClientActionsService {
       case "Barcode":
         map.set(parsedActions.callback, action.Data);
         break;
+      case "HUD":
+        map.set(parsedActions.callback, action.Data);
+        const checkGlobal = global["HUDKey"];
+        if (checkGlobal === undefined) {
+          global["HUDKey"] = await this.GenerateGuid();
+        }
+        break;
+      default:
+        break;
     }
     const resTest = await action.Test(action.Data);
     let result = resTest.resObject;
@@ -83,6 +93,7 @@ class ClientActionsService {
         action = new ClientActionGeoLocationTest(Data, actionType);
         break;
       case "HUD":
+        action = new ClientActionHUDTest(Data, actionType);
         break;
       default:
         break;
@@ -94,6 +105,18 @@ class ClientActionsService {
     const parsedData = JSON.parse(Data);
     const parsedValue = JSON.parse(parsedData.Value);
     return parsedValue;
+  }
+
+  //for generating a new UUID
+  async GenerateGuid(): Promise<string> {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+      /[xy]/g,
+      function (c) {
+        let r = (Math.random() * 16) | 0,
+          v = c == "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      }
+    );
   }
 }
 

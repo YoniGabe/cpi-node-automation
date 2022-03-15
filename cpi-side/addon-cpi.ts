@@ -391,8 +391,30 @@ export async function load(configuration: any) {
   interceptorArr = [];
   console.log("Finished setting up test variables");
 
-  //will add to scheme of ADAL triggers when test will be finalized
-  const clientActionsTestActive = true;
+    //====================================ADAL================================================
+  //need to add trigger to adal table for TransactionScope test -> when preparing server side
+  const adalData = await pepperi.api.adal
+    .get({
+      addon: addonUUID,
+      table: adalTableName,
+      key: "testKey1",
+    })
+    .then((obj) => obj.object);
+  //console.log(adalData);
+  const loadTestActive = adalData.TestActive;
+  const loadTestCounter = adalData.TestRunCounter;
+  const InterceptorsTestActive = adalData.InterceptorsTestActive;
+  const TrnScopeTestActive = adalData.TrnScopeTestActive;
+  const clientActionsTestActive = adalData.clientActionsTestActive;
+
+  console.log("LoadTester::loadTestActive: " + loadTestActive);
+  console.log("LoadTester::counter: " + loadTestCounter);
+  console.log(
+    "InterceptorTester::InterceptorTestActive: " + InterceptorsTestActive
+  );
+  console.log("TrnScopeTester::TrnScopeTestActive: " + TrnScopeTestActive);
+  console.log("TrnScopeTester::clientActionsTestActive: " + clientActionsTestActive);
+  //=========================client-actions implementation=======================
   if (clientActionsTestActive === true) {
     pepperi.events.intercept(
       OCEvents.Button,
@@ -431,12 +453,31 @@ export async function load(configuration: any) {
       { FieldID: "TSAHUD" },
       async (data, next, main) => {
         console.log("button pressed! on hud");
-        const options = {
-          canceled: false,
-          result: "yeye",
+        const hudOptions = {
+          // HUD's message
+          message: "Waiting....", // optional (default value is '')
+
+          // adds a button with text to the HUD
+          closeMessage: "Press to close", // optional - (default is '' and the botton is hidden)
+          //need to change closeMessage to the real attribute
+          //display the HUD after the delay time (the block runs in the meantime)
+          delay: 0.2, //optional - (default value is 0.5)
+
+          // block of code that will run in background while the HUD is showing.
+          block: async () => {
+            // do stuff that takes a long time that needs a HUD
+            // for example:
+            // You can call any client action you want like this.
+            for (let i = 0; i < 5; i++) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+              // you can update the HUD message while the HUD is showing
+              //updateMessage(`In progress ${i}%`);
+            }
+          },
         };
-        //const hud = await pepperi.client.showHUD(options);
-        //console.log(hud);
+
+        const hud = await pepperi.client.showHUD(hudOptions);
+        console.log(hud);
         await next(main);
       }
     );
@@ -482,28 +523,6 @@ export async function load(configuration: any) {
       }
     );
   }
-
-  //====================================ADAL================================================
-  //need to add trigger to adal table for TransactionScope test -> when preparing server side
-  const adalData = await pepperi.api.adal
-    .get({
-      addon: addonUUID,
-      table: adalTableName,
-      key: "testKey1",
-    })
-    .then((obj) => obj.object);
-  //console.log(adalData);
-  const loadTestActive = adalData.TestActive;
-  const loadTestCounter = adalData.TestRunCounter;
-  const InterceptorsTestActive = adalData.InterceptorsTestActive;
-  const TrnScopeTestActive = adalData.TrnScopeTestActive;
-
-  console.log("LoadTester::loadTestActive: " + loadTestActive);
-  console.log("LoadTester::counter: " + loadTestCounter);
-  console.log(
-    "InterceptorTester::InterceptorTestActive: " + InterceptorsTestActive
-  );
-  console.log("TrnScopeTester::TrnScopeTestActive: " + TrnScopeTestActive);
 
   if (TrnScopeTestActive === true) {
     //========================TransactionScope Interceptors===================================

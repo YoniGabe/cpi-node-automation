@@ -42,6 +42,22 @@ export async function InitiateLoad(client: Client, request: Request) {
   await service.sleep(10000);
   //need to add mocha and UDT get
   const udtData = await service.getUDTValues("LoadUDT", 2, "DESC");
+  // remove UDT lines after test
+  for (const line of udtData) {
+    try {
+      const res = await service.updateUDTValues(
+        line.MapDataExternalID,
+        line.MainKey,
+        line.SecondaryKey,
+        true
+      );
+      console.log(
+        `LoadTester::Updated UDTLineID ${line.InternalID},with the following hidden status: ${res.Hidden} `
+      );
+    } catch (err) {
+      console.log(`LoadTester::UDT Removal error: ${err}`);
+    }
+  }
 
   //mocha test
   describe("Load function automation test", async () => {
@@ -72,22 +88,6 @@ export async function InitiateLoad(client: Client, request: Request) {
         .to.be.a("string")
         .and.not.to.be.equal(udtData[1].MainKey);
     });
-  });
-  // remove UDT lines after test
-  udtData.forEach(async (line) => {
-    try {
-      const res = await service.updateUDTValues(
-        line.MapDataExternalID,
-        line.MainKey,
-        line.SecondaryKey,
-        true
-      );
-      console.log(
-        `LoadTester::Updated UDTLineID ${line.InternalID},with the following hidden status: ${res.Hidden} `
-      );
-    } catch (err) {
-      console.log(`LoadTester::UDT Removal error: ${err}`);
-    }
   });
   const testResults = await run();
   return testResults;
@@ -249,6 +249,23 @@ export async function InterceptorTester(client: Client, request: Request) {
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(10000);
   const udtData = await service.getUDTValues("InterceptorsUDT", 1, "DESC");
+
+  //remove UDT lines after test
+  for (const line of udtData) {
+    try {
+      const res = await service.updateUDTValues(
+        line.MapDataExternalID,
+        line.MainKey,
+        line.SecondaryKey,
+        true
+      );
+      console.log(
+        `InterceptorTester::Updated UDTLineID ${line.InternalID},with the following hidden status: ${res.Hidden} `
+      );
+    } catch (err) {
+      console.log(`InterceptorTester:: UDT removal error: ${err}`);
+    }
+  }
   //MOCHA
   describe("Interceptors automation test", async () => {
     it("Parsed test results", async () => {
@@ -267,22 +284,6 @@ export async function InterceptorTester(client: Client, request: Request) {
           "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31",
         ]).and.is.not.null;
     });
-  });
-  //remove UDT lines after test
-  udtData.forEach(async (line) => {
-    try {
-      const res = await service.updateUDTValues(
-        line.MapDataExternalID,
-        line.MainKey,
-        line.SecondaryKey,
-        true
-      );
-      console.log(
-        `InterceptorTester::Updated UDTLineID ${line.InternalID},with the following hidden status: ${res.Hidden} `
-      );
-    } catch (err) {
-      console.log(`InterceptorTester:: UDT removal error: ${err}`);
-    }
   });
 
   const testResults = await run();
@@ -557,7 +558,6 @@ export async function JWTTesterNegative(client: Client, request: Request) {
   return testResults;
 }
 //========================Scripts============================================
-//
 export async function scriptsListTester(client: Client, request: Request) {
   const scriptsService = new ScriptService(client);
   const service = new MyService(client);
@@ -754,6 +754,10 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
           Data = {
             Data: { ms: randNumber },
           };
+        } else if (value.includes("missingParameters")) {
+          Data = {
+            Data: { var1: Math.random() },
+          };
         } else {
           Data = {
             Data: {
@@ -771,6 +775,7 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
           key,
           Data
         );
+        console.log(response);
         console.log(`scriptsNegativeTester::finished running ${value} script`);
       });
       it(`Parsed test results for ${value} script `, async () => {
@@ -823,6 +828,19 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
               .to.be.a("string")
               .that.is.equal("Took longer than 10 seconds");
             break;
+          case "missingParameters":
+            expect(
+              response,
+              "failed on missingParameters script returning the wrong response"
+            ).to.be.an("object").that.is.not.null.and.undefined;
+            expect(
+              response.Result,
+              "Failed on missingParameters script returning wrong response value"
+            )
+              .to.be.a("number")
+              .that.is.above(0)
+              .and.below(1);
+            break;
 
           default:
             break;
@@ -865,6 +883,7 @@ export async function scriptsPositiveTester(client: Client, request: Request) {
     string: { number: 9, string: "string", boolean: false, object: undefined },
     boolean: { number: 9, string: "strung", boolean: true, object: undefined },
     object: { number: 9, string: "strung", boolean: false, object: undefined },
+    undefined: { number: 9, string: "strung", boolean: false, object: {} },
   };
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
@@ -930,6 +949,15 @@ export async function scriptsPositiveTester(client: Client, request: Request) {
                       number: 9,
                       boolean: false,
                     });
+                  break;
+                case "undefined":
+                  expect(
+                    response.Result,
+                    "Failed on undefined type not returning the correct type"
+                  )
+                    .to.be.a("undefined")
+                    .that.is.equal(undefined);
+                  break;
                 default:
                   break;
               }
@@ -954,8 +982,16 @@ export async function clientActionsTester(client: Client, request: Request) {
   const { describe, it, expect, run } = Tester("My test");
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
-  await service.sleep(3000); //waiting for CPAS session to go up
-  const arr = ["TSAAlert", "TSACaptureGeo"]; // "TSAHUD", "TSACaptureGeo", "TSAScanBarcode"];
+  //run in case sync is running before tests
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  //activate test flag on Load function
+  await service.setTestFlag(false, false, 0, false, true);
+  //sync again to trigger the test interceptors
+  const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
+  //wait till sync is over
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(5000);
+  const arr = ["TSAAlert", "TSACaptureGeo", "TSAScanBarcode", "TSAHUD"];
   //setting up global map for client actions test data
   global["map"] = new Map<string, any>();
   console.log(
@@ -968,8 +1004,6 @@ export async function clientActionsTester(client: Client, request: Request) {
       EventKey: "TSAButtonPressed",
       EventData: JSON.stringify({
         FieldID: button,
-        // ScriptKey: "29d51eeb-a62b-4d50-9fd4-59b209f440b6",
-        // ScriptParams: { Data: {} },
       }),
     };
     //calling recursive function - event loop to run all client actions in existant for the current event
@@ -980,23 +1014,27 @@ export async function clientActionsTester(client: Client, request: Request) {
     );
     console.log(`clientActionsTester::Finished triggering ${button}`);
   }
+  await service.setTestFlag(false, false, 0, false, false);
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.sleep(2000);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(5000);
   //getting actions back from global map after client actions responses (event loop finished)
-  const actions = global["map"]; //key - client action UUID,value - data
-  const arrActions: any[] = [];
+  const actions = global["map"] as Map<string, any>; //key - client action UUID,value - data
+  //const arrActions: any[] = [];
 
   describe("Client Actions Automation positive test", async () => {
     for (const [key, value] of actions) {
       const Object = JSON.parse(value);
       const parsedActionData = JSON.parse(Object.Value);
       const Type = parsedActionData.Type;
-      const Title = parsedActionData.Data.Title
-        ? parsedActionData.Data.Title
-        : parsedActionData.Data.Accuracy;
-      arrActions.push(parsedActionData);
+      let Title = ""; //used to enter the accuracy/title into the test title - ok if not populated,some actions do not have Titles
+      //arrActions.push(parsedActionData);
       //filter test action according to type
       switch (Type) {
         //dialog client actions functions test
         case "Dialog":
+          Title = parsedActionData.Data.Title; //getting filter to test according to Title
           it(`Client Actions Automation - ${Type} - ${Title}`, async () => {
             //general tests for all action types
             expect(
@@ -1186,10 +1224,123 @@ export async function clientActionsTester(client: Client, request: Request) {
           });
           break;
         case "HUD":
+          Title = parsedActionData.Data.State; //getting filter to test according to state
+          const HUDKey = global["HUDKey"].toUpperCase() as string;
+          it(`Client Actions Automation - ${Type} - ${Title}`, async () => {
+            expect(
+              parsedActionData,
+              "Failed on actions data returning with the wrong type"
+            ).to.be.an("object").that.is.not.undefined.and.null;
+            expect(
+              parsedActionData.Type,
+              "Failed on HUD client action type returning the wrong type"
+            )
+              .to.be.a("string")
+              .that.is.equal("HUD");
+            expect(
+              parsedActionData.callback,
+              "Failed on HUD client action callback returning the wrong type"
+            )
+              .to.be.a("string")
+              .that.has.lengthOf(36);
+            switch (Title) {
+              case "Show":
+                expect(
+                  parsedActionData.Data.State,
+                  "Failed on returning the wrong state on HUD Show"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Show");
+                expect(
+                  parsedActionData.Data.Message,
+                  "Failed on returning the wrong message on HUD Show"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Waiting....");
+                expect(
+                  parsedActionData.Data.CancelMessage,
+                  "Failed on returning the wrong state on HUD Show"
+                ).to.be.a("string"); //.that.is.equal("Press to close"); <---- need to correct with new version
+                expect(
+                  parsedActionData.Data.CancelEventKey,
+                  "Failed on cancel event key returning wrong value"
+                )
+                  .to.be.a("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Interval,
+                  "Failed on wrong interval returning"
+                )
+                  .to.be.a("number")
+                  .that.is.equal(0.5);
+                break;
+              case "Poll":
+                expect(
+                  parsedActionData.Data.State,
+                  "Failed on returning the wrong state on HUD Poll"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Poll");
+                expect(
+                  parsedActionData.Data.Interval,
+                  "Failed on wrong interval returning"
+                )
+                  .to.be.a("number")
+                  .that.is.equal(0.5);
+                expect(
+                  parsedActionData.Data.HUDKey,
+                  "Failed on hud returning wrong HUDKey"
+                )
+                  .to.be.a("string")
+                  .that.is.equal(HUDKey);
+                expect(
+                  parsedActionData.Data.Message,
+                  "Failed on poll returning wrong message"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Waiting....");
+                break;
+              case "Hide":
+                expect(
+                  parsedActionData.Data.State,
+                  "Failed on returning the wrong state on HUD hide"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Hide");
+                expect(
+                  parsedActionData.Data.HUDKey,
+                  "Failed on hud returning wrong HUDKey"
+                )
+                  .to.be.a("string")
+                  .that.is.equal(HUDKey);
+                break;
+              default:
+                break;
+            }
+          });
           break;
         case "Barcode":
+          it(`Client Actions Automation - ${Type}`, async () => {
+            expect(
+              parsedActionData,
+              "Failed on actions data returning with the wrong type"
+            ).to.be.an("object").that.is.not.undefined.and.null;
+            expect(
+              parsedActionData.Type,
+              "Failed on Barcode client action returning the wrong type"
+            )
+              .to.be.a("string")
+              .that.is.equal("Barcode");
+            expect(
+              parsedActionData.callback,
+              "Failed on callback returning wrong value/type"
+            )
+              .to.be.a("string")
+              .that.has.lengthOf(36);
+          });
           break;
         case "GeoLocation":
+          Title = parsedActionData.Data.Accuracy; //getting filter to test according to Accuracy
           it(`Client Actions Automation - ${Type} - ${Title}`, async () => {
             expect(
               parsedActionData,

@@ -408,7 +408,8 @@ class MyService {
     LoadFlag: boolean,
     interceptorsFlag: boolean,
     counter?: number,
-    TrnScopeFlag?: boolean
+    TrnScopeFlag?: boolean,
+    clientActionsFlag? : boolean
   ) {
     const body = {
       Key: "testKey1",
@@ -424,7 +425,8 @@ class MyService {
       TestRunCounter: counter ? counter : 0,
       TestActive: LoadFlag,
       InterceptorsTestActive: interceptorsFlag,
-      TrnScopeTestActive: TrnScopeFlag ? TrnScopeFlag : false
+      TrnScopeTestActive: TrnScopeFlag ? TrnScopeFlag : false,
+      clientActionsTestActive: clientActionsFlag ? clientActionsFlag : false
     };
 
     const upsert = await this.upsertToADAL("Load_Test", body);
