@@ -7,6 +7,12 @@ import ClientActionGeoLocationTest from "../classes/clientActionsGeoLocation";
 import ClientActionBarcodeScanTest from "../classes/clientActionsScanBarcode";
 import ClientActionHUDTest from "../classes/clientActionsHUD";
 
+export interface ClientAction {
+  callback: string; //callback UUID
+  Type: string; //action Type
+  Data?: any; //Not mandatory due to barcode not having this
+}
+
 class ClientActionsService {
   papiClient: PapiClient;
 
@@ -18,9 +24,13 @@ class ClientActionsService {
       addonUUID: client.AddonUUID,
     });
   }
-
+  //basic emitEvent endpoint
   async EmitEvent(webAPIBaseURL: string, accessToken: string, options) {
     //webapi.sandbox.pepperi.com/16.80.3/webapi/Service1.svc/v1/
+    // const testedOPtions = {
+    //   EventKey: EventKey,  ====> basic structure for body
+    //   EventData: JSON.stringify({}),
+    // };
     const URL = `${webAPIBaseURL}/Service1.svc/v1/EmitEvent`;
     const EmitEvent = await (
       await fetch(URL, {
@@ -34,8 +44,12 @@ class ClientActionsService {
     ).json();
     return EmitEvent;
   }
-
-  async EmitClientEvent(webAPIBaseURL: string, accessToken: string, options) {
+  //client actions event loops for positive tests
+  async EmitClientEvent(
+    webAPIBaseURL: string,
+    accessToken: string,
+    options
+  ): Promise<void> {
     const map = global["map"] as Map<string, any>;
     let res = await this.EmitEvent(webAPIBaseURL, accessToken, options);
     const parsedActions = JSON.parse(res.Value);
@@ -74,6 +88,52 @@ class ClientActionsService {
       EventData: JSON.stringify(result),
     };
     global["map"] = map;
+    await this.EmitClientEvent(webAPIBaseURL, accessToken, testedOPtions);
+  }
+  //client actions event loops for negative tests
+  async EmitNegativeClientEvent(
+    webAPIBaseURL: string,
+    accessToken: string,
+    options
+  ): Promise<void> {
+    const map = global["negative"] as Map<string, any>;
+    let res = await this.EmitEvent(webAPIBaseURL, accessToken, options);
+    const parsedActions = JSON.parse(res.Value);
+    console.log(parsedActions);
+    const Type = parsedActions.Type;
+    //stop condition -- if actions returns empty recurssion returns to the previous iteration
+    if (Object.entries(parsedActions).length === 0) {
+      return;
+    } // note that the callback EmitEvent does not return any values;
+    let action = (await this.generateClientAction(res)) as ClientActionBase;
+    const parsedData = await this.parseActionDataForTest(action.Data);
+    switch (Type) {
+      case "Dialog":
+        map.set(parsedData.Data.Actions[0].key, action.Data);
+        break;
+      case "GeoLocation":
+        map.set(parsedActions.callback, action.Data);
+        break;
+      case "Barcode":
+        map.set(parsedActions.callback, action.Data);
+        break;
+      case "HUD":
+        map.set(parsedActions.callback, action.Data);
+        const checkGlobal = global["HUDKey"];
+        if (checkGlobal === undefined) {
+          global["HUDKey"] = await this.GenerateGuid();
+        }
+        break;
+      default:
+        break;
+    }
+    const resTest = await action.NegativeTest(action.Data);
+    let result = resTest.resObject;
+    const testedOPtions = {
+      EventKey: parsedActions.callback,
+      EventData: JSON.stringify(result),
+    };
+    global["negative"] = map;
     await this.EmitClientEvent(webAPIBaseURL, accessToken, testedOPtions);
   }
 

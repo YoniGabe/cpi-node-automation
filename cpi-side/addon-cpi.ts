@@ -391,8 +391,7 @@ export async function load(configuration: any) {
   interceptorArr = [];
   console.log("Finished setting up test variables");
 
-    //====================================ADAL================================================
-  //need to add trigger to adal table for TransactionScope test -> when preparing server side
+  //====================================ADAL================================================
   const adalData = await pepperi.api.adal
     .get({
       addon: addonUUID,
@@ -413,7 +412,9 @@ export async function load(configuration: any) {
     "InterceptorTester::InterceptorTestActive: " + InterceptorsTestActive
   );
   console.log("TrnScopeTester::TrnScopeTestActive: " + TrnScopeTestActive);
-  console.log("TrnScopeTester::clientActionsTestActive: " + clientActionsTestActive);
+  console.log(
+    "TrnScopeTester::clientActionsTestActive: " + clientActionsTestActive
+  );
   //=========================client-actions implementation=======================
   if (clientActionsTestActive === true) {
     pepperi.events.intercept(

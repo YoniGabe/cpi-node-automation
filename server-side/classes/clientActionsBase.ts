@@ -17,4 +17,13 @@ export default class ClientActionBase {
     };
   }
 
+  async NegativeTest(data): Promise<{success: boolean,resObject:any}> {
+    return {
+      success: data.Success,
+      resObject: {
+        SelectedAction: data.Value.callback,
+      },
+    };
+  }
+
 }

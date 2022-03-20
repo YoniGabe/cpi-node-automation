@@ -1,10 +1,16 @@
-import {
-  PapiClient,
-  FindOptions,
-} from "@pepperi-addons/papi-sdk";
+import { PapiClient, FindOptions } from "@pepperi-addons/papi-sdk";
 import { Client } from "@pepperi-addons/debug-server";
 import fetch from "node-fetch";
 
+export interface Script {
+  Key: string;
+  Hidden: boolean;
+  CreationDateTime: string;
+  ModificationDateTime: string;
+  Description: string;
+  Name: string;
+  Code: string;
+}
 
 export const scriptObjectsUUID = {
   itemUUID: "393acff4-406a-40f8-9d79-a8c16bc0cbc7",
@@ -36,7 +42,7 @@ class ScriptService {
   // {
   //     "Result": {}
   // }
-  
+
   async runScript(
     webAPIBaseURL: string,
     accessToken: string,
@@ -60,14 +66,14 @@ class ScriptService {
     return scriptResults;
   }
 
-  async getAllScripts() {
+  async getAllScripts(): Promise<Script[]> {
     const res = await this.papiClient.get(
       `/addons/api/9f3b727c-e88c-4311-8ec4-3857bc8621f3/api/scripts`
     );
     return res;
   }
 
-  async getScriptsWithFindOptions(findOptions: FindOptions) {
+  async getScriptsWithFindOptions(findOptions: FindOptions): Promise<Script[]> {
     let url = `/addons/api/9f3b727c-e88c-4311-8ec4-3857bc8621f3/api/scripts?`;
     const obj = findOptions;
     for (const [key, value] of Object.entries(obj)) {
@@ -79,7 +85,7 @@ class ScriptService {
     return res;
   }
 
-  async getScriptByKey(key: string) {
+  async getScriptByKey(key: string): Promise<Script> {
     //const res = this.papiClient.get()
     const res = await this.papiClient.get(
       `/addons/api/9f3b727c-e88c-4311-8ec4-3857bc8621f3/api/scripts?key=${key}`
@@ -87,7 +93,11 @@ class ScriptService {
     return res;
   }
 
-  async connectAccount(webAPIBaseURL:string,accessToken: string,uuid: string) {
+  async connectAccount(
+    webAPIBaseURL: string,
+    accessToken: string,
+    uuid: string
+  ) {
     const accountURL = `${webAPIBaseURL}/Service1.svc/v1/Account/${uuid}`;
     const accountReload = await (
       await fetch(accountURL, {

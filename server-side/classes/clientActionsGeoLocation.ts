@@ -63,4 +63,16 @@ export default class ClientActionGeoLocationTest extends ClientActionBase {
       },
     };
   }
+
+  async NegativeTest(data: any): Promise<{ success: boolean; resObject: any }> {
+    return {
+      success: false,
+      resObject: {
+        Success: false,
+        Lontitude: 0,
+        Latitude: 0,
+        Accuracy: 0,
+      },
+    };
+  }
 }

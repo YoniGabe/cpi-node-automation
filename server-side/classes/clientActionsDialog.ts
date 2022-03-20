@@ -11,4 +11,13 @@ export default class ClientActionDialogTest extends ClientActionBase {
       },
     };
   }
+
+  async NegativeTest(data: any): Promise<{ success: boolean; resObject: any }> {
+    return {
+      success: false,
+      resObject: {
+        SelectedAction: "rand-negative-string-for-test",
+      },
+    };
+  }
 }

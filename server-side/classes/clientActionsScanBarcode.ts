@@ -12,4 +12,15 @@ export default class ClientActionBarcodeScanTest extends ClientActionBase {
       },
     };
   }
+
+  async NegativeTest(data: any): Promise<{ success: boolean; resObject: any }> {
+    return {
+      success: false,
+      resObject: {
+        Success: false,
+        Barcode: 910111213,
+        ErrorMessage: "Failure for automation test",
+      },
+    };
+  }
 }

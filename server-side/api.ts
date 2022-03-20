@@ -2,8 +2,13 @@ import MyService from "./services/my.service";
 import { Client, Request } from "@pepperi-addons/debug-server";
 import Tester from "./tester";
 import { AddonData } from "@pepperi-addons/papi-sdk";
-import ScriptService, { scriptObjectsUUID } from "./services/scripts.service";
-import ClientActionsService from "./services/clientActions.service";
+import ScriptService, {
+  scriptObjectsUUID,
+  Script,
+} from "./services/scripts.service";
+import ClientActionsService, {
+  ClientAction,
+} from "./services/clientActions.service";
 
 // add functions here
 // this function will run on the 'api/foo' endpoint
@@ -433,7 +438,7 @@ export async function PerformenceTester(client: Client, request: Request) {
   return testResults;
 }
 /**method to run TransactionScope test*/ //need to test
-export async function TrasactionScopeTester(client: Client, request: Request) {
+export async function TransactionScopeTester(client: Client, request: Request) {
   const service = new MyService(client);
   const isLocal = false;
   let webAPIBaseURL = await service.getWebAPIBaseURL();
@@ -577,7 +582,9 @@ export async function scriptsListTester(client: Client, request: Request) {
     page_size: 4,
     include_deleted: true,
   }; // need to figure what we're going to use,just for tests
-  const response = await scriptsService.getScriptsWithFindOptions(FindOptions);
+  const response: Script[] = await scriptsService.getScriptsWithFindOptions(
+    FindOptions
+  );
 
   return response;
 }
@@ -588,9 +595,9 @@ export async function scriptClientAPITester(client: Client, request: Request) {
   const service = new MyService(client);
   const { describe, it, expect, run } = Tester("My test");
   console.log("scriptClientAPITester::before getting scripts list");
-  const clientAPIScriptList = await scriptsService.getAllScripts();
+  const clientAPIScriptList: Script[] = await scriptsService.getAllScripts();
   console.log("scriptClientAPITester::after getting scripts list");
-  const map = new Map();
+  const map = new Map<string, [string, string]>();
   //when this endpoint will allow filtering by name -> will be refactored
   for (const script of clientAPIScriptList) {
     if (script.Name.includes("ClientAPI")) {
@@ -625,19 +632,19 @@ export async function scriptClientAPITester(client: Client, request: Request) {
   }
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
+  await service.sleep(5000);
   const connectAccount = await scriptsService.connectAccount(
     webAPIBaseURL,
     accessToken,
     scriptObjectsUUID.accountUUID
   );
-  await service.sleep(2000);
 
   describe("Scripts clientAPI automation test", async () => {
     for (const [key, value] of map) {
       let response;
       it(`Initializing ${value[1]} script data `, async () => {
         const Data = {
-          Data: { UUID: value[0].toString() },
+          Data: { UUID: value[0] },
         };
         console.log(
           `scriptClientAPITester::currently running ${value[1]} script`
@@ -712,9 +719,9 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
   const service = new MyService(client);
   const { describe, it, expect, run } = Tester("My test");
   console.log("scriptsNegativeTester::before getting scripts list");
-  const scripstList = await scriptsService.getAllScripts();
+  const scripstList: Script[] = await scriptsService.getAllScripts();
   console.log("scriptsNegativeTester::after getting scripts list");
-  const map = new Map();
+  const map = new Map<string, string>();
   //when this endpoint will allow filtering by name -> will be refactored
   for (const script of scripstList) {
     if (
@@ -738,7 +745,7 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
 
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
-  service.sleep(2000);
+  await service.sleep(2000);
 
   const randNumber = Math.floor((Math.random() + 1) * 1000);
 
@@ -757,6 +764,10 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
         } else if (value.includes("missingParameters")) {
           Data = {
             Data: { var1: Math.random() },
+          };
+        } else if (value.includes("NegativeWithParameters")) {
+          Data = {
+            Data: { number: "string", string: 9, boolean: 3, object: "{}" },
           };
         } else {
           Data = {
@@ -828,6 +839,7 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
               .to.be.a("string")
               .that.is.equal("Took longer than 10 seconds");
             break;
+
           case "missingParameters":
             expect(
               response,
@@ -840,6 +852,19 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
               .to.be.a("number")
               .that.is.above(0)
               .and.below(1);
+            break;
+
+          case "NegativeWithParameters":
+            expect(
+              response,
+              "Failed on NegativeWithParameters script returning the wrong output"
+            ).to.be.an("object").that.is.not.null.and.undefined;
+            expect(
+              response.Error,
+              "Failed on NegativeWithParameters script returning the wrong output"
+            )
+              .to.be.a("string")
+              .that.is.equal("invalid parameter value");
             break;
 
           default:
@@ -859,9 +884,9 @@ export async function scriptsPositiveTester(client: Client, request: Request) {
   const service = new MyService(client);
   const { describe, it, expect, run } = Tester("My test");
   console.log("scriptsPositiveTester::before getting scripts list");
-  const scripstList = await scriptsService.getAllScripts();
+  const scripstList: Script[] = await scriptsService.getAllScripts();
   console.log("scriptsPositiveTester::after getting scripts list");
-  const map = new Map();
+  const map = new Map<string, string>();
   //when this endpoint will allow filtering by name -> will be refactored
   for (const script of scripstList) {
     if (script.Description.includes("Positive")) {
@@ -884,11 +909,12 @@ export async function scriptsPositiveTester(client: Client, request: Request) {
     boolean: { number: 9, string: "strung", boolean: true, object: undefined },
     object: { number: 9, string: "strung", boolean: false, object: undefined },
     undefined: { number: 9, string: "strung", boolean: false, object: {} },
+    negative: {},
   };
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   await service.sleep(2000);
-  describe("Scripts Negative automation test", async () => {
+  describe("Scripts Positive automation test", async () => {
     for (const [key, value] of map) {
       switch (value) {
         case "WithParameters":
@@ -913,6 +939,18 @@ export async function scriptsPositiveTester(client: Client, request: Request) {
             });
             it(`Parsed test results for ${value} - ${testKey} script data `, async () => {
               const responseType = typeof response.Result;
+              if (response.Error) {
+                expect(
+                  response,
+                  "Response error object returned with wrong type"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  response.Error,
+                  "Failed on WithParameters script returning value although not parameters were sent"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("invalid parameter value");
+              }
               switch (responseType) {
                 case "string":
                   expect(
@@ -991,14 +1029,19 @@ export async function clientActionsTester(client: Client, request: Request) {
   //wait till sync is over
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(5000);
-  const arr = ["TSAAlert", "TSACaptureGeo", "TSAScanBarcode", "TSAHUD"];
+  const interceptorsNamesArr = [
+    "TSAAlert",
+    "TSACaptureGeo",
+    "TSAScanBarcode",
+    "TSAHUD",
+  ];
   //setting up global map for client actions test data
   global["map"] = new Map<string, any>();
   console.log(
     "clientActionsTester::Triggering buttonPressed event to get client actions"
   );
   //looping on each field to trigger cpi-side related events -> these will trigger the corresponding client actions
-  for (const button of arr) {
+  for (const button of interceptorsNamesArr) {
     console.log(`clientActionsTester::Started triggering ${button}`);
     const options = {
       EventKey: "TSAButtonPressed",
@@ -1006,7 +1049,7 @@ export async function clientActionsTester(client: Client, request: Request) {
         FieldID: button,
       }),
     };
-    //calling recursive function - event loop to run all client actions in existant for the current event
+    //calling recursive function - event loop to run all client actions in existant for the current interceptor
     const clientAction = await clientActionsService.EmitClientEvent(
       webAPIBaseURL,
       accessToken,
@@ -1026,7 +1069,7 @@ export async function clientActionsTester(client: Client, request: Request) {
   describe("Client Actions Automation positive test", async () => {
     for (const [key, value] of actions) {
       const Object = JSON.parse(value);
-      const parsedActionData = JSON.parse(Object.Value);
+      const parsedActionData: ClientAction = JSON.parse(Object.Value);
       const Type = parsedActionData.Type;
       let Title = ""; //used to enter the accuracy/title into the test title - ok if not populated,some actions do not have Titles
       //arrActions.push(parsedActionData);
@@ -1416,4 +1459,64 @@ export async function clientActionsTester(client: Client, request: Request) {
   // return {
   //   actions: arrActions,
   // };
+}
+
+export async function negativeClientActionsTester(
+  client: Client,
+  request: Request
+) {
+  console.log("negativeClientActionsTester::Test started");
+  //services setup and perconditions setup
+  const service = new MyService(client);
+  const clientActionsService = new ClientActionsService(client);
+  const { describe, it, expect, run } = Tester("My test");
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  //run in case sync is running before tests
+  // await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  // //activate test flag on Load function
+  // await service.setTestFlag(false, false, 0, false, true);
+  // //sync again to trigger the test interceptors
+  // const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
+  // //wait till sync is over
+  // await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(5000);
+  const interceptorsNamesArr = [
+    "TSAAlert", //,
+    // "TSACaptureGeo",
+    // "TSAScanBarcode",
+    // "TSAHUD",
+  ];
+  //setting up global map for client actions test data
+  global["negative"] = new Map<string, any>();
+  console.log(
+    "negativeClientActionsTester::Triggering buttonPressed event to get client actions"
+  );
+  //looping on each field to trigger cpi-side related events -> these will trigger the corresponding client actions
+  for (const button of interceptorsNamesArr) {
+    console.log(`negativeClientActionsTester::Started triggering ${button}`);
+    const options = {
+      EventKey: "TSAButtonPressed",
+      EventData: JSON.stringify({
+        FieldID: button,
+      }),
+    };
+    //calling recursive function - event loop to run all client actions in existant for the current interceptor
+    const clientAction = await clientActionsService.EmitNegativeClientEvent(
+      webAPIBaseURL,
+      accessToken,
+      options
+    );
+    console.log(`negativeClientActionsTester::Finished triggering ${button}`);
+  }
+
+  //getting actions back from global map after client actions responses (event loop finished)
+  const actions = global["negative"] as Map<string, any>; //key - client action UUID,value - data
+  //const arrActions: any[] = [];
+
+  for (const [key, value] of actions) {
+    const Object = JSON.parse(value);
+    const parsedActionData: ClientAction = JSON.parse(Object.Value);
+    const Type = parsedActionData.Type;
+  }
 }
