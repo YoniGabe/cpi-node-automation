@@ -405,6 +405,7 @@ export async function load(configuration: any) {
   const InterceptorsTestActive = adalData.InterceptorsTestActive;
   const TrnScopeTestActive = adalData.TrnScopeTestActive;
   const clientActionsTestActive = adalData.clientActionsTestActive;
+  const withinHudClientActionsTest = false;
 
   console.log("LoadTester::loadTestActive: " + loadTestActive);
   console.log("LoadTester::counter: " + loadTestCounter);
@@ -415,6 +416,123 @@ export async function load(configuration: any) {
   console.log(
     "TrnScopeTester::clientActionsTestActive: " + clientActionsTestActive
   );
+
+  if (withinHudClientActionsTest) {
+    pepperi.events.intercept(
+      OCEvents.Button,
+      { FieldID: "TSAAlertWithinHud" },
+      async (data, next, main) => {
+        console.log(
+          "withinHudClientActionsTester::button pressed! starting Dialog client actions interceptor"
+        );
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        let options = {
+          message: "hudWithAlert",
+          closeMessage: "Alert",
+          delay: 2,
+          block: async (message) => {
+            await data.client?.alert(
+              "alertWithinHud",
+              "putin is douchebag yayaya"
+            );
+            const confirm = await data.client?.confirm(
+              "confirmWithinHud",
+              "putin is a huylo yayaya"
+            );
+            const showDialog = await data.client?.showDialog({
+              title: "showDialogWithinHud",
+              content: "putin pashul nahuy dibilnaya tvar yaya",
+              actions: [
+                { title: "not cool putin yaya", value: 1 },
+                { title: "really not cool putin yaya", value: 2 },
+                { title: "putin is a boomeryaya", value: 3 },
+              ],
+            });
+            for (let i = 0; i < 20; i++) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+              message(`In Progress ${i}`);
+            }
+          },
+        };
+        const hud = await data.client?.showHUD(options);
+
+        console.log(hud);
+        console.log(
+          "withinHudClientActionsTester::button pressed! finished Dialog client actions interceptor"
+        );
+        await next(main);
+      }
+    );
+
+    pepperi.events.intercept(
+      OCEvents.Button,
+      { FieldID: "TSABarcodeWithinHud" },
+      async (data, next, main) => {
+        console.log(
+          "withinHudClientActionsTester::button pressed! starting barcodeWithinHud client actions interceptor"
+        );
+        let options = {
+          message: "hudWithBarCode",
+          closeMessage: "barcode!",
+          delay: 2,
+          block: async (message) => {
+            await data.client?.scanBarcode();
+            for (let i = 0; i < 15; i++) {
+              await new Promise((resolve) => setTimeout(resolve, 500));
+              message(`In Progress ${i}`);
+            }
+          },
+        };
+        const hud = await data.client?.showHUD(options);
+
+        console.log(hud);
+        console.log(
+          "withinHudClientActionsTester::button pressed! finished barcodeWithinHud client actions interceptor"
+        );
+        await next(main);
+      }
+    );
+
+    pepperi.events.intercept(
+      OCEvents.Button,
+      { FieldID: "TSAGeoLocationWithinHud" },
+      async (data, next, main) => {
+        console.log(
+          "withinHudClientActionsTester::button pressed! starting TSAGeoLocationWithinHud client actions interceptor"
+        );
+        let options = {
+          message: "hudWithGeo",
+          closeMessage: "Geo!",
+          delay: 0.5,
+          block: async (message) => {
+            await data.client?.captureGeoLocation({
+              accuracy: "High",
+              maxWaitTime: 3000,
+            });
+            await data.client?.captureGeoLocation({
+              accuracy: "Medium",
+              maxWaitTime: 2000,
+            });
+            await data.client?.captureGeoLocation({
+              accuracy: "Low",
+              maxWaitTime: 1500,
+            });
+            for (let i = 0; i < 15; i++) {
+              await new Promise((resolve) => setTimeout(resolve, 1500));
+              message(`In Progress ${i}`);
+            }
+          },
+        };
+        const hud = await data.client?.showHUD(options);
+
+        console.log(hud);
+        console.log(
+          "withinHudClientActionsTester::button pressed! finished TSAGeoLocationWithinHud client actions interceptor"
+        );
+        await next(main);
+      }
+    );
+  }
   //=========================client-actions implementation=======================
   if (clientActionsTestActive === true) {
     pepperi.events.intercept(
@@ -424,12 +542,12 @@ export async function load(configuration: any) {
         console.log(
           "clientActionsTester::button pressed! starting Dialog client actions interceptor"
         );
-        const alert = await pepperi.client.alert("alert", "putin is douchebag");
-        const confirm = await pepperi.client.confirm(
+        const alert = await data.client?.alert("alert", "putin is douchebag");
+        const confirm = await data.client?.confirm(
           "confirm",
           "putin is a huylo"
         );
-        const showDialog = await pepperi.client.showDialog({
+        const showDialog = await data.client?.showDialog({
           title: "showDialog",
           content: "putin pashul nahuy dibilnaya tvar",
           actions: [
@@ -469,7 +587,7 @@ export async function load(configuration: any) {
             // do stuff that takes a long time that needs a HUD
             // for example:
             // You can call any client action you want like this.
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 15; i++) {
               await new Promise((resolve) => setTimeout(resolve, 100));
               // you can update the HUD message while the HUD is showing
               //updateMessage(`In progress ${i}%`);
@@ -477,7 +595,7 @@ export async function load(configuration: any) {
           },
         };
 
-        const hud = await pepperi.client.showHUD(hudOptions);
+        const hud = await data.client?.showHUD(hudOptions);
         console.log(hud);
         await next(main);
       }
@@ -488,7 +606,7 @@ export async function load(configuration: any) {
       { FieldID: "TSAScanBarcode" },
       async (data, next, main) => {
         console.log("button pressed! on captureGeo");
-        const barcode = await pepperi.client.scanBarcode();
+        const barcode = await data.client?.scanBarcode();
         console.log(barcode);
         await next(main);
       }
@@ -501,15 +619,15 @@ export async function load(configuration: any) {
         console.log(
           "clientActionsTester::button pressed! starting captureGeo client actions interceptor"
         );
-        const captureHigh = await pepperi.client.captureGeoLocation({
+        const captureHigh = await data.client?.captureGeoLocation({
           accuracy: "High",
           maxWaitTime: 300,
         });
-        const captureMed = await pepperi.client.captureGeoLocation({
+        const captureMed = await data.client?.captureGeoLocation({
           accuracy: "Medium",
           maxWaitTime: 200,
         });
-        const captureLow = await pepperi.client.captureGeoLocation({
+        const captureLow = await data.client?.captureGeoLocation({
           accuracy: "Low",
           maxWaitTime: 400,
         });

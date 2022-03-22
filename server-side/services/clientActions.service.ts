@@ -63,7 +63,7 @@ class ClientActionsService {
     const parsedData = await this.parseActionDataForTest(action.Data);
     switch (Type) {
       case "Dialog":
-        map.set(parsedData.Data.Actions[0].key, action.Data);
+        map.set(parsedData.Data.Actions[0].Key, action.Data);
         break;
       case "GeoLocation":
         map.set(parsedActions.callback, action.Data);

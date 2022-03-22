@@ -451,7 +451,7 @@ export async function TransactionScopeTester(client: Client, request: Request) {
   //run in case sync is running before tests
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   //activate test flag on Load function
-  await service.setTestFlag(false, false, 0, true);
+  await service.setTestFlag(false, false, 0, true, false);
   //sync again to trigger the test interceptors
   const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
   //wait till sync is over
@@ -464,7 +464,7 @@ export async function TransactionScopeTester(client: Client, request: Request) {
     "TransactionScope"
   );
   //deactive adal tesk trigger
-  await service.setTestFlag(false, false, 0, false);
+  await service.setTestFlag(false, false, 0, false, false);
   const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(5000);
@@ -1127,13 +1127,13 @@ export async function clientActionsTester(client: Client, request: Request) {
                   "Failed on Actions[0] not being an object"
                 ).to.be.an("object").that.is.not.null.and.undefined;
                 expect(
-                  parsedActionData.Data.Actions[0].key,
+                  parsedActionData.Data.Actions[0].Key,
                   "Failed on Actions[0].key not being a string"
                 )
                   .to.be.an("string")
                   .that.has.lengthOf(36);
                 expect(
-                  parsedActionData.Data.Actions[0].title,
+                  parsedActionData.Data.Actions[0].Title,
                   "Failed on Actions[0].title having the wrong value/type"
                 )
                   .to.be.an("string")
@@ -1164,13 +1164,13 @@ export async function clientActionsTester(client: Client, request: Request) {
                   "Failed on Actions[0] not being an object"
                 ).to.be.an("object").that.is.not.null.and.undefined;
                 expect(
-                  parsedActionData.Data.Actions[0].key,
+                  parsedActionData.Data.Actions[0].Key,
                   "Failed on Actions[0].key not being a string"
                 )
                   .to.be.an("string")
                   .that.has.lengthOf(36);
                 expect(
-                  parsedActionData.Data.Actions[0].title,
+                  parsedActionData.Data.Actions[0].Title,
                   "Failed on Actions[0].title having the wrong value/type"
                 )
                   .to.be.an("string")
@@ -1180,13 +1180,13 @@ export async function clientActionsTester(client: Client, request: Request) {
                   "Failed on Actions[1] not being an object"
                 ).to.be.an("object").that.is.not.null.and.undefined;
                 expect(
-                  parsedActionData.Data.Actions[1].key,
+                  parsedActionData.Data.Actions[1].Key,
                   "Failed on Actions[1].key not being a string"
                 )
                   .to.be.an("string")
                   .that.has.lengthOf(36);
                 expect(
-                  parsedActionData.Data.Actions[1].title,
+                  parsedActionData.Data.Actions[1].Title,
                   "Failed on Actions[1].title having the wrong value/type"
                 )
                   .to.be.an("string")
@@ -1217,13 +1217,13 @@ export async function clientActionsTester(client: Client, request: Request) {
                   "Failed on Actions[0] not being an object"
                 ).to.be.an("object").that.is.not.null.and.undefined;
                 expect(
-                  parsedActionData.Data.Actions[0].key,
+                  parsedActionData.Data.Actions[0].Key,
                   "Failed on Actions[0].key not being a string"
                 )
                   .to.be.an("string")
                   .that.has.lengthOf(36);
                 expect(
-                  parsedActionData.Data.Actions[0].title,
+                  parsedActionData.Data.Actions[0].Title,
                   "Failed on Actions[0].title having the wrong value/type"
                 )
                   .to.be.an("string")
@@ -1233,13 +1233,13 @@ export async function clientActionsTester(client: Client, request: Request) {
                   "Failed on Actions[1] not being an object"
                 ).to.be.an("object").that.is.not.null.and.undefined;
                 expect(
-                  parsedActionData.Data.Actions[1].key,
+                  parsedActionData.Data.Actions[1].Key,
                   "Failed on Actions[1].key not being a string"
                 )
                   .to.be.an("string")
                   .that.has.lengthOf(36);
                 expect(
-                  parsedActionData.Data.Actions[1].title,
+                  parsedActionData.Data.Actions[1].Title,
                   "Failed on Actions[1].title having the wrong value/type"
                 )
                   .to.be.an("string")
@@ -1249,13 +1249,13 @@ export async function clientActionsTester(client: Client, request: Request) {
                   "Failed on Actions[2] not being an object"
                 ).to.be.an("object").that.is.not.null.and.undefined;
                 expect(
-                  parsedActionData.Data.Actions[2].key,
+                  parsedActionData.Data.Actions[2].Key,
                   "Failed on Actions[2].key not being a string"
                 )
                   .to.be.an("string")
                   .that.has.lengthOf(36);
                 expect(
-                  parsedActionData.Data.Actions[2].title,
+                  parsedActionData.Data.Actions[2].Title,
                   "Failed on Actions[2].title having the wrong value/type"
                 )
                   .to.be.an("string")
@@ -1301,9 +1301,9 @@ export async function clientActionsTester(client: Client, request: Request) {
                   .to.be.a("string")
                   .that.is.equal("Waiting....");
                 expect(
-                  parsedActionData.Data.CancelMessage,
-                  "Failed on returning the wrong state on HUD Show"
-                ).to.be.a("string"); //.that.is.equal("Press to close"); <---- need to correct with new version
+                  parsedActionData.Data.CloseMessage,
+                  "Failed on returning the wrong CloseMessage on HUD Show"
+                ).to.be.a("string").that.is.equal("Press to close");
                 expect(
                   parsedActionData.Data.CancelEventKey,
                   "Failed on cancel event key returning wrong value"
@@ -1519,4 +1519,75 @@ export async function negativeClientActionsTester(
     const parsedActionData: ClientAction = JSON.parse(Object.Value);
     const Type = parsedActionData.Type;
   }
+}
+
+export async function withinHudClientActionsTester(
+  client: Client,
+  request: Request
+) {
+  console.log("withinHudClientActionsTester::Test started");
+  //services setup and perconditions setup
+  const service = new MyService(client);
+  const clientActionsService = new ClientActionsService(client);
+  const { describe, it, expect, run } = Tester("My test");
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  //run in case sync is running before tests
+  //await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  //activate test flag on Load function
+  //await service.setTestFlag(false, false, 0, false, true);
+  //sync again to trigger the test interceptors
+  //const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
+  //wait till sync is over
+  //await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(5000);
+  const interceptorsNamesArr = ["TSAGeoLocationWithinHud","TSABarcodeWithinHud","TSAAlertWithinHud"];
+  //setting up global map for client actions test data
+  global["map"] = new Map<string, any>();
+  console.log(
+    "withinHudClientActionsTester::Triggering buttonPressed event to get client actions"
+  );
+  //looping on each field to trigger cpi-side related events -> these will trigger the corresponding client actions
+  for (const button of interceptorsNamesArr) {
+    console.log(`withinHudClientActionsTester::Started triggering ${button}`);
+    const options = {
+      EventKey: "TSAButtonPressed",
+      EventData: JSON.stringify({
+        FieldID: button,
+      }),
+    };
+    //calling recursive function - event loop to run all client actions in existant for the current interceptor
+    const clientAction = await clientActionsService.EmitClientEvent(
+      webAPIBaseURL,
+      accessToken,
+      options
+    );
+    console.log(`withinHudClientActionsTester::Finished triggering ${button}`);
+  }
+  // await service.setTestFlag(false, false, 0, false, false);
+  // const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  // await service.sleep(2000);
+  // await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  // await service.sleep(5000);
+  //getting actions back from global map after client actions responses (event loop finished)
+  const actions = global["map"] as Map<string, any>; //key - client action UUID,value - data
+  const arrActions: any[] = [];
+
+  //describe("Client Actions Automation withinHudClientActionsTester test", async () => {
+    for (const [key, value] of actions) {
+      const Object = JSON.parse(value);
+      const parsedActionData: ClientAction = JSON.parse(Object.Value);
+      const Type = parsedActionData.Type;
+      let Title = ""; //used to enter the accuracy/title into the test title - ok if not populated,some actions do not have Titles
+      arrActions.push(parsedActionData);
+      //filter test action according to type
+    }
+  //});
+
+  console.log("withinHudClientActionsTester::Test Finished");
+  const testResults = await run();
+  //return testResults;
+  return {
+    actions: arrActions,
+  };
 }
