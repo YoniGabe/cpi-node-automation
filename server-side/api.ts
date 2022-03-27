@@ -1061,7 +1061,7 @@ export async function clientActionsTester(client: Client, request: Request) {
   const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
   await service.sleep(2000);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
-  await service.sleep(5000);
+  await service.sleep(1000);
   //getting actions back from global map after client actions responses (event loop finished)
   const actions = global["map"] as Map<string, any>; //key - client action UUID,value - data
   //const arrActions: any[] = [];
@@ -1539,7 +1539,7 @@ export async function withinHudClientActionsTester(
   //sync again to trigger the test interceptors
   //const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
   //wait till sync is over
-  //await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(5000);
   const interceptorsNamesArr = ["TSAGeoLocationWithinHud","TSABarcodeWithinHud","TSAAlertWithinHud"];
   //setting up global map for client actions test data
