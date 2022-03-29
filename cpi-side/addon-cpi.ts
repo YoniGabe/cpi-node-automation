@@ -405,7 +405,8 @@ export async function load(configuration: any) {
   const InterceptorsTestActive = adalData.InterceptorsTestActive;
   const TrnScopeTestActive = adalData.TrnScopeTestActive;
   const clientActionsTestActive = adalData.clientActionsTestActive;
-  const withinHudClientActionsTest = false;
+  const withinHudClientActionsTestActive = adalData.clientActionsWithinHudTestActive;
+  //const clientActionsNegativeTestActive = adalData.clientActionsNegativeTestActive
 
   console.log("LoadTester::loadTestActive: " + loadTestActive);
   console.log("LoadTester::counter: " + loadTestCounter);
@@ -414,10 +415,10 @@ export async function load(configuration: any) {
   );
   console.log("TrnScopeTester::TrnScopeTestActive: " + TrnScopeTestActive);
   console.log(
-    "TrnScopeTester::clientActionsTestActive: " + clientActionsTestActive
+    "clientActionsTester::clientActionsTestActive: " + clientActionsTestActive
   );
 
-  if (withinHudClientActionsTest) {
+  if (withinHudClientActionsTestActive === true) {
     pepperi.events.intercept(
       OCEvents.Button,
       { FieldID: "TSAAlertWithinHud" },
@@ -425,16 +426,12 @@ export async function load(configuration: any) {
         console.log(
           "withinHudClientActionsTester::button pressed! starting Dialog client actions interceptor"
         );
-        await new Promise((resolve) => setTimeout(resolve, 2000));
         let options = {
-          message: "hudWithAlert",
-          closeMessage: "Alert",
-          delay: 2,
+          message: "withinHudTest",
+          closeMessage: "HUD!!!",
+          delay: 0.2,
           block: async (message) => {
-            await data.client?.alert(
-              "alertWithinHud",
-              "putin is douchebag yayaya"
-            );
+            await data.client?.alert("alertWithinHud", "<p>Slava Ukraine<p>");
             const confirm = await data.client?.confirm(
               "confirmWithinHud",
               "putin is a huylo yayaya"
@@ -448,9 +445,9 @@ export async function load(configuration: any) {
                 { title: "putin is a boomeryaya", value: 3 },
               ],
             });
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < 10; i++) {
               await new Promise((resolve) => setTimeout(resolve, 100));
-              message(`In Progress ${i}`);
+              message(`withinHudTest`);
             }
           },
         };
@@ -472,14 +469,14 @@ export async function load(configuration: any) {
           "withinHudClientActionsTester::button pressed! starting barcodeWithinHud client actions interceptor"
         );
         let options = {
-          message: "hudWithBarCode",
-          closeMessage: "barcode!",
+          message: "withinHudTest",
+          closeMessage: "problematicHud",
           delay: 2,
           block: async (message) => {
             await data.client?.scanBarcode();
-            for (let i = 0; i < 15; i++) {
-              await new Promise((resolve) => setTimeout(resolve, 500));
-              message(`In Progress ${i}`);
+            for (let i = 0; i < 12; i++) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+              message(`withinHudTest`);
             }
           },
         };
@@ -501,9 +498,9 @@ export async function load(configuration: any) {
           "withinHudClientActionsTester::button pressed! starting TSAGeoLocationWithinHud client actions interceptor"
         );
         let options = {
-          message: "hudWithGeo",
-          closeMessage: "Geo!",
-          delay: 0.5,
+          message: "withinHudTest",
+          closeMessage: "HUD!!!",
+          delay: 0.2,
           block: async (message) => {
             await data.client?.captureGeoLocation({
               accuracy: "High",
@@ -517,9 +514,9 @@ export async function load(configuration: any) {
               accuracy: "Low",
               maxWaitTime: 1500,
             });
-            for (let i = 0; i < 15; i++) {
-              await new Promise((resolve) => setTimeout(resolve, 1500));
-              message(`In Progress ${i}`);
+            for (let i = 0; i < 9; i++) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+              message(`withinHudTest`);
             }
           },
         };
@@ -528,6 +525,121 @@ export async function load(configuration: any) {
         console.log(hud);
         console.log(
           "withinHudClientActionsTester::button pressed! finished TSAGeoLocationWithinHud client actions interceptor"
+        );
+        await next(main);
+      }
+    );
+
+    pepperi.events.intercept(
+      OCEvents.Button,
+      { FieldID: "TSAWithinMixedHudFirst" },
+      async (data, next, main) => {
+        console.log(
+          "withinHudClientActionsTester::button pressed! starting WithinMixedHudFirst client actions interceptor"
+        );
+        let options = {
+          message: "withinHudTest",
+          closeMessage: "HUD!!!",
+          delay: 0.75,
+          block: async (message) => {
+            await data.client?.captureGeoLocation({
+              accuracy: "High",
+              maxWaitTime: 3000,
+            });
+            await data.client?.scanBarcode();
+            await data.client?.confirm(
+              "confirmWithinHud",
+              "putin is a huylo yayaya"
+            );
+            await data.client?.captureGeoLocation({
+              accuracy: "Medium",
+              maxWaitTime: 2000,
+            });
+            await data.client?.alert("alertWithinHud", "<p>Slava Ukraine<p>");
+            await data.client?.captureGeoLocation({
+              accuracy: "Low",
+              maxWaitTime: 1500,
+            });
+            await data.client?.showDialog({
+              title: "showDialogWithinHud",
+              content: "putin pashul nahuy dibilnaya tvar yaya",
+              actions: [
+                { title: "not cool putin yaya", value: 1 },
+                { title: "really not cool putin yaya", value: 2 },
+                { title: "putin is a boomeryaya", value: 3 },
+              ],
+            });
+
+            for (let i = 0; i < 8; i++) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+              message(`withinHudTest`);
+            }
+          },
+        };
+        const hud = await data.client?.showHUD(options);
+
+        console.log(hud);
+        console.log(
+          "withinHudClientActionsTester::button pressed! finished WithinMixedHudFirst client actions interceptor"
+        );
+        await next(main);
+      }
+    );
+
+    pepperi.events.intercept(
+      OCEvents.Button,
+      { FieldID: "TSAWithinMixedHudSecond" },
+      async (data, next, main) => {
+        console.log(
+          "withinHudClientActionsTester::button pressed! starting WithinMixedHudSecond client actions interceptor"
+        );
+        let options = {
+          message: "withinHudTest",
+          closeMessage: "HUD!!!",
+          delay: 0.25,
+          block: async (message) => {
+            await data.client?.scanBarcode();
+            await data.client?.captureGeoLocation({
+              accuracy: "Low",
+              maxWaitTime: 1500,
+            });
+            await data.client?.scanBarcode();
+            await data.client?.confirm(
+              "confirmWithinHud",
+              "putin is a huylo yayaya"
+            );
+            await data.client?.captureGeoLocation({
+              accuracy: "High",
+              maxWaitTime: 3000,
+            });
+            await data.client?.alert("alertWithinHud", "<p>Slava Ukraine<p>");
+            await data.client?.scanBarcode();
+            await data.client?.captureGeoLocation({
+              accuracy: "Medium",
+              maxWaitTime: 2000,
+            });
+            await data.client?.showDialog({
+              title: "showDialogWithinHud",
+              content: "putin pashul nahuy dibilnaya tvar yaya",
+              actions: [
+                { title: "not cool putin yaya", value: 1 },
+                { title: "really not cool putin yaya", value: 2 },
+                { title: "putin is a boomeryaya", value: 3 },
+              ],
+            });
+            await data.client?.scanBarcode();
+
+            for (let i = 0; i < 12; i++) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+              message(`withinHudTest`);
+            }
+          },
+        };
+        const hud = await data.client?.showHUD(options);
+
+        console.log(hud);
+        console.log(
+          "withinHudClientActionsTester::button pressed! finished WithinMixedHudSecond client actions interceptor"
         );
         await next(main);
       }

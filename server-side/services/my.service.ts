@@ -8,6 +8,16 @@ import fetch from "node-fetch";
 import jwtDecode from "jwt-decode";
 import ClientApi from "@pepperi-addons/client-api";
 
+export interface testFlagOptions {
+  TestRunCounter?: number;
+  TestActive?: boolean;
+  InterceptorsTestActive?: boolean;
+  TrnScopeTestActive?: boolean;
+  clientActionsTestActive?: boolean;
+  clientActionsWithinHudTestActive?: boolean;
+  clientActionsNegativeTestActive?: boolean;
+}
+
 class MyService {
   papiClient: PapiClient;
 
@@ -404,12 +414,12 @@ class MyService {
     return updateUDTLineRes;
   }
 
-  async setTestFlag(
+  async setTestFlag_OLD(
     LoadFlag: boolean,
     interceptorsFlag: boolean,
     counter?: number,
     TrnScopeFlag?: boolean,
-    clientActionsFlag? : boolean
+    clientActionsFlag?: boolean
   ) {
     const body = {
       Key: "testKey1",
@@ -426,7 +436,43 @@ class MyService {
       TestActive: LoadFlag,
       InterceptorsTestActive: interceptorsFlag,
       TrnScopeTestActive: TrnScopeFlag ? TrnScopeFlag : false,
-      clientActionsTestActive: clientActionsFlag ? clientActionsFlag : false
+      clientActionsTestActive: clientActionsFlag ? clientActionsFlag : false,
+    };
+
+    const upsert = await this.upsertToADAL("Load_Test", body);
+
+    return upsert;
+  }
+
+  async setTestFlag(options: testFlagOptions) {
+    const body = {
+      Key: "testKey1",
+      Hidden: false,
+      Name: "Load_Test",
+      DateTime: new Date().toISOString(),
+      object: {
+        object: {},
+        String: "String",
+        Object: {},
+        Array: [],
+      },
+      TestRunCounter: options.TestRunCounter ? options.TestRunCounter : 0,
+      TestActive: options.TestActive ? options.TestActive : false,
+      InterceptorsTestActive: options.InterceptorsTestActive
+        ? options.InterceptorsTestActive
+        : false,
+      TrnScopeTestActive: options.TrnScopeTestActive
+        ? options.TrnScopeTestActive
+        : false,
+      clientActionsTestActive: options.clientActionsTestActive
+        ? options.clientActionsTestActive
+        : false,
+      clientActionsWithinHudTestActive: options.clientActionsWithinHudTestActive
+        ? options.clientActionsWithinHudTestActive
+        : false,
+      clientActionsNegativeTestActive: options.clientActionsNegativeTestActive
+        ? options.clientActionsNegativeTestActive
+        : false,
     };
 
     const upsert = await this.upsertToADAL("Load_Test", body);
@@ -629,7 +675,6 @@ class MyService {
 
     return apiRegion;
   }
-  
 }
 
 export default MyService;

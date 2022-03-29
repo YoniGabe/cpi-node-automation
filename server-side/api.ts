@@ -33,16 +33,25 @@ export async function InitiateLoad(client: Client, request: Request) {
   //run in case sync is running before tests
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   //set test flag to On
-  const flagOn1 = await service.setTestFlag(true, false, 0); // activates test
+  const flagOn1 = await service.setTestFlag({
+    TestRunCounter: 0,
+    TestActive: true,
+  }); // activates test
   await service.sleep(5000);
   const firstSync = await service.initSync(accessToken, webAPIBaseURL);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
-  const flagOn2 = await service.setTestFlag(true, false, 1); // activates second iteration
+  const flagOn2 = await service.setTestFlag({
+    TestRunCounter: 1,
+    TestActive: true,
+  }); // activates second iteration
   await service.sleep(5000);
   const secondSync = await service.initSync(accessToken, webAPIBaseURL);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   //set test flag to Off
-  const flagOff = await service.setTestFlag(false, false, 0); // deactivates test
+  const flagOff = await service.setTestFlag({
+    TestRunCounter: 0,
+    TestActive: false,
+  }); // deactivates test
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(10000);
   //need to add mocha and UDT get
@@ -203,7 +212,7 @@ export async function InterceptorTester(client: Client, request: Request) {
   const atdID = 305697;
   const { describe, it, expect, run } = Tester("My test");
   const isLocal = false;
-  await service.setTestFlag(false, true, 0);
+  await service.setTestFlag({ InterceptorsTestActive: true });
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   if (isLocal) {
@@ -249,7 +258,7 @@ export async function InterceptorTester(client: Client, request: Request) {
     webAPIBaseURL,
     "Recalculate"
   );
-  await service.setTestFlag(false, false, 0);
+  await service.setTestFlag({ InterceptorsTestActive: false });
   const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(10000);
@@ -451,7 +460,7 @@ export async function TransactionScopeTester(client: Client, request: Request) {
   //run in case sync is running before tests
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   //activate test flag on Load function
-  await service.setTestFlag(false, false, 0, true, false);
+  await service.setTestFlag({ TrnScopeTestActive: true });
   //sync again to trigger the test interceptors
   const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
   //wait till sync is over
@@ -464,7 +473,7 @@ export async function TransactionScopeTester(client: Client, request: Request) {
     "TransactionScope"
   );
   //deactive adal tesk trigger
-  await service.setTestFlag(false, false, 0, false, false);
+  await service.setTestFlag({ TrnScopeTestActive: false });
   const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(5000);
@@ -1023,7 +1032,7 @@ export async function clientActionsTester(client: Client, request: Request) {
   //run in case sync is running before tests
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   //activate test flag on Load function
-  await service.setTestFlag(false, false, 0, false, true);
+  await service.setTestFlag({ clientActionsTestActive: true });
   //sync again to trigger the test interceptors
   const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
   //wait till sync is over
@@ -1057,7 +1066,7 @@ export async function clientActionsTester(client: Client, request: Request) {
     );
     console.log(`clientActionsTester::Finished triggering ${button}`);
   }
-  await service.setTestFlag(false, false, 0, false, false);
+  await service.setTestFlag({ clientActionsTestActive: false });
   const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
   await service.sleep(2000);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
@@ -1303,7 +1312,9 @@ export async function clientActionsTester(client: Client, request: Request) {
                 expect(
                   parsedActionData.Data.CloseMessage,
                   "Failed on returning the wrong CloseMessage on HUD Show"
-                ).to.be.a("string").that.is.equal("Press to close");
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Press to close");
                 expect(
                   parsedActionData.Data.CancelEventKey,
                   "Failed on cancel event key returning wrong value"
@@ -1460,7 +1471,7 @@ export async function clientActionsTester(client: Client, request: Request) {
   //   actions: arrActions,
   // };
 }
-
+//in the works
 export async function negativeClientActionsTester(
   client: Client,
   request: Request
@@ -1520,7 +1531,7 @@ export async function negativeClientActionsTester(
     const Type = parsedActionData.Type;
   }
 }
-
+//need to formalize with relevant trigger from ADAL --
 export async function withinHudClientActionsTester(
   client: Client,
   request: Request
@@ -1533,15 +1544,21 @@ export async function withinHudClientActionsTester(
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   //run in case sync is running before tests
-  //await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   //activate test flag on Load function
-  //await service.setTestFlag(false, false, 0, false, true);
+  await service.setTestFlag({ clientActionsWithinHudTestActive: true });
   //sync again to trigger the test interceptors
-  //const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
+  const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
   //wait till sync is over
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(5000);
-  const interceptorsNamesArr = ["TSAGeoLocationWithinHud","TSABarcodeWithinHud","TSAAlertWithinHud"];
+  const interceptorsNamesArr = [
+    "TSAGeoLocationWithinHud",
+    "TSABarcodeWithinHud",
+    "TSAAlertWithinHud",
+    "TSAWithinMixedHudFirst",
+    "TSAWithinMixedHudSecond",
+  ];
   //setting up global map for client actions test data
   global["map"] = new Map<string, any>();
   console.log(
@@ -1564,30 +1581,422 @@ export async function withinHudClientActionsTester(
     );
     console.log(`withinHudClientActionsTester::Finished triggering ${button}`);
   }
-  // await service.setTestFlag(false, false, 0, false, false);
-  // const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
-  // await service.sleep(2000);
-  // await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
-  // await service.sleep(5000);
+  await service.setTestFlag({ clientActionsWithinHudTestActive: false });
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.sleep(2000);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(5000);
   //getting actions back from global map after client actions responses (event loop finished)
   const actions = global["map"] as Map<string, any>; //key - client action UUID,value - data
-  const arrActions: any[] = [];
+  //const arrActions: any[] = [];
 
-  //describe("Client Actions Automation withinHudClientActionsTester test", async () => {
+  describe("Client Actions Automation withinHudClientActionsTester test", async () => {
     for (const [key, value] of actions) {
       const Object = JSON.parse(value);
       const parsedActionData: ClientAction = JSON.parse(Object.Value);
       const Type = parsedActionData.Type;
       let Title = ""; //used to enter the accuracy/title into the test title - ok if not populated,some actions do not have Titles
-      arrActions.push(parsedActionData);
+      //arrActions.push(parsedActionData);
       //filter test action according to type
+      switch (Type) {
+        //dialog client actions functions test
+        case "Dialog":
+          Title = parsedActionData.Data.Title; //getting filter to test according to Title
+          it(`withinHudClientActionsTester - ${Type} - ${Title}`, async () => {
+            //general tests for all action types
+            expect(
+              parsedActionData,
+              "Failed on actions data returning with the wrong type"
+            ).to.be.an("object").that.is.not.undefined.and.null;
+            expect(
+              parsedActionData.Type,
+              "Failed on Dialog client action returning the wrong type"
+            )
+              .to.be.a("string")
+              .that.is.equal("Dialog");
+            expect(
+              parsedActionData.callback,
+              "Failed on callback returning wrong value/type"
+            )
+              .to.be.a("string")
+              .that.has.lengthOf(36);
+            //filter actions tests accodring to subtype as listed below
+            switch (Title) {
+              //alert test
+              case "alertWithinHud":
+                expect(
+                  parsedActionData.Data.IsHtml,
+                  "Failed on isHtml returning wrong value/type"
+                ).to.be.a("boolean").that.is.true;
+                expect(
+                  parsedActionData.Data.Title,
+                  "Failed on title returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("alertWithinHud");
+                expect(
+                  parsedActionData.Data.Content,
+                  "Failed on content returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("<p>Slava Ukraine<p>");
+                expect(
+                  parsedActionData.Data.Actions,
+                  "Failed on actions not returning as an array"
+                )
+                  .to.be.an("array")
+                  .with.lengthOf(1);
+                expect(
+                  parsedActionData.Data.Actions[0],
+                  "Failed on Actions[0] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[0].Key,
+                  "Failed on Actions[0].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[0].Title,
+                  "Failed on Actions[0].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("Ok");
+                break;
+              //confirm test
+              case "confirmWithinHud":
+                expect(
+                  parsedActionData.Data.IsHtml,
+                  "Failed on isHtml returning wrong value/type"
+                ).to.be.a("boolean").that.is.false;
+                expect(
+                  parsedActionData.Data.Title,
+                  "Failed on title returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("confirmWithinHud");
+                expect(
+                  parsedActionData.Data.Content,
+                  "Failed on content returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("putin is a huylo yayaya");
+                expect(
+                  parsedActionData.Data.Actions,
+                  "Failed on actions not returning as an array"
+                )
+                  .to.be.an("array")
+                  .with.lengthOf(2);
+                expect(
+                  parsedActionData.Data.Actions[0],
+                  "Failed on Actions[0] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[0].Key,
+                  "Failed on Actions[0].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[0].Title,
+                  "Failed on Actions[0].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("Ok");
+                expect(
+                  parsedActionData.Data.Actions[1],
+                  "Failed on Actions[1] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[1].Key,
+                  "Failed on Actions[1].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[1].Title,
+                  "Failed on Actions[1].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("Cancel");
+                break;
+              //showDialog test
+              case "showDialogWithinHud":
+                expect(
+                  parsedActionData.Data.IsHtml,
+                  "Failed on isHtml returning wrong value/type"
+                ).to.be.a("boolean").that.is.false;
+                expect(
+                  parsedActionData.Data.Title,
+                  "Failed on title returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("showDialogWithinHud");
+                expect(
+                  parsedActionData.Data.Content,
+                  "Failed on content returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("putin pashul nahuy dibilnaya tvar yaya");
+                expect(
+                  parsedActionData.Data.Actions,
+                  "Failed on actions not returning as an array"
+                )
+                  .to.be.an("array")
+                  .with.lengthOf(3);
+                expect(
+                  parsedActionData.Data.Actions[0],
+                  "Failed on Actions[0] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[0].Key,
+                  "Failed on Actions[0].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[0].Title,
+                  "Failed on Actions[0].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("not cool putin yaya");
+                expect(
+                  parsedActionData.Data.Actions[1],
+                  "Failed on Actions[1] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[1].Key,
+                  "Failed on Actions[1].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[1].Title,
+                  "Failed on Actions[1].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("really not cool putin yaya");
+                expect(
+                  parsedActionData.Data.Actions[2],
+                  "Failed on Actions[2] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[2].Key,
+                  "Failed on Actions[2].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[2].Title,
+                  "Failed on Actions[2].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("putin is a boomeryaya");
+                break;
+
+              default:
+                break;
+            }
+          });
+          break;
+        //hud client actions functions test
+        case "HUD":
+          Title = parsedActionData.Data.State; //getting filter to test according to state
+          const HUDKey = global["HUDKey"].toUpperCase() as string;
+          it(`withinHudClientActionsTester - ${Type} - ${Title}`, async () => {
+            expect(
+              parsedActionData,
+              "Failed on actions data returning with the wrong type"
+            ).to.be.an("object").that.is.not.undefined.and.null;
+            expect(
+              parsedActionData.Type,
+              "Failed on HUD client action type returning the wrong type"
+            )
+              .to.be.a("string")
+              .that.is.equal("HUD");
+            expect(
+              parsedActionData.callback,
+              "Failed on HUD client action callback returning the wrong type"
+            )
+              .to.be.a("string")
+              .that.has.lengthOf(36);
+            switch (Title) {
+              case "Show":
+                expect(
+                  parsedActionData.Data.State,
+                  "Failed on returning the wrong state on HUD Show"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Show");
+                expect(
+                  parsedActionData.Data.Message,
+                  "Failed on returning the wrong message on HUD Show"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("withinHudTest");
+                expect(
+                  parsedActionData.Data.CloseMessage,
+                  "Failed on returning the wrong CloseMessage on HUD Show"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("HUD!!!");
+                expect(
+                  parsedActionData.Data.CancelEventKey,
+                  "Failed on cancel event key returning wrong value"
+                )
+                  .to.be.a("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Interval,
+                  "Failed on wrong interval returning"
+                )
+                  .to.be.a("number")
+                  .that.is.above(0);
+                break;
+              case "Poll":
+                expect(
+                  parsedActionData.Data.State,
+                  "Failed on returning the wrong state on HUD Poll"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Poll");
+                expect(
+                  parsedActionData.Data.Interval,
+                  "Failed on wrong interval returning"
+                )
+                  .to.be.a("number")
+                  .that.is.above(0);
+                expect(
+                  parsedActionData.Data.HUDKey,
+                  "Failed on hud returning wrong HUDKey"
+                )
+                  .to.be.a("string")
+                  .that.is.equal(HUDKey);
+                expect(
+                  parsedActionData.Data.Message,
+                  "Failed on poll returning wrong message"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("withinHudTest");
+                break;
+              case "Hide":
+                console.log(`withinHudTe$ter:: object for test:`);
+                console.log(parsedActionData);
+                expect(
+                  parsedActionData.Data.State,
+                  "Failed on returning the wrong state on HUD hide"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Hide");
+                expect(
+                  parsedActionData.Data.HUDKey,
+                  "Failed on hud returning wrong HUDKey"
+                )
+                  .to.be.a("string")
+                  .that.is.equal(HUDKey);
+                break;
+              default:
+                break;
+            }
+          });
+          break;
+        //barcode client actions functions test
+        case "Barcode":
+          it(`withinHudClientActionsTester - ${Type}`, async () => {
+            expect(
+              parsedActionData,
+              "Failed on actions data returning with the wrong type"
+            ).to.be.an("object").that.is.not.undefined.and.null;
+            expect(
+              parsedActionData.Type,
+              "Failed on Barcode client action returning the wrong type"
+            )
+              .to.be.a("string")
+              .that.is.equal("Barcode");
+            expect(
+              parsedActionData.callback,
+              "Failed on callback returning wrong value/type"
+            )
+              .to.be.a("string")
+              .that.has.lengthOf(36);
+          });
+          break;
+        //hud client actions functions test
+        case "GeoLocation":
+          Title = parsedActionData.Data.Accuracy; //getting filter to test according to Accuracy
+          it(`Client Actions Automation - ${Type} - ${Title}`, async () => {
+            expect(
+              parsedActionData,
+              "Failed on actions data returning with the wrong type"
+            ).to.be.an("object").that.is.not.undefined.and.null;
+            expect(
+              parsedActionData.Type,
+              "Failed on CaptureGeo client action returning the wrong type"
+            )
+              .to.be.a("string")
+              .that.is.equal("GeoLocation");
+            expect(
+              parsedActionData.callback,
+              "Failed on callback returning wrong value/type"
+            )
+              .to.be.a("string")
+              .that.has.lengthOf(36);
+            switch (Title) {
+              case "Low":
+                expect(
+                  parsedActionData.Data.Accuracy,
+                  "Failed on Accuracy returning wrong value"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Low");
+                expect(
+                  parsedActionData.Data.MaxWaitTime,
+                  "Failed on MaxWaitTime returning the wrong value"
+                )
+                  .to.be.a("number")
+                  .that.is.equal(1500);
+                break;
+              case "Medium":
+                expect(
+                  parsedActionData.Data.Accuracy,
+                  "Failed on Accuracy returning wrong value"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Medium");
+                expect(
+                  parsedActionData.Data.MaxWaitTime,
+                  "Failed on MaxWaitTime returning the wrong value"
+                )
+                  .to.be.a("number")
+                  .that.is.equal(2000);
+                break;
+              case "High":
+                expect(
+                  parsedActionData.Data.Accuracy,
+                  "Failed on Accuracy returning wrong value"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("High");
+                expect(
+                  parsedActionData.Data.MaxWaitTime,
+                  "Failed on MaxWaitTime returning the wrong value"
+                )
+                  .to.be.a("number")
+                  .that.is.equal(3000);
+                break;
+            }
+          });
+          break;
+        default:
+          break;
+      }
     }
-  //});
+  });
 
   console.log("withinHudClientActionsTester::Test Finished");
   const testResults = await run();
-  //return testResults;
-  return {
-    actions: arrActions,
-  };
+  return testResults;
+  // return {
+  //   actions: arrActions,
+  // };
 }
