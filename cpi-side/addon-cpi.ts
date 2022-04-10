@@ -470,11 +470,11 @@ export async function load(configuration: any) {
         );
         let options = {
           message: "withinHudTest",
-          closeMessage: "problematicHud",
+          closeMessage: "HUD!!!",
           delay: 2,
           block: async (message) => {
             await data.client?.scanBarcode();
-            for (let i = 0; i < 12; i++) {
+            for (let i = 0; i < 20; i++) {
               await new Promise((resolve) => setTimeout(resolve, 100));
               message(`withinHudTest`);
             }
