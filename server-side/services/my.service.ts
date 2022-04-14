@@ -142,7 +142,7 @@ class MyService {
     });
     return pepperi;
   }
-
+  //in use --> using privateUserAccount 
   async createTransaction(
     webAPIBaseURL: string,
     accessToken: string,
@@ -151,7 +151,7 @@ class MyService {
   ) {
     const userUUID = jwtDecode(this.client.OAuthAccessToken)[
       "pepperi.useruuid"
-    ];
+    ]; // no changes needed here it uses PrivateUserAccount which is fine for this test
     const account = await this.papiClient.get(
       "/accounts/ExternalID/" + userUUID
     );

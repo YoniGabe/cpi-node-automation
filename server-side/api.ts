@@ -9,6 +9,9 @@ import ScriptService, {
 import ClientActionsService, {
   ClientAction,
 } from "./services/clientActions.service";
+import NotificationService, {
+  Notification,
+} from "./services/notifications.service";
 
 // add functions here
 // this function will run on the 'api/foo' endpoint
@@ -147,6 +150,7 @@ export async function AddonAPITester(client: Client, request: Request) {
 
   describe("AddonAPI and version automation test", async () => {
     gottenVersions.forEach(async (addonData) => {
+      // need to refactor to regular for
       const addonName = addonData.addonName;
       const installedVersion = addonData.installedVersion;
       const latestVersion = addonData.latestVersion;
@@ -209,7 +213,7 @@ export async function AddonAPITester(client: Client, request: Request) {
 /** Interceptors test */
 export async function InterceptorTester(client: Client, request: Request) {
   const service = new MyService(client);
-  const atdID = 305697;
+  const atdID = 305697; //can be solved with getActivities.ATDID
   const { describe, it, expect, run } = Tester("My test");
   const isLocal = false;
   await service.setTestFlag({ InterceptorsTestActive: true });
@@ -1531,7 +1535,7 @@ export async function negativeClientActionsTester(
     const Type = parsedActionData.Type;
   }
 }
-//need to formalize with relevant trigger from ADAL --
+//formalized
 export async function withinHudClientActionsTester(
   client: Client,
   request: Request
@@ -1999,4 +2003,27 @@ export async function withinHudClientActionsTester(
   // return {
   //   actions: arrActions,
   // };
+}
+//=====================Notifications==========================================
+export async function notificationsPositive(client: Client, request: Request) {
+  const service = new MyService(client);
+  const notificationService = new NotificationService(client);
+  const { describe, it, expect, run } = Tester("My test");
+
+  const notificationObj =
+    await notificationService.generateRandomNotification();
+
+  const notificationPost = await notificationService.postNotifications(
+    notificationObj
+  );
+  console.log(notificationPost);
+  //can test the post object agaist the original object;
+  const notificationKey = notificationPost.Key as string;
+  console.log(notificationKey);
+  //get by key currently not working BLAT
+  const notificationGet = await notificationService.getNotificationByKey(
+    notificationKey
+  );
+  console.log(notificationGet);
+  return { Post: notificationPost, Get: notificationGet };
 }

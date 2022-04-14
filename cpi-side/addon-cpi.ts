@@ -20,6 +20,7 @@ import DataService, {
   addonUUID,
   adalTableName,
 } from "./services/data.service";
+//jwt - https://www.npmjs.com/package/jwt-decode
 
 //**Test data variables */
 let accountGeoIndex: number;
@@ -1052,11 +1053,14 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
     //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
   });
 
+  //const JWT = await pepperi.auth.getAccessToken();
+  //const datacenter = jwt_decode(JWT)["datacenter"];  --> should resolve the issue differentiating between environments
+
   let formatterUS = new Intl.NumberFormat("en-IN", {
     minimumFractionDigits: 6, // (this suffices for whole numbers, but will print 2500.10 as $2,500.100000)
   });
 
-  const uiHomePage = await pepperi.UIPage.Create("Home");
+  const uiHomePage = await pepperi.UIPage.Create("Home"); 
   await uiHomePage.rebuild();
   let uiObjectHP = uiHomePage.actions;
 
@@ -1100,7 +1104,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
   const lineUUID = lineRes.result[0].id;
 
   let itemRes = await pepperi.api.items.get({
-    key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3
+    key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3 // will setup item per environment
     fields: ["InternalID", "ExternalID", "UUID"],
   });
 
@@ -1114,7 +1118,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
   const cnctUUID = cnctRes.id;
 
   let itemResTypeDef = await pepperi.api.items.get({
-    key: { UUID: "E05D2C82-B236-4075-9587-7C52A3CB6021" }, //CG2
+    key: { UUID: "E05D2C82-B236-4075-9587-7C52A3CB6021" }, //CG2 // will setup item per environment
     fields: ["InternalID", "ExternalID", "UUID"],
   });
 
@@ -1145,7 +1149,7 @@ router.use("/automation-tests/:v/tests", async (req, res) => {
   let cnctDataObject = await pepperi.DataObject.Get("contacts", cnctUUID);
 
   let userRes = await pepperi.api.users.get({
-    key: { UUID: "6ad107c0-2c7f-4856-9c1f-fde5318fa6b8" },
+    key: { UUID: "6ad107c0-2c7f-4856-9c1f-fde5318fa6b8" }, // will setup user by environment
     fields: ["InternalID", "ExternalID", "UUID"],
   });
 
@@ -10723,7 +10727,7 @@ router.get("/TransactionScope", async (req, res, next) => {
   const preLoadTrnScope = DataObject?.transactionScope; //-> suppose to be undefined -> if OC not loaded should return undefined
 
   let itemRes = await pepperi.api.items.get({
-    key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3
+    key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3 // item per  environment
     fields: ["InternalID", "ExternalID", "UUID"],
   });
   //isInTransition -> if its in a middle of transition
