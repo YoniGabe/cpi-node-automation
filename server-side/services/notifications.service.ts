@@ -1,6 +1,5 @@
 import { PapiClient, FindOptions } from "@pepperi-addons/papi-sdk";
 import { Client } from "@pepperi-addons/debug-server";
-import fetch from "node-fetch";
 
 export interface Notification {
   ModificationDateTime?: string;
@@ -12,6 +11,12 @@ export interface Notification {
   CreatorUUID?: string;
   UserUUID: string;
   Key?: string;
+}
+
+export interface bulkNotification {
+  EmailList: string[];
+  Title: string;
+  Body: string;
 }
 
 class NotificationService {
@@ -54,14 +59,16 @@ class NotificationService {
     const res = await this.papiClient.get(url);
     return res;
   }
-
+  //not working at the moment
   async getNotificationByKey(key: string): Promise<Notification> {
     const res = await this.papiClient.get(`/notifications?where=Key='${key}'`);
     return res;
   }
 
   async generateRandomNotification(): Promise<Notification> {
-    const user = await this.papiClient.users.find({ where: `ExternalID='TEST'` });
+    const user = await this.papiClient.users.find({
+      where: `ExternalID='TEST'`, // a user with this ID should be created on addons intall
+    });
     const userUUID = user[0].UUID as string;
     return {
       UserUUID: userUUID,
@@ -76,44 +83,41 @@ class NotificationService {
       Read: false,
     } as Notification;
   }
+  //next version
+  async generateRandomBulkNotifications(): Promise<bulkNotification> {
+    const users = await this.papiClient.users.find({
+      where: `Hidden=false`,
+    });
+    const userEmailArr: string[] = [];
+    for (const user of users) {
+      userEmailArr.push(user.Email as string);
+    }
+    return {
+      EmailList: userEmailArr,
+      Title:
+        Math.random() > 0.5
+          ? "Bulk Tony stark is awesome"
+          : "Bulk Iron man is awesome",
+      Body:
+        Math.random() > 0.5
+          ? "Hulk-Buster or Silver centurion?"
+          : "Nano armor ofcourse",
+    } as bulkNotification;
+  }
+  //temp to replace getByKey
+  async getNotificationByKeyTemp(key: string): Promise<Notification> {
+    const allNotifications = await this.getAllNotifications();
+    let res = allNotifications.filter(
+      (notification) => notification.Key === key
+    );
+    return res[0];
+  }
 }
 
 export default NotificationService;
 
-// Get:
-
-// /addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/notifications
-
-// Post:
-
-// Upsert Notification:
-
-// /addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/notifications
-
-// {
-
-// "UserUUID": "123",
-
-// "CreatorUUID": "Noam",
-
-// "Title": "Test",
-
-// "Body": "Hello World!",
-
-// "Read": false,
-
-// }
-
-// Mark As Read
-
-// /addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/mark_as_read
-
-// {
-
-// "Keys": [
-
-// "2ae4a108-7575-47e9-9a33-18345e1cdc3e"
-
-// ]
-
-// }
+//uuid - email
+//011dfeb3-7dea-407e-b948-e6b6af38c622 - notifications2@pepperitest.com
+//5d0f6008-bfc4-4c73-8d64-e164bab730ef - notifications3@pepperitest.com
+//6ddec9b8-1b2d-4333-a400-47874c60761b - laboris5490.amet@pepperitest.com
+//81d159cf-716d-4e5a-8828-b4938902f726 - notifications@pepperitest.com

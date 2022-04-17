@@ -2006,9 +2006,11 @@ export async function withinHudClientActionsTester(
 }
 //=====================Notifications==========================================
 export async function notificationsPositive(client: Client, request: Request) {
+  console.log(`notificationsPositive::Test Started`);
   const service = new MyService(client);
   const notificationService = new NotificationService(client);
   const { describe, it, expect, run } = Tester("My test");
+  console.log(`notificationsPositive::Gotten services,initiating requests`);
 
   const notificationObj =
     await notificationService.generateRandomNotification();
@@ -2016,14 +2018,265 @@ export async function notificationsPositive(client: Client, request: Request) {
   const notificationPost = await notificationService.postNotifications(
     notificationObj
   );
-  console.log(notificationPost);
-  //can test the post object agaist the original object;
+  //can test the post object against the original object;
   const notificationKey = notificationPost.Key as string;
-  console.log(notificationKey);
   //get by key currently not working BLAT
-  const notificationGet = await notificationService.getNotificationByKey(
+  // const notificationGet = await notificationService.getNotificationByKey(
+  //   notificationKey
+  // );
+  //temp function to implement the filte that is supposed to be done by Noam
+  const notificationGet = await notificationService.getNotificationByKeyTemp(
     notificationKey
   );
-  console.log(notificationGet);
-  return { Post: notificationPost, Get: notificationGet };
+  //Mark as read
+  const markAsRead = await notificationService.markAsRead({
+    Keys: [notificationKey],
+  });
+
+  const notificationGetAfterRead =
+    await notificationService.getNotificationByKeyTemp(notificationKey);
+  //some mocha to test if the Original + POSTED + Gotten objects are the same
+  console.log(`notificationsPositive::Starting Mocha tests`);
+
+  describe("Notifications Positive automation test", async () => {
+    it("Post parsed test results", async () => {
+      expect(
+        notificationPost,
+        "Failed on notification post returning wrong type"
+      ).to.be.an("object").that.is.not.empty.and.undefined;
+      expect(
+        notificationPost.ModificationDateTime,
+        "Failed on modificationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+      expect(
+        notificationPost.CreationDateTime,
+        "Failed on CreationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+      expect(
+        notificationPost.Read,
+        "Failed on Read returning true instead of false"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        notificationPost.Title,
+        "Failed on Title returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.Title);
+      expect(
+        notificationPost.Body,
+        "Failed on Body returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.Body);
+      expect(
+        notificationPost.Hidden,
+        "Failed on Hidden returning true instead of false"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        notificationPost.CreatorUUID,
+        "Failed on CreatorUUID returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.UserUUID);
+      expect(
+        notificationPost.UserUUID,
+        "Failed on UserUUID returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.UserUUID);
+      expect(
+        notificationPost.Key,
+        "Failed on Key returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+    });
+
+    it("Get parsed test results", async () => {
+      expect(
+        notificationGet,
+        "Failed on notification get returning wrong type"
+      ).to.be.an("object").that.is.not.empty.and.undefined;
+      expect(
+        notificationGet.ModificationDateTime,
+        "Failed on modificationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+      expect(
+        notificationGet.CreationDateTime,
+        "Failed on CreationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+      expect(
+        notificationGet.Read,
+        "Failed on Read returning true instead of false"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        notificationGet.Title,
+        "Failed on Title returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.Title);
+      expect(
+        notificationGet.Body,
+        "Failed on Body returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.Body);
+      expect(
+        notificationGet.Hidden,
+        "Failed on Hidden returning true instead of false"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        notificationGet.CreatorUUID,
+        "Failed on CreatorUUID returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.UserUUID);
+      expect(
+        notificationGet.UserUUID,
+        "Failed on UserUUID returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.UserUUID);
+      expect(
+        notificationGet.Key,
+        "Failed on Key returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+    });
+
+    it("mark_as_read parsed test results", async () => {
+      expect(markAsRead, "Failed on markAsRead get returning wrong type")
+        .to.be.an("array")
+        .that.is.not.empty.and.undefined.that.has.lengthOf.above(1);
+      expect(
+        markAsRead[0],
+        "Failed on markAsRead get returning wrong type"
+      ).to.be.an("object").that.is.not.empty.and.undefined;
+      expect(
+        markAsRead[0].ModificationDateTime,
+        "Failed on modificationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+      expect(
+        markAsRead[0].CreationDateTime,
+        "Failed on CreationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+      expect(
+        markAsRead[0].Read,
+        "Failed on Read returning false instead of true"
+      ).to.be.a("boolean").that.is.true;
+      expect(
+        markAsRead[0].Title,
+        "Failed on Title returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.Title);
+      expect(
+        markAsRead[0].Body,
+        "Failed on Body returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.Body);
+      expect(
+        markAsRead[0].Hidden,
+        "Failed on Hidden returning true instead of false"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        markAsRead[0].CreatorUUID,
+        "Failed on CreatorUUID returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.UserUUID);
+      expect(
+        markAsRead[0].UserUUID,
+        "Failed on UserUUID returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.UserUUID);
+      expect(markAsRead[0].Key, "Failed on Key returning the wrong value/type")
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+    });
+
+    it("Get after mark_as_read Parsed test results", async () => {
+      expect(
+        notificationGetAfterRead,
+        "Failed on notificationGetAfterRead get returning wrong type"
+      ).to.be.an("object").that.is.not.empty.and.undefined;
+      expect(
+        notificationGetAfterRead.ModificationDateTime,
+        "Failed on modificationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24)
+        .and.not.to.be.equal(notificationGet.ModificationDateTime);
+      expect(
+        notificationGetAfterRead.CreationDateTime,
+        "Failed on CreationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+      expect(
+        notificationGetAfterRead.Read,
+        "Failed on Read returning false instead of true"
+      ).to.be.a("boolean").that.is.true;
+      expect(
+        notificationGetAfterRead.Title,
+        "Failed on Title returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.Title);
+      expect(
+        notificationGetAfterRead.Body,
+        "Failed on Body returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.Body);
+      expect(
+        notificationGetAfterRead.Hidden,
+        "Failed on Hidden returning true instead of false"
+      ).to.be.a("boolean").that.is.false;
+      expect(
+        notificationGetAfterRead.CreatorUUID,
+        "Failed on CreatorUUID returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.UserUUID);
+      expect(
+        notificationGetAfterRead.UserUUID,
+        "Failed on UserUUID returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.UserUUID);
+      expect(
+        notificationGetAfterRead.Key,
+        "Failed on Key returning the wrong value/type"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(36);
+    });
+  });
+  console.log(`notificationsPositive::Test Ended`);
+  // return {
+  //   Base: notificationObj,
+  //   Post: notificationPost,
+  //   Get: notificationGet,
+  //   mark_as_read: markAsRead,
+  //   GetAfterRead: notificationGetAfterRead,
+  // };
+
+  const testResults = await run();
+  return testResults;
 }
