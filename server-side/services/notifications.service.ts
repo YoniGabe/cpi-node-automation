@@ -19,6 +19,13 @@ export interface bulkNotification {
   Body: string;
 }
 
+export interface negativeNotification {
+  Title?: any;
+  Body?: any;
+  UserUUID?: any;
+  Read?: any;
+}
+
 class NotificationService {
   papiClient: PapiClient;
 
@@ -37,6 +44,11 @@ class NotificationService {
   }
 
   async postNotifications(body: Notification): Promise<Notification> {
+    const res = await this.papiClient.post(`/notifications`, body);
+    return res;
+  }
+
+  async postNotificationsNegative(body: any): Promise<any> {
     const res = await this.papiClient.post(`/notifications`, body);
     return res;
   }
@@ -65,9 +77,10 @@ class NotificationService {
     return res;
   }
 
-  async generateRandomNotification(): Promise<Notification> {
+  async generateRandomNotification(userExID?: string): Promise<Notification> {
+    const userKey = userExID ? userExID : 'TEST';
     const user = await this.papiClient.users.find({
-      where: `ExternalID='TEST'`, // a user with this ID should be created on addons intall
+      where: `ExternalID='${userKey}'`, // a user with this ID should be created on addons intall
     });
     const userUUID = user[0].UUID as string;
     return {
@@ -103,6 +116,61 @@ class NotificationService {
           ? "Hulk-Buster or Silver centurion?"
           : "Nano armor ofcourse",
     } as bulkNotification;
+  }
+  //generates notifications for negative test
+  async generateNegativeNotification(testCase: string): Promise<any> {
+    const user = await this.papiClient.users.find({
+      where: `ExternalID='TEST'`, // a user with this ID should be created on addons intall
+    });
+    const userUUID = user[0].UUID as string;
+    const negativeNotification: negativeNotification = {
+      UserUUID: userUUID,
+      Title:
+        Math.random() > 0.5
+          ? "I am Iron Man"
+          : "Earth is closed today squeedwerd!",
+      Body:
+        Math.random() > 0.5
+          ? "Playboy,Billionaire,Genius,Philanthrophist"
+          : "This is not a hug,I'm getting the door for you",
+      Read: false,
+    };
+    switch (testCase) {
+      case "Title-removed":
+        delete negativeNotification.Title;
+        break;
+      case "Title-number":
+        negativeNotification.Title = Math.random() * 100;
+        break;
+      case "Body-removed":
+        delete negativeNotification.Body;
+        break;
+      case "Body-number":
+        negativeNotification.Body = Math.random() * 100;
+        break;
+      case "User-removed":
+        delete negativeNotification.UserUUID;
+        break;
+      case "User-number":
+        negativeNotification.UserUUID = Math.random() * 100;
+        break;
+      case "Read-removed":
+        delete negativeNotification.Read;
+        break;
+      case "Read-number":
+        negativeNotification.Read = Math.random() * 100;
+        break;
+      case "Read-string":
+        negativeNotification.Read = "I am iron man";
+      case "all-wrong":
+        negativeNotification.Body = Math.random() * 100;
+        negativeNotification.Title = Math.random() * 100;
+        negativeNotification.UserUUID = Math.random() * 100;
+        negativeNotification.Read = Math.random() * 100;
+        break;
+    }
+
+    return negativeNotification;
   }
   //temp to replace getByKey
   async getNotificationByKeyTemp(key: string): Promise<Notification> {

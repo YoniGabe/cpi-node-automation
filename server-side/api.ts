@@ -2280,3 +2280,184 @@ export async function notificationsPositive(client: Client, request: Request) {
   const testResults = await run();
   return testResults;
 }
+
+export async function notificationsNegative(client: Client, request: Request) {
+  console.log(`notificationsPositive::Test Started`);
+  const service = new MyService(client);
+  const notificationService = new NotificationService(client);
+  const { describe, it, expect, run } = Tester("My test");
+  console.log(`notificationsPositive::Gotten services,initiating requests`);
+  //remarked sections are sections for bugs/future changes
+
+  describe("Notifications Negative automation test", async () => {
+    it("notifications Post negative tests", async () => {
+      try {
+        const notificationObj1 =
+          await notificationService.generateNegativeNotification(
+            "Title-number"
+          );
+        const notificationWithNumberTitle =
+          await notificationService.postNotificationsNegative(notificationObj1);
+        console.log(notificationWithNumberTitle);
+      } catch (e) {
+        e instanceof Error
+          ? expect(
+              e.message,
+              "Failed on Title sent as number returning wrong exception"
+            )
+              .to.be.a("string")
+              .that.is.equal(
+                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Title is not of a type(s) string","detail":{"errorcode":"BadRequest"}}}'
+              )
+          : null;
+      }
+      // try {
+      //   const notificationObj2 =
+      //     await notificationService.generateNegativeNotification("Body-removed");
+      //   const notificationWithNoBody =
+      //     await notificationService.postNotificationsNegative(notificationObj2);
+      //   console.log(notificationWithNoBody);
+      // } catch (e) {
+      //   console.log(e);
+      // }
+      try {
+        const notificationObj3 =
+          await notificationService.generateNegativeNotification("Body-number");
+        const notificationWithNumberBody =
+          await notificationService.postNotificationsNegative(notificationObj3);
+        console.log(notificationWithNumberBody);
+      } catch (e) {
+        e instanceof Error
+          ? expect(
+              e.message,
+              "Failed on Body sent as number returning wrong exception"
+            )
+              .to.be.a("string")
+              .that.is.equal(
+                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Body is not of a type(s) string","detail":{"errorcode":"BadRequest"}}}'
+              )
+          : null;
+      }
+      try {
+        const notificationObj4 =
+          await notificationService.generateNegativeNotification(
+            "User-removed"
+          );
+        const notificationWithNoUser =
+          await notificationService.postNotificationsNegative(notificationObj4);
+        console.log(notificationWithNoUser);
+      } catch (e) {
+        e instanceof Error
+          ? expect(
+              e.message,
+              "Failed on empty UserUUID sent returning wrong exception"
+            )
+              .to.be.a("string")
+              .that.is.equal(
+                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: UserUUID is required","detail":{"errorcode":"BadRequest"}}}'
+              )
+          : null;
+      }
+      try {
+        const notificationObj5 =
+          await notificationService.generateNegativeNotification("User-number");
+        const notificationWithNumberUser =
+          await notificationService.postNotificationsNegative(notificationObj5);
+        console.log(notificationWithNumberUser);
+      } catch (e) {
+        e instanceof Error
+          ? expect(
+              e.message,
+              "Failed on number UserUUID sent returning wrong exception"
+            )
+              .to.be.a("string")
+              .that.is.equal(
+                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: UserUUID is not of a type(s) string","detail":{"errorcode":"BadRequest"}}}'
+              )
+          : null;
+      }
+      // try {
+      //   const notificationObj6 =
+      //     await notificationService.generateNegativeNotification("Read-removed"); // known bug DI-19974
+      //   const notificationWithReadRemoved =
+      //     await notificationService.postNotificationsNegative(notificationObj6);
+      //   console.log(notificationWithReadRemoved);
+      // } catch (e) {
+      //   console.log(e);
+      // }
+      try {
+        const notificationObj7 =
+          await notificationService.generateNegativeNotification("Read-number");
+        const notificationWithReadNumber =
+          await notificationService.postNotificationsNegative(notificationObj7);
+        console.log(notificationWithReadNumber);
+      } catch (e) {
+        e instanceof Error
+          ? expect(
+              e.message,
+              "Failed on number Read sent returning wrong exception"
+            )
+              .to.be.a("string")
+              .that.is.equal(
+                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Read is not of a type(s) boolean","detail":{"errorcode":"BadRequest"}}}'
+              )
+          : null;
+      }
+      // try {
+      //   const notificationObj8 =
+      //     await notificationService.generateNegativeNotification("Read-string");
+      //   const notificationWithReadString =
+      //     await notificationService.postNotificationsNegative(notificationObj8);
+      // } catch (e) {
+      //   e instanceof Error ? expect(
+      //     e.message,
+      //     "Failed on string Read sent returning wrong exception"
+      //   )
+      //     .to.be.a("string")
+      //     .that.is.equal(
+      //       'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Read is not of a type(s) boolean","detail":{"errorcode":"BadRequest"}}}'
+      //     ) : null;
+      // }
+      try {
+        const notificationObj9 =
+          await notificationService.generateNegativeNotification("all-wrong");
+        const notificationWithAllWrong =
+          await notificationService.postNotificationsNegative(notificationObj9);
+      } catch (e) {
+        e instanceof Error
+          ? expect(
+              e.message,
+              "Failed on all wrong parameters sent returning wrong exception"
+            )
+              .to.be.a("string")
+              .that.is.equal(
+                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Title is not of a type(s) string\\nBody is not of a type(s) string\\nUserUUID is not of a type(s) string\\nRead is not of a type(s) boolean","detail":{"errorcode":"BadRequest"}}}'
+              )
+          : null;
+      }
+    });
+    it("mark_as_read negative tests", async () => {
+      const markAsReadNoKey = await notificationService.markAsRead({
+        Keys: ["value-that-does-not-exist"],
+      });
+      expect(markAsReadNoKey,"Failed on mark_as_read with no key returning wrong output").to.be.an("array").with.lengthOf(0);
+
+      const markAsReadWithNumber = await notificationService.markAsRead({
+        Keys: [Math.random() * 100],
+      });
+      console.log(markAsReadWithNumber); // bug returns [] DI-19988
+
+      const notificationForOtherUser = await notificationService.generateRandomNotification('Rep1');
+      const postNotification = await notificationService.postNotifications(notificationForOtherUser);
+          
+      const markAsReadForOtherUser = await notificationService.markAsRead({
+        Keys:[postNotification.Key]
+      })
+      console.log(markAsReadForOtherUser); // bug returns successful DI-19990
+    });
+  });
+
+  //need to add test cases for mark_as_read
+  const testResults = await run();
+  return testResults;
+}
