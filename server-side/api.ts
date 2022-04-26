@@ -9,9 +9,7 @@ import ScriptService, {
 import ClientActionsService, {
   ClientAction,
 } from "./services/clientActions.service";
-import NotificationService, {
-  Notification,
-} from "./services/notifications.service";
+import NotificationService from "./services/notifications.service";
 
 // add functions here
 // this function will run on the 'api/foo' endpoint
@@ -21,6 +19,7 @@ export async function getInstalledAddons(client: Client, request: Request) {
   const res = await service.getAddons();
   return res;
 }
+//==============================cpi-node======================================
 /** Load function test endpoint */
 export async function InitiateLoad(client: Client, request: Request) {
   const service = new MyService(client);
@@ -450,7 +449,7 @@ export async function PerformenceTester(client: Client, request: Request) {
   const testResults = await run();
   return testResults;
 }
-/**method to run TransactionScope test*/ //need to test
+/**method to run TransactionScope test*/
 export async function TransactionScopeTester(client: Client, request: Request) {
   const service = new MyService(client);
   const isLocal = false;
@@ -481,6 +480,33 @@ export async function TransactionScopeTester(client: Client, request: Request) {
   const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(5000);
+  //return test results
+  return testResults;
+}
+/**UIObject.Create test*/
+export async function UIObjectCreate(client: Client, request: Request) {
+  const service = new MyService(client);
+  const isLocal = false;
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+
+  if (isLocal) {
+    accessToken = "c8cff29a-56f6-4489-a21a-79534785fb85"; //fill in from CPINode debugger
+    webAPIBaseURL = "http://localhost:8093";
+  }
+  //run in case sync is running before tests
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
+  //run and get mocha tests results from cpiSide
+  const testResults = await service.runCPISideTest(
+    accessToken,
+    webAPIBaseURL,
+    "UIObjectCreate"
+  );
+  //deactive adal tesk trigger
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
   //return test results
   return testResults;
 }
@@ -835,22 +861,11 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
               response,
               "Failed on Dialog script returning the wrong output"
             ).to.be.an("object").that.is.not.null.and.undefined;
-            expect(
-              response.fault,
-              "script returning wrong error for Dialog"
-            ).to.be.an("object").that.is.not.null.and.undefined;
-            expect(
-              response.fault.detail.errorcode,
-              "Failed on dialog script returning wrong errorcode"
-            )
-              .to.be.a("string")
-              .that.is.equal("Timeout");
-            expect(
-              response.fault.faultstring,
-              "Failed on dialog script returning wrong faultstring"
-            )
-              .to.be.a("string")
-              .that.is.equal("Took longer than 10 seconds");
+            expect(response.Error, "script returning wrong error for Dialog")
+              .to.be.an("string")
+              .that.is.equal("client is not defined").and.is.not.null.and
+              .undefined;
+
             break;
 
           case "missingParameters":
@@ -892,6 +907,7 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
 }
 
 export async function scriptsPositiveTester(client: Client, request: Request) {
+
   console.log("scriptsPositiveTester::Test started");
   const scriptsService = new ScriptService(client);
   const service = new MyService(client);
@@ -1047,6 +1063,10 @@ export async function clientActionsTester(client: Client, request: Request) {
     "TSACaptureGeo",
     "TSAScanBarcode",
     "TSAHUD",
+    "TSANavigateToCustomPage",
+    "TSANavigateToHome",
+    "TSANavigateToCustomModal",
+    "TSANavigateBack",
   ];
   //setting up global map for client actions test data
   global["map"] = new Map<string, any>();
@@ -1073,12 +1093,15 @@ export async function clientActionsTester(client: Client, request: Request) {
   await service.setTestFlag({ clientActionsTestActive: false });
   const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
   await service.sleep(2000);
-  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  //await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(1000);
   //getting actions back from global map after client actions responses (event loop finished)
   const actions = global["map"] as Map<string, any>; //key - client action UUID,value - data
-  //const arrActions: any[] = [];
-
+  const arrActions: any[] = [];
+  for (const action of actions) {
+    arrActions.push(action);
+  }
+  console.log(actions);
   describe("Client Actions Automation positive test", async () => {
     for (const [key, value] of actions) {
       const Object = JSON.parse(value);
@@ -1462,11 +1485,107 @@ export async function clientActionsTester(client: Client, request: Request) {
             }
           });
           break;
+        case "Navigation":
+          const history = parsedActionData.Data.History;
+          const url = parsedActionData.Data.URL;
+          const presentationStyle = parsedActionData.Data.PresentationStyle;
+          it(`Client Actions Automation - ${Type} - ${url} `, async () => {
+            expect(
+              parsedActionData,
+              "Failed on actions data returning with the wrong type"
+            ).to.be.an("object").that.is.not.undefined.and.null;
+            expect(
+              parsedActionData.Type,
+              "Failed on Navigate client action returning the wrong type"
+            )
+              .to.be.a("string")
+              .that.is.equal("Navigation");
+            switch (url) {
+              case "/customblankpage":
+                history === "ClearTo"
+                  ? expect(history, "Failed on history returning wrong value")
+                      .to.be.a("string")
+                      .that.is.equal("ClearTo")
+                  : expect(history, "Failed on history returning wrong value")
+                      .to.be.a("string")
+                      .that.is.equal("None");
+                presentationStyle === "FullScreen"
+                  ? expect(
+                      presentationStyle,
+                      "presentatioStyle returned wrong value"
+                    )
+                      .to.be.a("string")
+                      .that.is.equal("FullScreen")
+                  : expect(
+                      presentationStyle,
+                      "presentatioStyle returned wrong value"
+                    )
+                      .to.be.a("string")
+                      .that.is.equal("Modal");
+                break;
+              case "/homepage":
+                expect(history, "Failed on history returning wrong value")
+                  .to.be.a("string")
+                  .that.is.equal("None");
+                expect(
+                  presentationStyle,
+                  "presentatioStyle returned wrong value"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("FullScreen");
+                break;
+              case "back":
+                expect(history, "Failed on history returning wrong value")
+                  .to.be.a("string")
+                  .that.is.equal("None");
+                expect(
+                  presentationStyle,
+                  "presentatioStyle returned wrong value"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("FullScreen");
+                break;
+            }
+          });
+          break;
 
         default:
           break;
       }
     }
+    it(`Client Actions Automation - Testing No actions were made after Navigate`, async () => {
+      const action = JSON.parse(arrActions[arrActions.length - 1][1]);
+      const parsedAction = JSON.parse(action.Value);
+      console.log(parsedAction);
+      expect(
+        parsedAction,
+        "failed on last action data returning wrong type"
+      ).to.be.an("object").that.is.not.undefined.and.empty;
+      expect(
+        parsedAction.Type,
+        "Failed on wrong type returning for last action"
+      )
+        .to.be.a("string")
+        .that.is.equal("Navigation");
+      expect(
+        parsedAction.Data.History,
+        "Failed on history returning wrong value on last action"
+      )
+        .to.be.a("string")
+        .that.is.equal("None");
+      expect(
+        parsedAction.Data.PresentationStyle,
+        "Failed on presentationStyle returning wrong value on last action"
+      )
+        .to.be.a("string")
+        .that.is.equal("FullScreen");
+      expect(
+        parsedAction.Data.URL,
+        "Failed on URL returning wrong value on last action"
+      )
+        .to.be.a("string")
+        .that.is.equal("back");
+    });
   });
   console.log("clientActionsTester::Test Finished");
   const testResults = await run();
@@ -2440,19 +2559,27 @@ export async function notificationsNegative(client: Client, request: Request) {
       const markAsReadNoKey = await notificationService.markAsRead({
         Keys: ["value-that-does-not-exist"],
       });
-      expect(markAsReadNoKey,"Failed on mark_as_read with no key returning wrong output").to.be.an("array").with.lengthOf(0);
+      expect(
+        markAsReadNoKey,
+        "Failed on mark_as_read with no key returning wrong output"
+      )
+        .to.be.an("array")
+        .with.lengthOf(0);
 
       const markAsReadWithNumber = await notificationService.markAsRead({
         Keys: [Math.random() * 100],
       });
       console.log(markAsReadWithNumber); // bug returns [] DI-19988
 
-      const notificationForOtherUser = await notificationService.generateRandomNotification('Rep1');
-      const postNotification = await notificationService.postNotifications(notificationForOtherUser);
-          
+      const notificationForOtherUser =
+        await notificationService.generateRandomNotification("Rep1");
+      const postNotification = await notificationService.postNotifications(
+        notificationForOtherUser
+      );
+
       const markAsReadForOtherUser = await notificationService.markAsRead({
-        Keys:[postNotification.Key]
-      })
+        Keys: [postNotification.Key],
+      });
       console.log(markAsReadForOtherUser); // bug returns successful DI-19990
     });
   });

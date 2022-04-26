@@ -30,7 +30,12 @@ class MyService {
     });
   }
 
+  // async getCrap() {
+  //   return this.papiClient.accounts.find({where: "Name='Scripts Acc'"});
+  // }
+
   getAddons(): Promise<InstalledAddon[]> {
+    //this.papiClient.accounts.find({where: "Name='Scripts Acc'"});
     return this.papiClient.addons.installedAddons.find({});
   }
   //NOT IN USE -- keep around in case something breaks
@@ -527,7 +532,7 @@ class MyService {
   ) {
     //make request to the CPISide tests
     let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/automation-tests/${testName}/tests`;
-    if (testName === "ClientAPI/ADAL" || testName === "TransactionScope") {
+    if (testName === "ClientAPI/ADAL" || testName === "TransactionScope" || testName === "UIObjectCreate") {
       URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/${testName}`;
     }
     const testResults = await (

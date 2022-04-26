@@ -6,6 +6,7 @@ import ClientActionDialogTest from "../classes/clientActionsDialog";
 import ClientActionGeoLocationTest from "../classes/clientActionsGeoLocation";
 import ClientActionBarcodeScanTest from "../classes/clientActionsScanBarcode";
 import ClientActionHUDTest from "../classes/clientActionsHUD";
+import ClientActionNavigateTest from "../classes/clientActionsNavigate";
 
 export interface ClientAction {
   callback: string; //callback UUID
@@ -78,6 +79,10 @@ class ClientActionsService {
           global["HUDKey"] = await this.GenerateGuid();
         }
         break;
+      case "Navigation":
+        const navigationKey = await this.GenerateGuid();
+        map.set(navigationKey, action.Data);
+        break;
       default:
         break;
     }
@@ -88,6 +93,9 @@ class ClientActionsService {
       EventData: JSON.stringify(result),
     };
     global["map"] = map;
+    if (Object.entries(result).length === 0) {
+      return;
+    }
     await this.EmitClientEvent(webAPIBaseURL, accessToken, testedOPtions);
   }
   //client actions event loops for negative tests
@@ -124,6 +132,9 @@ class ClientActionsService {
           global["HUDKey"] = await this.GenerateGuid();
         }
         break;
+      case "Navigation":
+        map.set(parsedActions.callback, action.Data);
+        break;
       default:
         break;
     }
@@ -154,6 +165,9 @@ class ClientActionsService {
         break;
       case "HUD":
         action = new ClientActionHUDTest(Data, actionType);
+        break;
+      case "Navigation":
+        action = new ClientActionNavigateTest(Data, actionType);
         break;
       default:
         break;

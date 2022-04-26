@@ -1,5 +1,12 @@
 import "@pepperi-addons/cpi-node";
 
+export interface NavigationOptions {
+  url: string;
+  presentationStyle?: "FullScreen" | "Modal";
+  history?: "None" | "ClearTo" | "ClearAll";
+}
+
+
 export default class GeneralService {
   constructor() {}
 
