@@ -11,9 +11,6 @@ import ClientActionsService, {
 } from "./services/clientActions.service";
 import NotificationService from "./services/notifications.service";
 
-// add functions here
-// this function will run on the 'api/foo' endpoint
-// the real function is runnning on another typescript file
 export async function getInstalledAddons(client: Client, request: Request) {
   const service = new MyService(client);
   const res = await service.getAddons();
@@ -607,7 +604,8 @@ export async function scriptsListTester(client: Client, request: Request) {
   const service = new MyService(client);
   // let webAPIBaseURL = await service.getWebAPIBaseURL();
   // let accessToken = await service.getAccessToken(webAPIBaseURL);
-
+  // const test = await service.getCrap();
+  // console.log(test);
   let FindOptions = {
     //     where?: string;
     //     order_by?: string;
@@ -1131,7 +1129,7 @@ export async function clientActionsTester(client: Client, request: Request) {
               "Failed on isHtml returning wrong value/type"
             ).to.be.a("boolean").that.is.false;
             expect(
-              parsedActionData.callback,
+              parsedActionData.Callback,
               "Failed on callback returning wrong value/type"
             )
               .to.be.a("string")
@@ -1317,7 +1315,7 @@ export async function clientActionsTester(client: Client, request: Request) {
               .to.be.a("string")
               .that.is.equal("HUD");
             expect(
-              parsedActionData.callback,
+              parsedActionData.Callback,
               "Failed on HUD client action callback returning the wrong type"
             )
               .to.be.a("string")
@@ -1413,7 +1411,7 @@ export async function clientActionsTester(client: Client, request: Request) {
               .to.be.a("string")
               .that.is.equal("Barcode");
             expect(
-              parsedActionData.callback,
+              parsedActionData.Callback,
               "Failed on callback returning wrong value/type"
             )
               .to.be.a("string")
@@ -1434,7 +1432,7 @@ export async function clientActionsTester(client: Client, request: Request) {
               .to.be.a("string")
               .that.is.equal("GeoLocation");
             expect(
-              parsedActionData.callback,
+              parsedActionData.Callback,
               "Failed on callback returning wrong value/type"
             )
               .to.be.a("string")
@@ -1738,7 +1736,7 @@ export async function withinHudClientActionsTester(
               .to.be.a("string")
               .that.is.equal("Dialog");
             expect(
-              parsedActionData.callback,
+              parsedActionData.Callback,
               "Failed on callback returning wrong value/type"
             )
               .to.be.a("string")
@@ -1938,7 +1936,7 @@ export async function withinHudClientActionsTester(
               .to.be.a("string")
               .that.is.equal("HUD");
             expect(
-              parsedActionData.callback,
+              parsedActionData.Callback,
               "Failed on HUD client action callback returning the wrong type"
             )
               .to.be.a("string")
@@ -2037,7 +2035,7 @@ export async function withinHudClientActionsTester(
               .to.be.a("string")
               .that.is.equal("Barcode");
             expect(
-              parsedActionData.callback,
+              parsedActionData.Callback,
               "Failed on callback returning wrong value/type"
             )
               .to.be.a("string")
@@ -2059,7 +2057,7 @@ export async function withinHudClientActionsTester(
               .to.be.a("string")
               .that.is.equal("GeoLocation");
             expect(
-              parsedActionData.callback,
+              parsedActionData.Callback,
               "Failed on callback returning wrong value/type"
             )
               .to.be.a("string")

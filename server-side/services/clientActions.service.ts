@@ -9,7 +9,7 @@ import ClientActionHUDTest from "../classes/clientActionsHUD";
 import ClientActionNavigateTest from "../classes/clientActionsNavigate";
 
 export interface ClientAction {
-  callback: string; //callback UUID
+  Callback: string; //callback UUID
   Type: string; //action Type
   Data?: any; //Not mandatory due to barcode not having this
 }
@@ -67,13 +67,13 @@ class ClientActionsService {
         map.set(parsedData.Data.Actions[0].Key, action.Data);
         break;
       case "GeoLocation":
-        map.set(parsedActions.callback, action.Data);
+        map.set(parsedActions.Callback, action.Data);
         break;
       case "Barcode":
-        map.set(parsedActions.callback, action.Data);
+        map.set(parsedActions.Callback, action.Data);
         break;
       case "HUD":
-        map.set(parsedActions.callback, action.Data);
+        map.set(parsedActions.Callback, action.Data);
         const checkGlobal = global["HUDKey"];
         if (checkGlobal === undefined) {
           global["HUDKey"] = await this.GenerateGuid();
@@ -89,7 +89,7 @@ class ClientActionsService {
     const resTest = await action.Test(action.Data);
     let result = resTest.resObject;
     const testedOPtions = {
-      EventKey: parsedActions.callback,
+      EventKey: parsedActions.Callback,
       EventData: JSON.stringify(result),
     };
     global["map"] = map;

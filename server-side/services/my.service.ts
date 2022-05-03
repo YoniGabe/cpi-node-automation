@@ -31,7 +31,9 @@ class MyService {
   }
 
   // async getCrap() {
-  //   return this.papiClient.accounts.find({where: "Name='Scripts Acc'"});
+  //   //await this.papiClient.accounts.find({where: "Name='Scripts Acc'"});
+  //   const res = await this.papiClient.apiCall("GET","/users");
+  //   return res.json();
   // }
 
   getAddons(): Promise<InstalledAddon[]> {
