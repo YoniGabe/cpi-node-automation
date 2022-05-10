@@ -46,6 +46,7 @@ let link: string;
 let HTML: string;
 let randDays: number;
 let interceptorArr: number[];
+let actionsArr: any[];
 let preLoadGetLine: TransactionLine | undefined | number = 1;
 let preLoadGetLines: TransactionLine[] | undefined;
 let onLoadGetLine: TransactionLine | undefined;
@@ -392,6 +393,7 @@ export async function load(configuration: any) {
   HTML = await dataService.getHTML();
   randDays = await dataService.getRandDays();
   interceptorArr = [];
+  actionsArr = [];
   console.log("Finished setting up test variables");
 
   //====================================ADAL================================================
@@ -411,7 +413,7 @@ export async function load(configuration: any) {
   const withinHudClientActionsTestActive =
     adalData.clientActionsWithinHudTestActive;
   //const clientActionsNegativeTestActive = adalData.clientActionsNegativeTestActive
-  //const clientActionaNavigateTestActive = true;
+  const InterceptorActionsTest = false;
   console.log("LoadTester::loadTestActive: " + loadTestActive);
   console.log("LoadTester::counter: " + loadTestCounter);
   console.log(
@@ -425,6 +427,166 @@ export async function load(configuration: any) {
     "clientActionsTester::withinHudClientActionsTestActive: " +
       withinHudClientActionsTestActive
   );
+
+  if (InterceptorActionsTest) {
+    //two exact events with two separate actions
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "firstTrigger" },
+      async (data, next, main) => {
+        actionsArr.push(1);
+        const res = await data.client?.confirm("confirm", "1");
+        actionsArr.push(res);
+        actionsArr.push(2);
+      }
+    );
+
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "firstTrigger" },
+      async (data, next, main) => {
+        actionsArr.push(3);
+        const res = await data.client?.alert("alert", "2");
+        actionsArr.push(res);
+        actionsArr.push(4);
+      }
+    );
+
+    //client actions after main
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "secondTrigger" },
+      async (data, next, main) => {
+        actionsArr.push(5);
+        await next(async () => {
+          console.log("InterceptorActionsTest:: SecondTrigger - Inside second main");
+          actionsArr.push(7);
+        })
+        const res = await data.client?.alert("alert", "3");
+        actionsArr.push(res);
+      }
+    );
+
+
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "secondTrigger" },
+      async (data, next, main) => {
+        actionsArr.push(6);
+        console.log("InterceptorActionsTest:: SecondTrigger - Inside first main");
+      }
+    );
+
+    //client action within main
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "thirdTrigger" },
+      async (data, next, main) => {
+        actionsArr.push(8)
+        await next(async (data) => {
+          const res = await data.client?.confirm("confirm","4");
+          actionsArr.push(res);
+          actionsArr.push(10);
+        })
+        console.log("InterceptorActionsTest:: ThirdTrigger - Inside second main");
+        actionsArr.push(11);
+      }
+    );
+
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "thirdTrigger" },
+      async (data, next, main) => {
+        actionsArr.push(9);
+        console.log("InterceptorActionsTest:: ThirdTrigger - Inside first main");
+      }
+    );
+
+    //client action before main
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "fourthTrigger" },
+      async (data, next, main) => {
+        await data.client?.confirm("confirm","5");
+        actionsArr.push(12);
+        await next(async () => {
+          actionsArr.push(14);
+          console.log("InterceptorActionsTest:: FourthTrigger - Inside second main");
+        })
+        actionsArr.push(15);
+      }
+    );
+
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "fourthTrigger" },
+      async (data, next, main) => {
+        actionsArr.push(13)
+        console.log("InterceptorActionsTest:: FourthTrigger - Inside first main");
+      }
+    );
+
+    //expired client actions
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "fifthTrigger" },
+      async (data, next, main) => {
+          setTimeout(async () => {
+            const res = await data.client?.confirm("confirm","-1");
+            actionsArr.push(res);
+          },100)
+          console.log("InterceptorActionsTest:: FifthTrigger - Inside first main");
+      }
+    );
+
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "fifthTrigger" },
+      async (data, next, main) => {
+        await new Promise((resolve) => setTimeout(resolve,110));
+        const res = await data.client?.alert("alert","6");
+        actionsArr.push(res);
+        actionsArr.push(17);
+        console.log("InterceptorActionsTest:: FifthTrigger - Inside second main");
+      }
+    );
+
+    //wait for last client action
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "sixthTrigger" },
+      async (data, next, main) => {
+          console.log("InterceptorActionsTest:: sixthTrigger - Inside first main");
+          const res = await data.client?.captureGeoLocation({accuracy:"Medium",maxWaitTime:400});
+          actionsArr.push(res);
+      }
+    );
+
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "sixthTrigger" },
+      async (data, next, main) => {
+          console.log("InterceptorActionsTest:: sixthTrigger - Inside second main");
+          data.client?.captureGeoLocation({accuracy:"High",maxWaitTime:1000}).then((res) => {
+            console.log("InterceptorActionsTest:: sixthTrigger - Inside then");
+            actionsArr.push(res);
+          });
+          //push to UDT..
+          // try {
+          //   const upsert = await pepperi.api.userDefinedTables.upsert({
+          //     table: "InterceptorsUDT",
+          //     mainKey: new Date().toISOString(),
+          //     secondaryKey: "TestResults",
+          //     value: interceptorArr.toString(),
+          //   });
+          //   console.log(upsert);
+          // } catch (err) {
+          //   console.log(err);
+          // }
+      }
+    );
+
+  }
   if (withinHudClientActionsTestActive === true) {
     pepperi.events.intercept(
       OCEvents.Button,

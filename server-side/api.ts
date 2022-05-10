@@ -905,7 +905,6 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
 }
 
 export async function scriptsPositiveTester(client: Client, request: Request) {
-
   console.log("scriptsPositiveTester::Test started");
   const scriptsService = new ScriptService(client);
   const service = new MyService(client);
@@ -2121,6 +2120,81 @@ export async function withinHudClientActionsTester(
   //   actions: arrActions,
   // };
 }
+//in the works
+export async function clientActionsInterceptorsTester(
+  client: Client,
+  request: Request
+) {
+  console.log("clientActionsInterceptorsTester::Test started");
+  //services setup and perconditions setup
+  const service = new MyService(client);
+  const clientActionsService = new ClientActionsService(client);
+  const { describe, it, expect, run } = Tester("My test");
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  //run in case sync is running before tests
+  // await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  // //activate test flag on Load function
+  // await service.setTestFlag({ clientActionsTestActive: true });
+  // //sync again to trigger the test interceptors
+  // const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
+  // //wait till sync is over
+  // await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(5000);
+  const interceptorsNamesArr = [
+    "firstTrigger",
+    "secondTrigger",
+    "thirdTrigger",
+    "fourthTrigger",
+    "fifthTrigger",
+    "sixthTrigger",
+  ];
+  //setting up global map for client actions test data
+  global["map"] = new Map<string, any>();
+  console.log(
+    "clientActionsInterceptorsTester::Triggering buttonPressed event to get client actions"
+  );
+  //looping on each field to trigger cpi-side related events -> these will trigger the corresponding client actions
+  for (const button of interceptorsNamesArr) {
+    console.log(
+      `clientActionsInterceptorsTester::Started triggering ${button}`
+    );
+    const options = {
+      EventKey: "TSAButtonPressed",
+      EventData: JSON.stringify({
+        FieldID: button,
+      }),
+    };
+    //calling recursive function - event loop to run all client actions in existant for the current interceptor
+    const clientAction = await clientActionsService.EmitClientEvent(
+      webAPIBaseURL,
+      accessToken,
+      options
+    );
+    console.log(
+      `clientActionsInterceptorsTester::Finished triggering ${button}`
+    );
+  }
+  // await service.setTestFlag({ clientActionsTestActive: false });
+  // const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.sleep(2000);
+  //await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(1000);
+  //getting actions back from global map after client actions responses (event loop finished)
+  const actions = global["map"] as Map<string, any>; //key - client action UUID,value - data
+  const arrActions: any[] = [];
+  for (const action of actions) {
+    arrActions.push(action);
+  }
+  console.log(arrActions);
+  describe("Client Actions Automation positive test", async () => {
+    for (const [key, value] of actions) {
+      const Object = JSON.parse(value);
+      const parsedActionData: ClientAction = JSON.parse(Object.Value);
+      const Type = parsedActionData.Type;
+    }
+  });
+}
 //=====================Notifications==========================================
 export async function notificationsPositive(client: Client, request: Request) {
   console.log(`notificationsPositive::Test Started`);
@@ -2129,6 +2203,14 @@ export async function notificationsPositive(client: Client, request: Request) {
   const { describe, it, expect, run } = Tester("My test");
   console.log(`notificationsPositive::Gotten services,initiating requests`);
 
+  const userDeviceObj = await notificationService.generateUserDevice();
+
+  const userDevicePost = await notificationService.postUserDevice(userDeviceObj);
+  
+  const userDeviceKey = userDevicePost.Key as string;
+  
+  const userDeviceGet = await notificationService.getUserDeviceByKey(userDeviceKey);
+  ///need to add the above object to the test
   const notificationObj =
     await notificationService.generateRandomNotification();
 
@@ -2585,4 +2667,26 @@ export async function notificationsNegative(client: Client, request: Request) {
   //need to add test cases for mark_as_read
   const testResults = await run();
   return testResults;
+}
+//Listener endpoint that gets the notifications for the automation
+export async function notificationsLogger(client: Client, request: Request) {
+  console.log(
+    `notificationsLogger::Inside notificationsLogger`
+  );
+  let reqBody = request.body; // catch notification userDevice response
+  // need to push notification into ADAL
+  const service = new MyService(client);
+  const user = await service.papiClient.users.find({
+    where: `ExternalID='TEST'`,
+  });
+  reqBody.Key = (reqBody.Key + user[0].UUID) as string;
+  console.log(
+    `notificationsLogger::ADAL request body: ${JSON.stringify(reqBody)}`
+  );
+
+  const upsert = await service.upsertToADAL("NotificationsLogger", reqBody);
+
+  console.log(
+    `notificationsLogger::ADAL request response: ${JSON.stringify(upsert)}`
+  );
 }
