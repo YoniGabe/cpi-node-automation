@@ -16,7 +16,10 @@ export interface testFlagOptions {
   clientActionsTestActive?: boolean;
   clientActionsWithinHudTestActive?: boolean;
   clientActionsNegativeTestActive?: boolean;
+  InterceptorActionsTest? : boolean;
 }
+
+export const thisAddonUUID = "2b39d63e-0982-4ada-8cbb-737b03b9ee58"
 
 class MyService {
   papiClient: PapiClient;
@@ -480,6 +483,7 @@ class MyService {
       clientActionsNegativeTestActive: options.clientActionsNegativeTestActive
         ? options.clientActionsNegativeTestActive
         : false,
+      InterceptorActionsTest: options.InterceptorActionsTest ? options.InterceptorActionsTest : false
     };
 
     const upsert = await this.upsertToADAL("Load_Test", body);
@@ -567,12 +571,12 @@ class MyService {
 
   async upsertToADAL(tableName: string, body: AddonData) {
     const upsert = await this.papiClient.addons.data
-      .uuid(this.client.AddonUUID)
+      .uuid(thisAddonUUID)
       .table(tableName)
       .upsert(body);
-
+      
     return upsert;
-  }
+  } 
 
   async getFromADAL(tableName: string, Key: string) {
     const get = await this.papiClient.addons.data

@@ -7,7 +7,7 @@ export default class ClientActionDialogTest extends ClientActionBase {
     return {
       success: Data.Success,
       resObject: {
-        SelectedAction: Value.Data.Actions[0].key,
+        SelectedAction: Value.Data.Actions[0].Key, // need to test
       },
     };
   }

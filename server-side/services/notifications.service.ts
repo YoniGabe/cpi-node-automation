@@ -43,6 +43,23 @@ export interface userDevice {
   ExpirationDateTime?: string;
 }
 
+export interface negativeUserDevice {
+  Key?: string;
+  UserUUID?: string;
+  AppKey?: string;
+  AppName?: string;
+  DeviceKey?: string;
+  DeviceName?: string;
+  DeviceType?: string;
+  PlatformType?: string;
+  Token?: string; // should be incrypted
+  AddonRelativeURL?: string;
+  Hidden?: boolean;
+  ModificationDateTime?: string;
+  CreationDateTime?: string;
+  ExpirationDateTime?: string;
+}
+
 class NotificationService {
   papiClient: PapiClient;
 
@@ -232,16 +249,51 @@ class NotificationService {
     // const userUUID = user[0].UUID as string;
     return {
       AppKey: "com.wrnty.peppery",
-      DeviceKey: "random-device",
-      DeviceName: "test-name",
-      Token: "random-token",
+      DeviceKey: `random-device ${Math.floor(Math.random() * 1000)}`,
+      DeviceName: `test-name ${Math.floor(Math.random() * 1000)}`,
+      Token: `random-token ${Math.floor(Math.random() * 1000)}`,
       AppName: "Pepperi",
       DeviceType: "Test",
       PlatformType: "Addon",
       AddonRelativeURL:
-        "https://papi.staging.pepperi.com/V1.0/addons/api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/api/notificationsLogger", // logger endpoint on this addon to get the notification and post to ADAL
+        "/addons/api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/api/notificationsLogger", // logger endpoint on this addon to get the notification and post to ADAL
       Hidden: hiddenFlag,
     };
+  }
+
+  async postNegativeUserDevice(body: any): Promise<any> {
+    const res = await this.papiClient.post(
+      `/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/user_devices`,
+      body
+    );
+    return res;
+  }
+  //need to do after talking to Chasky
+  async generateNegativeUserDevice(testCase: string) {
+    const userDevice = {
+      AppKey: "com.wrnty.peppery",
+      DeviceKey: `random-device ${Math.floor(Math.random() * 1000)}`,
+      DeviceName: `test-name ${Math.floor(Math.random() * 1000)}`,
+      Token: `random-token ${Math.floor(Math.random() * 1000)}`,
+      AppName: "Pepperi",
+      DeviceType: "Test",
+      PlatformType: "Addon",
+      AddonRelativeURL:
+        "/addons/api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/api/notificationsLogger", // logger endpoint on this addon to get the notification and post to ADAL
+      Hidden: false,
+    } as negativeUserDevice;
+
+    switch(testCase) {
+      case "no-app-key":
+        delete userDevice.AppKey;
+        break;
+      case "no-device-key":
+        delete userDevice.DeviceKey;
+        break;
+      case "no-device-name":
+        delete userDevice.DeviceName;
+        break;
+    }
   }
 }
 

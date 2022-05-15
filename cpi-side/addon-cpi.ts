@@ -413,7 +413,7 @@ export async function load(configuration: any) {
   const withinHudClientActionsTestActive =
     adalData.clientActionsWithinHudTestActive;
   //const clientActionsNegativeTestActive = adalData.clientActionsNegativeTestActive
-  const InterceptorActionsTest = false;
+  const InterceptorActionsTest = adalData.InterceptorActionsTest;
   console.log("LoadTester::loadTestActive: " + loadTestActive);
   console.log("LoadTester::counter: " + loadTestCounter);
   console.log(
@@ -428,15 +428,17 @@ export async function load(configuration: any) {
       withinHudClientActionsTestActive
   );
 
-  if (InterceptorActionsTest) {
+  if (InterceptorActionsTest === true) {
     //two exact events with two separate actions
     pepperi.events.intercept(
       "TSAButtonPressed",
       { FieldID: "firstTrigger" },
       async (data, next, main) => {
         actionsArr.push(1);
-        const res = await data.client?.confirm("confirm", "1");
-        actionsArr.push(res);
+        const res = await data.client?.confirm("confirm", "1") as boolean;
+        if(res === true) {
+          actionsArr.push("true");
+        }
         actionsArr.push(2);
       }
     );
@@ -447,7 +449,9 @@ export async function load(configuration: any) {
       async (data, next, main) => {
         actionsArr.push(3);
         const res = await data.client?.alert("alert", "2");
-        actionsArr.push(res);
+        if(res === undefined) {
+          actionsArr.push("undefind");
+        }
         actionsArr.push(4);
       }
     );
@@ -463,7 +467,9 @@ export async function load(configuration: any) {
           actionsArr.push(7);
         })
         const res = await data.client?.alert("alert", "3");
-        actionsArr.push(res);
+        if(res === undefined) {
+        actionsArr.push("undefind"); 
+        }
       }
     );
 
@@ -484,8 +490,10 @@ export async function load(configuration: any) {
       async (data, next, main) => {
         actionsArr.push(8)
         await next(async (data) => {
-          const res = await data.client?.confirm("confirm","4");
-          actionsArr.push(res);
+          const res = await data.client?.confirm("confirm","4") as boolean;
+          if(res === true) {
+            actionsArr.push("true");
+          }
           actionsArr.push(10);
         })
         console.log("InterceptorActionsTest:: ThirdTrigger - Inside second main");
@@ -507,7 +515,10 @@ export async function load(configuration: any) {
       "TSAButtonPressed",
       { FieldID: "fourthTrigger" },
       async (data, next, main) => {
-        await data.client?.confirm("confirm","5");
+        const res = await data.client?.confirm("confirm","5");
+        if(res === true) {
+          actionsArr.push("true");
+        }
         actionsArr.push(12);
         await next(async () => {
           actionsArr.push(14);
@@ -532,8 +543,10 @@ export async function load(configuration: any) {
       { FieldID: "fifthTrigger" },
       async (data, next, main) => {
           setTimeout(async () => {
-            const res = await data.client?.confirm("confirm","-1");
-            actionsArr.push(res);
+            const res = await data.client?.confirm("confirm","-1") as boolean;
+            if(res === true) {
+              actionsArr.push("true");
+            }
           },100)
           console.log("InterceptorActionsTest:: FifthTrigger - Inside first main");
       }
@@ -545,8 +558,10 @@ export async function load(configuration: any) {
       async (data, next, main) => {
         await new Promise((resolve) => setTimeout(resolve,110));
         const res = await data.client?.alert("alert","6");
-        actionsArr.push(res);
-        actionsArr.push(17);
+        if(res === undefined) {
+          actionsArr.push("undefind")
+        }
+        actionsArr.push(16);
         console.log("InterceptorActionsTest:: FifthTrigger - Inside second main");
       }
     );
@@ -558,7 +573,7 @@ export async function load(configuration: any) {
       async (data, next, main) => {
           console.log("InterceptorActionsTest:: sixthTrigger - Inside first main");
           const res = await data.client?.captureGeoLocation({accuracy:"Medium",maxWaitTime:400});
-          actionsArr.push(res);
+          actionsArr.push(JSON.stringify(res));
       }
     );
 
@@ -569,20 +584,19 @@ export async function load(configuration: any) {
           console.log("InterceptorActionsTest:: sixthTrigger - Inside second main");
           data.client?.captureGeoLocation({accuracy:"High",maxWaitTime:1000}).then((res) => {
             console.log("InterceptorActionsTest:: sixthTrigger - Inside then");
-            actionsArr.push(res);
+            actionsArr.push(JSON.stringify(res));
           });
-          //push to UDT..
-          // try {
-          //   const upsert = await pepperi.api.userDefinedTables.upsert({
-          //     table: "InterceptorsUDT",
-          //     mainKey: new Date().toISOString(),
-          //     secondaryKey: "TestResults",
-          //     value: interceptorArr.toString(),
-          //   });
-          //   console.log(upsert);
-          // } catch (err) {
-          //   console.log(err);
-          // }
+          try {
+            const upsert = await pepperi.api.userDefinedTables.upsert({
+              table: "actionsSequence",
+              mainKey: new Date().toISOString(),
+              secondaryKey: "TestResults",
+              value: actionsArr.toString(),
+            });
+            console.log(upsert);
+          } catch (err) {
+            console.log(err);
+          }
       }
     );
 

@@ -2133,13 +2133,13 @@ export async function clientActionsInterceptorsTester(
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   //run in case sync is running before tests
-  // await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
-  // //activate test flag on Load function
-  // await service.setTestFlag({ clientActionsTestActive: true });
-  // //sync again to trigger the test interceptors
-  // const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
-  // //wait till sync is over
-  // await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  //activate test flag on Load function
+  await service.setTestFlag({ InterceptorActionsTest: true });
+  //sync again to trigger the test interceptors
+  const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
+  //wait till sync is over
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
   await service.sleep(5000);
   const interceptorsNamesArr = [
     "firstTrigger",
@@ -2175,11 +2175,12 @@ export async function clientActionsInterceptorsTester(
       `clientActionsInterceptorsTester::Finished triggering ${button}`
     );
   }
-  // await service.setTestFlag({ clientActionsTestActive: false });
-  // const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.setTestFlag({ InterceptorActionsTest: false });
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
   await service.sleep(2000);
-  //await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
-  await service.sleep(1000);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(10000);
+  const udtData = await service.getUDTValues("actionsSequence", 1, "DESC");
   //getting actions back from global map after client actions responses (event loop finished)
   const actions = global["map"] as Map<string, any>; //key - client action UUID,value - data
   const arrActions: any[] = [];
@@ -2187,13 +2188,236 @@ export async function clientActionsInterceptorsTester(
     arrActions.push(action);
   }
   console.log(arrActions);
+  const dialogSequenceArr: any[] = [];
+  for (let i = 0;i < 6; i++) {
+   const actionData = await clientActionsService.parseActionDataForTest(arrActions[i][1]);
+   dialogSequenceArr.push(actionData);
+  }
+  console.log(udtData);
+
+  try {
+    const res = await service.updateUDTValues(
+      udtData[0].MapDataExternalID,
+      udtData[0].MainKey,
+      udtData[0].SecondaryKey,
+      true
+    );
+    console.log(
+      `clientActionsInterceptorsTester::Updated UDTLineID ${udtData[0].InternalID},with the following hidden status: ${res.Hidden} `
+    );
+  } catch (err) {
+    console.log(`clientActionsInterceptorsTester:: UDT removal error: ${err}`);
+  }
+
+
   describe("Client Actions Automation positive test", async () => {
     for (const [key, value] of actions) {
       const Object = JSON.parse(value);
       const parsedActionData: ClientAction = JSON.parse(Object.Value);
       const Type = parsedActionData.Type;
+      let Title = "";
+
+      switch (Type) {
+        case "Dialog":
+          Title = parsedActionData.Data.Title;
+          it(`Client Actions Automation - ${Type} - ${Title}`, async () => {
+            switch (Title) {
+              //alert test
+              case "alert":
+                expect(
+                  parsedActionData.Data.Title,
+                  "Failed on title returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("alert");
+                expect(
+                  parseInt(parsedActionData.Data.Content),
+                  "Failed on content returning wrong value/type"
+                )
+                  .to.be.a("number")
+                  .that.is.above(0);
+                expect(
+                  parsedActionData.Data.Actions,
+                  "Failed on actions not returning as an array"
+                )
+                  .to.be.an("array")
+                  .with.lengthOf(1);
+                expect(
+                  parsedActionData.Data.Actions[0],
+                  "Failed on Actions[0] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[0].Key,
+                  "Failed on Actions[0].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[0].Title,
+                  "Failed on Actions[0].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("Ok");
+                break;
+              //confirm test
+              case "confirm":
+                expect(
+                  parsedActionData.Data.Title,
+                  "Failed on title returning wrong value/type"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("confirm");
+                expect(
+                  parseInt(parsedActionData.Data.Content),
+                  "Failed on content returning wrong value/type"
+                )
+                  .to.be.a("number")
+                  .that.is.above(0);
+                expect(
+                  parsedActionData.Data.Actions,
+                  "Failed on actions not returning as an array"
+                )
+                  .to.be.an("array")
+                  .with.lengthOf(2);
+                expect(
+                  parsedActionData.Data.Actions[0],
+                  "Failed on Actions[0] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[0].Key,
+                  "Failed on Actions[0].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[0].Title,
+                  "Failed on Actions[0].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("Ok");
+                expect(
+                  parsedActionData.Data.Actions[1],
+                  "Failed on Actions[1] not being an object"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  parsedActionData.Data.Actions[1].Key,
+                  "Failed on Actions[1].key not being a string"
+                )
+                  .to.be.an("string")
+                  .that.has.lengthOf(36);
+                expect(
+                  parsedActionData.Data.Actions[1].Title,
+                  "Failed on Actions[1].title having the wrong value/type"
+                )
+                  .to.be.an("string")
+                  .that.is.equal("Cancel");
+                break;
+            }
+          });
+          break;
+        case "GeoLocation":
+          Title = parsedActionData.Data.Accuracy; //getting filter to test according to Accuracy
+          it(`Client Actions Automation - ${Type} - ${Title}`, async () => {
+            expect(
+              parsedActionData,
+              "Failed on actions data returning with the wrong type"
+            ).to.be.an("object").that.is.not.undefined.and.null;
+            expect(
+              parsedActionData.Type,
+              "Failed on CaptureGeo client action returning the wrong type"
+            )
+              .to.be.a("string")
+              .that.is.equal("GeoLocation");
+            expect(
+              parsedActionData.Callback,
+              "Failed on callback returning wrong value/type"
+            )
+              .to.be.a("string")
+              .that.has.lengthOf(36);
+            switch (Title) {
+              case "Medium":
+                expect(
+                  parsedActionData.Data.Accuracy,
+                  "Failed on Accuracy returning wrong value"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("Medium");
+                expect(
+                  parsedActionData.Data.MaxWaitTime,
+                  "Failed on MaxWaitTime returning the wrong value"
+                )
+                  .to.be.a("number")
+                  .that.is.equal(400);
+                break;
+              case "High":
+                expect(
+                  parsedActionData.Data.Accuracy,
+                  "Failed on Accuracy returning wrong value"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("High");
+                expect(
+                  parsedActionData.Data.MaxWaitTime,
+                  "Failed on MaxWaitTime returning the wrong value"
+                )
+                  .to.be.a("number")
+                  .that.is.equal(1000);
+                break;
+            }
+          });
+          break;
+      }
     }
+    it(`Client Actions Automation - Parsed execution sequence results`, async () => {
+      const arr = udtData[0].Values[0].split(",");
+
+      const geoData = {
+        lat: arr[23].split(":"),
+        acc: arr[24].split(":")
+      }
+      expect(arr[0]).to.be.a("string").that.is.equal("1");
+      expect(arr[1]).to.be.a("string").that.is.equal("true");
+      expect(arr[2]).to.be.a("string").that.is.equal("2");
+      expect(arr[3]).to.be.a("string").that.is.equal("3");
+      expect(arr[4]).to.be.a("string").that.is.equal("undefind");
+      expect(arr[5]).to.be.a("string").that.is.equal("4");
+      expect(arr[6]).to.be.a("string").that.is.equal("5");
+      expect(arr[7]).to.be.a("string").that.is.equal("6");
+      expect(arr[8]).to.be.a("string").that.is.equal("7");
+      expect(arr[9]).to.be.a("string").that.is.equal("undefind");
+      expect(arr[10]).to.be.a("string").that.is.equal("8");
+      expect(arr[11]).to.be.a("string").that.is.equal("9");
+      expect(arr[12]).to.be.a("string").that.is.equal("true");
+      expect(arr[13]).to.be.a("string").that.is.equal("10");
+      expect(arr[14]).to.be.a("string").that.is.equal("11");
+      expect(arr[15]).to.be.a("string").that.is.equal("true");
+      expect(arr[16]).to.be.a("string").that.is.equal("12");
+      expect(arr[17]).to.be.a("string").that.is.equal("13");
+      expect(arr[18]).to.be.a("string").that.is.equal("14");
+      expect(arr[19]).to.be.a("string").that.is.equal("15");
+      expect(arr[20]).to.be.a("string").that.is.equal("undefind");
+      expect(arr[21]).to.be.a("string").that.is.equal("16"); // need to change to 16
+      expect(arr[22]).to.be.a("string").that.is.equal(`{"success":true`);
+      expect(geoData.lat[0]).to.be.a("string").that.is.equal(`"latitude"`);
+      expect(parseFloat(geoData.lat[1])).to.be.a("number").that.is.above(1);
+      expect(geoData.acc[0]).to.be.a("string").that.is.equal(`"accuracy"`);
+      expect(parseFloat(geoData.acc[1].replace("}",""))).to.be.a("number").that.is.above(1);
+
+      for (let i = 0;i < dialogSequenceArr.length; i++) {
+        const index = parseInt(dialogSequenceArr[i].Data.Content);
+        expect(
+          index,
+          `Failed on sequence returning ${index} instead of ${i + 1}`
+        )
+          .to.be.a("number")
+          .that.is.equal(i + 1);
+      }
+    });
   });
+
+  console.log("clientActionsInterceptorsTester::Test Finished");
+  const testResults = await run();
+  return testResults;
 }
 //=====================Notifications==========================================
 export async function notificationsPositive(client: Client, request: Request) {
@@ -2205,11 +2429,14 @@ export async function notificationsPositive(client: Client, request: Request) {
 
   const userDeviceObj = await notificationService.generateUserDevice();
 
-  const userDevicePost = await notificationService.postUserDevice(userDeviceObj);
-  
+  const userDevicePost = await notificationService.postUserDevice(
+    userDeviceObj
+  );
   const userDeviceKey = userDevicePost.Key as string;
-  
-  const userDeviceGet = await notificationService.getUserDeviceByKey(userDeviceKey);
+
+  const userDeviceGet = await notificationService.getUserDeviceByKey(
+    userDeviceKey
+  );
   ///need to add the above object to the test
   const notificationObj =
     await notificationService.generateRandomNotification();
@@ -2219,12 +2446,8 @@ export async function notificationsPositive(client: Client, request: Request) {
   );
   //can test the post object against the original object;
   const notificationKey = notificationPost.Key as string;
-  //get by key currently not working BLAT
-  // const notificationGet = await notificationService.getNotificationByKey(
-  //   notificationKey
-  // );
-  //temp function to implement the filte that is supposed to be done by Noam
-  const notificationGet = await notificationService.getNotificationByKeyTemp(
+
+  const notificationGet = await notificationService.getNotificationByKey(
     notificationKey
   );
   //Mark as read
@@ -2233,7 +2456,7 @@ export async function notificationsPositive(client: Client, request: Request) {
   });
 
   const notificationGetAfterRead =
-    await notificationService.getNotificationByKeyTemp(notificationKey);
+    await notificationService.getNotificationByKey(notificationKey);
   //some mocha to test if the Original + POSTED + Gotten objects are the same
   console.log(`notificationsPositive::Starting Mocha tests`);
 
@@ -2297,55 +2520,55 @@ export async function notificationsPositive(client: Client, request: Request) {
 
     it("Get parsed test results", async () => {
       expect(
-        notificationGet,
+        notificationGet[0],
         "Failed on notification get returning wrong type"
       ).to.be.an("object").that.is.not.empty.and.undefined;
       expect(
-        notificationGet.ModificationDateTime,
+        notificationGet[0].ModificationDateTime,
         "Failed on modificationDateTime returning wrong type/value"
       )
         .to.be.a("string")
         .that.has.lengthOf(24);
       expect(
-        notificationGet.CreationDateTime,
+        notificationGet[0].CreationDateTime,
         "Failed on CreationDateTime returning wrong type/value"
       )
         .to.be.a("string")
         .that.has.lengthOf(24);
       expect(
-        notificationGet.Read,
+        notificationGet[0].Read,
         "Failed on Read returning true instead of false"
       ).to.be.a("boolean").that.is.false;
       expect(
-        notificationGet.Title,
+        notificationGet[0].Title,
         "Failed on Title returning the wrong value/type"
       )
         .to.be.a("string")
         .that.is.equal(notificationObj.Title);
       expect(
-        notificationGet.Body,
+        notificationGet[0].Body,
         "Failed on Body returning the wrong value/type"
       )
         .to.be.a("string")
         .that.is.equal(notificationObj.Body);
       expect(
-        notificationGet.Hidden,
+        notificationGet[0].Hidden,
         "Failed on Hidden returning true instead of false"
       ).to.be.a("boolean").that.is.false;
       expect(
-        notificationGet.CreatorUUID,
+        notificationGet[0].CreatorUUID,
         "Failed on CreatorUUID returning the wrong value/type"
       )
         .to.be.a("string")
         .that.is.equal(notificationObj.UserUUID);
       expect(
-        notificationGet.UserUUID,
+        notificationGet[0].UserUUID,
         "Failed on UserUUID returning the wrong value/type"
       )
         .to.be.a("string")
         .that.is.equal(notificationObj.UserUUID);
       expect(
-        notificationGet.Key,
+        notificationGet[0].Key,
         "Failed on Key returning the wrong value/type"
       )
         .to.be.a("string")
@@ -2411,60 +2634,234 @@ export async function notificationsPositive(client: Client, request: Request) {
 
     it("Get after mark_as_read Parsed test results", async () => {
       expect(
-        notificationGetAfterRead,
-        "Failed on notificationGetAfterRead get returning wrong type"
+        notificationGetAfterRead[0],
+        "Failed on notificationGetAfterRead[0] get returning wrong type"
       ).to.be.an("object").that.is.not.empty.and.undefined;
       expect(
-        notificationGetAfterRead.ModificationDateTime,
+        notificationGetAfterRead[0].ModificationDateTime,
         "Failed on modificationDateTime returning wrong type/value"
       )
         .to.be.a("string")
         .that.has.lengthOf(24)
         .and.not.to.be.equal(notificationGet.ModificationDateTime);
       expect(
-        notificationGetAfterRead.CreationDateTime,
+        notificationGetAfterRead[0].CreationDateTime,
         "Failed on CreationDateTime returning wrong type/value"
       )
         .to.be.a("string")
         .that.has.lengthOf(24);
       expect(
-        notificationGetAfterRead.Read,
+        notificationGetAfterRead[0].Read,
         "Failed on Read returning false instead of true"
       ).to.be.a("boolean").that.is.true;
       expect(
-        notificationGetAfterRead.Title,
+        notificationGetAfterRead[0].Title,
         "Failed on Title returning the wrong value/type"
       )
         .to.be.a("string")
         .that.is.equal(notificationObj.Title);
       expect(
-        notificationGetAfterRead.Body,
+        notificationGetAfterRead[0].Body,
         "Failed on Body returning the wrong value/type"
       )
         .to.be.a("string")
         .that.is.equal(notificationObj.Body);
       expect(
-        notificationGetAfterRead.Hidden,
+        notificationGetAfterRead[0].Hidden,
         "Failed on Hidden returning true instead of false"
       ).to.be.a("boolean").that.is.false;
       expect(
-        notificationGetAfterRead.CreatorUUID,
+        notificationGetAfterRead[0].CreatorUUID,
         "Failed on CreatorUUID returning the wrong value/type"
       )
         .to.be.a("string")
         .that.is.equal(notificationObj.UserUUID);
       expect(
-        notificationGetAfterRead.UserUUID,
+        notificationGetAfterRead[0].UserUUID,
         "Failed on UserUUID returning the wrong value/type"
       )
         .to.be.a("string")
         .that.is.equal(notificationObj.UserUUID);
       expect(
-        notificationGetAfterRead.Key,
+        notificationGetAfterRead[0].Key,
         "Failed on Key returning the wrong value/type"
       )
         .to.be.a("string")
         .that.has.lengthOf(36);
+    });
+  });
+  describe("userDevice Positive automation test", async () => {
+    it("Post parsed test results", async () => {
+      expect(
+        userDevicePost,
+        "Failed on userDevicePost returning wrong type/value"
+      ).to.be.an("object").that.is.not.empty.and.undefined;
+      expect(
+        userDevicePost.Key,
+        "Failed on userDevice.Key returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(
+          `${userDevicePost.UserUUID}_${userDeviceObj.DeviceKey}_${userDeviceObj.AppKey}`
+        ).and.is.not.null.and.undefined;
+      expect(
+        userDevicePost.AddonRelativeURL,
+        "Failed on userDevice.AddonRelativeURL returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.AddonRelativeURL).and.is.not.null.and
+        .undefined;
+      expect(
+        userDevicePost.AppName,
+        "Failed on userDevice.AppName returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.AppName).and.is.not.null.and.undefined;
+      expect(
+        userDevicePost.AppKey,
+        "Failed on userDevice.AppKey returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.AppKey).and.is.not.null.and.undefined;
+      expect(
+        userDevicePost.DeviceKey,
+        "Failed on userDevice.DeviceKey returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.DeviceKey).and.is.not.null.and.undefined;
+      expect(
+        userDevicePost.DeviceName,
+        "Failed on userDevice.DeviceName returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.DeviceName).and.is.not.null.and.undefined;
+      expect(
+        userDevicePost.DeviceType,
+        "Failed on userDevice.DeviceType returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.DeviceType).and.is.not.null.and.undefined;
+      expect(
+        userDevicePost.Hidden,
+        "Failed on userDevice.Hidden returning wrong value"
+      ).to.be.a("boolean").that.is.false.and.is.not.null.and.undefined;
+      expect(
+        userDevicePost.PlatformType,
+        "Failed on userDevice.PlatformType returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.PlatformType).and.is.not.null.and
+        .undefined;
+      expect(
+        userDevicePost.UserUUID,
+        "Failed on userDevice.UserUUID returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.UserUUID).and.is.not.null.and.undefined;
+      expect(
+        userDevicePost.ModificationDateTime,
+        "Failed on userDevice.modificationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+      expect(
+        userDevicePost.ExpirationDateTime,
+        "Failed on userDevice.ExpirationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+      expect(
+        userDevicePost.CreationDateTime,
+        "Failed on userDevice.CreationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+    });
+    it("Get parsed test results", async () => {
+      expect(
+        userDeviceGet[0],
+        "Failed on userDeviceGET returning wrong type/value"
+      ).to.be.an("object").that.is.not.empty.and.undefined;
+      expect(
+        userDeviceGet[0].Key,
+        "Failed on userDevice.Key returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(
+          `${userDevicePost.UserUUID}_${userDeviceObj.DeviceKey}_${userDeviceObj.AppKey}`
+        ).and.is.not.null.and.undefined;
+      expect(
+        userDeviceGet[0].AddonRelativeURL,
+        "Failed on userDevice.AddonRelativeURL returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.AddonRelativeURL).and.is.not.null.and
+        .undefined;
+      expect(
+        userDeviceGet[0].AppName,
+        "Failed on userDevice.AppName returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.AppName).and.is.not.null.and.undefined;
+      expect(
+        userDeviceGet[0].AppKey,
+        "Failed on userDevice.AppKey returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.AppKey).and.is.not.null.and.undefined;
+      expect(
+        userDeviceGet[0].DeviceKey,
+        "Failed on userDevice.DeviceKey returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.DeviceKey).and.is.not.null.and.undefined;
+      expect(
+        userDeviceGet[0].DeviceName,
+        "Failed on userDevice.DeviceName returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.DeviceName).and.is.not.null.and.undefined;
+      expect(
+        userDeviceGet[0].DeviceType,
+        "Failed on userDevice.DeviceType returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.DeviceType).and.is.not.null.and.undefined;
+      expect(
+        userDeviceGet[0].Hidden,
+        "Failed on userDevice.Hidden returning wrong value"
+      ).to.be.a("boolean").that.is.false.and.is.not.null.and.undefined;
+      expect(
+        userDeviceGet[0].PlatformType,
+        "Failed on userDevice.PlatformType returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.PlatformType).and.is.not.null.and
+        .undefined;
+      expect(
+        userDeviceGet[0].UserUUID,
+        "Failed on userDevice.UserUUID returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.UserUUID).and.is.not.null.and.undefined;
+      expect(
+        userDeviceGet[0].ModificationDateTime,
+        "Failed on userDevice.modificationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+      expect(
+        userDeviceGet[0].ExpirationDateTime,
+        "Failed on userDevice.ExpirationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+      expect(
+        userDeviceGet[0].CreationDateTime,
+        "Failed on userDevice.CreationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
     });
   });
   console.log(`notificationsPositive::Test Ended`);
@@ -2662,6 +3059,8 @@ export async function notificationsNegative(client: Client, request: Request) {
       });
       console.log(markAsReadForOtherUser); // bug returns successful DI-19990
     });
+    //Need to talk to Chasky regarding the below
+    it("userDevice negative tests", async () => {})
   });
 
   //need to add test cases for mark_as_read
@@ -2670,9 +3069,7 @@ export async function notificationsNegative(client: Client, request: Request) {
 }
 //Listener endpoint that gets the notifications for the automation
 export async function notificationsLogger(client: Client, request: Request) {
-  console.log(
-    `notificationsLogger::Inside notificationsLogger`
-  );
+  console.log(`notificationsLogger::Inside notificationsLogger`);
   let reqBody = request.body; // catch notification userDevice response
   // need to push notification into ADAL
   const service = new MyService(client);
@@ -2683,8 +3080,15 @@ export async function notificationsLogger(client: Client, request: Request) {
   console.log(
     `notificationsLogger::ADAL request body: ${JSON.stringify(reqBody)}`
   );
-
-  const upsert = await service.upsertToADAL("NotificationsLogger", reqBody);
+  //const upsert = await service.upsertToADAL("NotificationsLogger", reqBody);
+  //debugger;
+  const upsert = await service.updateUDTValues(
+    "notifications",
+    reqBody.Key.toString(),
+    reqBody.CreationDateTime,
+    false,
+    reqBody.toString()
+  );
 
   console.log(
     `notificationsLogger::ADAL request response: ${JSON.stringify(upsert)}`
