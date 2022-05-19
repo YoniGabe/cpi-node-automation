@@ -9,7 +9,7 @@ import ScriptService, {
 import ClientActionsService, {
   ClientAction,
 } from "./services/clientActions.service";
-import NotificationService from "./services/notifications.service";
+import NotificationService, { userDevice,Notification } from "./services/notifications.service";
 
 export async function getInstalledAddons(client: Client, request: Request) {
   const service = new MyService(client);
@@ -2189,9 +2189,11 @@ export async function clientActionsInterceptorsTester(
   }
   console.log(arrActions);
   const dialogSequenceArr: any[] = [];
-  for (let i = 0;i < 6; i++) {
-   const actionData = await clientActionsService.parseActionDataForTest(arrActions[i][1]);
-   dialogSequenceArr.push(actionData);
+  for (let i = 0; i < 6; i++) {
+    const actionData = await clientActionsService.parseActionDataForTest(
+      arrActions[i][1]
+    );
+    dialogSequenceArr.push(actionData);
   }
   console.log(udtData);
 
@@ -2208,7 +2210,6 @@ export async function clientActionsInterceptorsTester(
   } catch (err) {
     console.log(`clientActionsInterceptorsTester:: UDT removal error: ${err}`);
   }
-
 
   describe("Client Actions Automation positive test", async () => {
     for (const [key, value] of actions) {
@@ -2373,8 +2374,8 @@ export async function clientActionsInterceptorsTester(
 
       const geoData = {
         lat: arr[23].split(":"),
-        acc: arr[24].split(":")
-      }
+        acc: arr[24].split(":"),
+      };
       expect(arr[0]).to.be.a("string").that.is.equal("1");
       expect(arr[1]).to.be.a("string").that.is.equal("true");
       expect(arr[2]).to.be.a("string").that.is.equal("2");
@@ -2401,9 +2402,11 @@ export async function clientActionsInterceptorsTester(
       expect(geoData.lat[0]).to.be.a("string").that.is.equal(`"latitude"`);
       expect(parseFloat(geoData.lat[1])).to.be.a("number").that.is.above(1);
       expect(geoData.acc[0]).to.be.a("string").that.is.equal(`"accuracy"`);
-      expect(parseFloat(geoData.acc[1].replace("}",""))).to.be.a("number").that.is.above(1);
+      expect(parseFloat(geoData.acc[1].replace("}", "")))
+        .to.be.a("number")
+        .that.is.above(1);
 
-      for (let i = 0;i < dialogSequenceArr.length; i++) {
+      for (let i = 0; i < dialogSequenceArr.length; i++) {
         const index = parseInt(dialogSequenceArr[i].Data.Content);
         expect(
           index,
@@ -2426,7 +2429,7 @@ export async function notificationsPositive(client: Client, request: Request) {
   const notificationService = new NotificationService(client);
   const { describe, it, expect, run } = Tester("My test");
   console.log(`notificationsPositive::Gotten services,initiating requests`);
-
+  //userDevice
   const userDeviceObj = await notificationService.generateUserDevice();
 
   const userDevicePost = await notificationService.postUserDevice(
@@ -2437,7 +2440,7 @@ export async function notificationsPositive(client: Client, request: Request) {
   const userDeviceGet = await notificationService.getUserDeviceByKey(
     userDeviceKey
   );
-  ///need to add the above object to the test
+  //notifications
   const notificationObj =
     await notificationService.generateRandomNotification();
 
@@ -2450,6 +2453,20 @@ export async function notificationsPositive(client: Client, request: Request) {
   const notificationGet = await notificationService.getNotificationByKey(
     notificationKey
   );
+
+  //get push from ADAL
+  const today = new Date().toISOString().split("T")[0];
+  const userUUID = notificationObj.UserUUID;
+  const title = notificationObj.Title;
+  const body = notificationObj.Body;
+  const notificationKeyInADAL =
+    userUUID + "_" + title + "_" + body + "_" + today;
+  console.log(notificationKeyInADAL);
+  await service.sleep(90000); //1 minutes wait till ADAL insert is done - triggered by notification insert
+  const notificationFromADAL = await service.getFromADAL(
+    "NotificationsLogger",
+    notificationKeyInADAL
+  );
   //Mark as read
   const markAsRead = await notificationService.markAsRead({
     Keys: [notificationKey],
@@ -2457,6 +2474,17 @@ export async function notificationsPositive(client: Client, request: Request) {
 
   const notificationGetAfterRead =
     await notificationService.getNotificationByKey(notificationKey);
+  //data cleansing
+  userDeviceObj.Hidden = true;
+  const removeUserDevice = await notificationService.postUserDevice(
+    userDeviceObj
+  );
+
+  notificationFromADAL[0].Hidden = true;
+  const removeNotificationFromADAL = await service.upsertToADAL(
+    "NotificationsLogger",
+    notificationFromADAL[0]
+  );
   //some mocha to test if the Original + POSTED + Gotten objects are the same
   console.log(`notificationsPositive::Starting Mocha tests`);
 
@@ -2689,6 +2717,66 @@ export async function notificationsPositive(client: Client, request: Request) {
         .to.be.a("string")
         .that.has.lengthOf(36);
     });
+
+    it("Push notification from ADAL Parsed test results", async () => {
+      expect(
+        notificationFromADAL[0].ModificationDateTime,
+        "Failed on modificationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+      expect(
+        notificationFromADAL[0].CreationDateTime,
+        "Failed on CreationDateTime returning wrong type/value"
+      )
+        .to.be.a("string")
+        .that.has.lengthOf(24);
+      expect(
+        notificationFromADAL[0].Endpoint,
+        "Failed on notificationFromADAL.Endpoint returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.AddonRelativeURL).and.is.not.null.and
+        .undefined;
+      expect(
+        notificationFromADAL[0].Key,
+        "Failed on notificationFromADAL.Key returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationKeyInADAL).and.is.not.null.and.undefined;
+
+      expect(
+        notificationFromADAL[0].DeviceType,
+        "Failed on notificationFromADAL.DeviceType returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.DeviceType).and.is.not.null.and.undefined;
+      expect(
+        notificationFromADAL[0].Hidden,
+        "Failed on notificationFromADAL.Hidden returning wrong value"
+      ).to.be.a("boolean").that.is.true.and.is.not.null.and.undefined;
+      expect(
+        notificationFromADAL[0].PlatformType,
+        "Failed on notificationFromADAL.PlatformType returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(userDeviceObj.PlatformType).and.is.not.null.and
+        .undefined;
+
+      expect(
+        notificationFromADAL[0].Subject,
+        "Failed on userDevice.Title returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.Title).and.is.not.null.and.undefined;
+
+      expect(
+        notificationFromADAL[0].Message,
+        "Failed on userDevice.Body returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.Body).and.is.not.null.and.undefined;
+    });
   });
   describe("userDevice Positive automation test", async () => {
     it("Post parsed test results", async () => {
@@ -2877,6 +2965,120 @@ export async function notificationsPositive(client: Client, request: Request) {
   return testResults;
 }
 
+export async function bulkNotificationTester(client: Client, request: Request) {
+  console.log(`bulkNotificationTester::Test Started`);
+  const service = new MyService(client);
+  const notificationService = new NotificationService(client);
+  const { describe, it, expect, run } = Tester("My test");
+  const userDeviceArr: userDevice[] = [];
+
+  for(let i = 0;i < 10; i++) {
+    const userDeviceObj = await notificationService.generateUserDevice("TEST",false,"/addons/api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/api/bulkNotificationsLogger");
+
+    const userDevicePost = await notificationService.postUserDevice(
+      userDeviceObj
+    );
+    userDeviceArr.push(userDeviceObj);
+  }
+
+    //notifications
+    const notificationObj =
+    await notificationService.generateRandomNotification();
+
+  const notificationPost = await notificationService.postNotifications(
+    notificationObj
+  );
+  
+  await service.sleep(360000);
+
+  for(const device of userDeviceArr) {
+    device.Hidden = true;
+    const userDevicePost = await notificationService.postUserDevice(
+      device
+    ); 
+  }
+
+  const dateTime = new Date().toISOString();
+  const notificationFromADAL = await service.getFromADALByDate(
+    "NotificationsLogger",
+    dateTime
+  );
+  console.log(notificationFromADAL);
+
+  for(const notification of notificationFromADAL) {
+    notification.Hidden = true;
+    const res = await service.upsertToADAL("NotificationsLogger",notification);
+    console.log(res);
+  }
+
+  describe("userDevice Positive automation test", async () => {
+    it("Post parsed test results", async () => {
+    expect(notificationFromADAL,`Failed on returning the wrong number of push messages,instead of 10 only ${notificationFromADAL.length} returned`).to.be.an("array").that.has.lengthOf(10).that.is.not.empty.and.undefined;
+    expect(userDeviceArr,`Failed on returning the wrong number of userDevices,instead of 10 only ${userDeviceArr.length} returned`).to.be.an("array").that.has.lengthOf(10).that.is.not.empty.and.undefined;
+    })
+  })
+  console.log(`bulkNotificationTester::Test Ended`);
+
+  const testResults = await run();
+  return testResults;
+}
+//need to setup test cases
+export async function multiNotificationsAndUsersTester(client: Client, request: Request) {
+  console.log(`multiNotificationsAndUsersTester::Test Started`);
+  const service = new MyService(client);
+  const notificationService = new NotificationService(client);
+  const { describe, it, expect, run } = Tester("My test");
+
+  const userDeviceObjArr = await notificationService.generateBulkUserDevice();
+  const userDeviceArr: userDevice[] = [];
+  const notificationArr: Notification[] = [];
+  for(const device of userDeviceObjArr) {
+  const userDevicePost = await notificationService.postUserDevice(
+    device
+  );
+  userDeviceArr.push(userDevicePost);
+  }
+  console.log(userDeviceArr);
+  const notificationsKeys: string[] = [];
+  
+  const bulkNotificationsObjArr = await notificationService.generateRandomBulkNotifications();
+  console.log(bulkNotificationsObjArr);
+  const post = await notificationService.postBulkNotification(bulkNotificationsObjArr);
+  console.log(post);
+
+  for (const res of post) {
+    notificationsKeys.push(res.Key as string)
+  }
+
+  for(const key of notificationsKeys) {
+    const notification = await notificationService.getNotificationByKey(key);
+    notificationArr.push(notification[0]);
+  }
+  console.log(notificationArr);
+
+  await service.sleep(300000);
+  const dateTime = new Date().toISOString();
+  const notificationFromADAL = await service.getFromADALByDate(
+    "NotificationsLogger",
+    dateTime
+  );
+  console.log(notificationFromADAL);
+
+  for(const device of userDeviceObjArr) {
+    device.Hidden = true;
+    const userDevicePost = await notificationService.postUserDevice(
+      device
+    ); 
+  }
+
+  for(const notification of notificationFromADAL) {
+    notification.Hidden = true;
+    const res = await service.upsertToADAL("NotificationsLogger",notification);
+    console.log(res);
+  }
+  
+}
+
 export async function notificationsNegative(client: Client, request: Request) {
   console.log(`notificationsPositive::Test Started`);
   const service = new MyService(client);
@@ -2907,15 +3109,25 @@ export async function notificationsNegative(client: Client, request: Request) {
               )
           : null;
       }
-      // try {
-      //   const notificationObj2 =
-      //     await notificationService.generateNegativeNotification("Body-removed");
-      //   const notificationWithNoBody =
-      //     await notificationService.postNotificationsNegative(notificationObj2);
-      //   console.log(notificationWithNoBody);
-      // } catch (e) {
-      //   console.log(e);
-      // }
+      try {
+        const notificationObj2 =
+          await notificationService.generateNegativeNotification("longTitle");
+        const notificationWithNoBody =
+          await notificationService.postNotificationsNegative(notificationObj2);
+        console.log(notificationWithNoBody);
+      } catch (e) {
+        console.log(e);
+        e instanceof Error
+        ? expect(
+            e.message,
+            "Failed on Title sent length returning wrong exception"
+          )
+            .to.be.a("string")
+            .that.is.equal(
+              'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Title does not meet maximum length of 40","detail":{"errorcode":"BadRequest"}}}'
+            )
+        : null;
+      }
       try {
         const notificationObj3 =
           await notificationService.generateNegativeNotification("Body-number");
@@ -2941,7 +3153,6 @@ export async function notificationsNegative(client: Client, request: Request) {
           );
         const notificationWithNoUser =
           await notificationService.postNotificationsNegative(notificationObj4);
-        console.log(notificationWithNoUser);
       } catch (e) {
         e instanceof Error
           ? expect(
@@ -2950,7 +3161,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: UserUUID is required","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: One of the following properties is requierd: /UserUUID,/Email","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
       }
@@ -2959,7 +3170,6 @@ export async function notificationsNegative(client: Client, request: Request) {
           await notificationService.generateNegativeNotification("User-number");
         const notificationWithNumberUser =
           await notificationService.postNotificationsNegative(notificationObj5);
-        console.log(notificationWithNumberUser);
       } catch (e) {
         e instanceof Error
           ? expect(
@@ -2968,52 +3178,10 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: UserUUID is not of a type(s) string","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: UserUUID is not of a type(s) string\\nOne of the following properties is requierd: /UserUUID,/Email","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
       }
-      // try {
-      //   const notificationObj6 =
-      //     await notificationService.generateNegativeNotification("Read-removed"); // known bug DI-19974
-      //   const notificationWithReadRemoved =
-      //     await notificationService.postNotificationsNegative(notificationObj6);
-      //   console.log(notificationWithReadRemoved);
-      // } catch (e) {
-      //   console.log(e);
-      // }
-      try {
-        const notificationObj7 =
-          await notificationService.generateNegativeNotification("Read-number");
-        const notificationWithReadNumber =
-          await notificationService.postNotificationsNegative(notificationObj7);
-        console.log(notificationWithReadNumber);
-      } catch (e) {
-        e instanceof Error
-          ? expect(
-              e.message,
-              "Failed on number Read sent returning wrong exception"
-            )
-              .to.be.a("string")
-              .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Read is not of a type(s) boolean","detail":{"errorcode":"BadRequest"}}}'
-              )
-          : null;
-      }
-      // try {
-      //   const notificationObj8 =
-      //     await notificationService.generateNegativeNotification("Read-string");
-      //   const notificationWithReadString =
-      //     await notificationService.postNotificationsNegative(notificationObj8);
-      // } catch (e) {
-      //   e instanceof Error ? expect(
-      //     e.message,
-      //     "Failed on string Read sent returning wrong exception"
-      //   )
-      //     .to.be.a("string")
-      //     .that.is.equal(
-      //       'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Read is not of a type(s) boolean","detail":{"errorcode":"BadRequest"}}}'
-      //     ) : null;
-      // }
       try {
         const notificationObj9 =
           await notificationService.generateNegativeNotification("all-wrong");
@@ -3027,9 +3195,28 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Title is not of a type(s) string\\nBody is not of a type(s) string\\nUserUUID is not of a type(s) string\\nRead is not of a type(s) boolean","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Title is not of a type(s) string\\nBody is not of a type(s) string\\nUserUUID is not of a type(s) string\\nOne of the following properties is requierd: /UserUUID,/Email","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
+      }
+
+      try {
+        const notificationObj10 =
+          await notificationService.generateNegativeNotification("longBody");
+        const notificationWithNoBody =
+          await notificationService.postNotificationsNegative(notificationObj10);
+        console.log(notificationWithNoBody);
+      } catch (e) {
+        e instanceof Error
+        ? expect(
+            e.message,
+            "Failed on Body sent length returning wrong exception"
+          )
+            .to.be.a("string")
+            .that.is.equal(
+              'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 413 - Request Entity Too Large error: '
+            )
+        : null;
       }
     });
     it("mark_as_read negative tests", async () => {
@@ -3045,9 +3232,15 @@ export async function notificationsNegative(client: Client, request: Request) {
 
       const markAsReadWithNumber = await notificationService.markAsRead({
         Keys: [Math.random() * 100],
-      });
-      console.log(markAsReadWithNumber); // bug returns [] DI-19988
+      });  // bug returns [] DI-19988
+      expect(
+        markAsReadWithNumber,
+        "Failed on mark_as_read with numbver instead of key returning wrong output"
+      )
+        .to.be.an("array")
+        .with.lengthOf(0);
 
+     try {
       const notificationForOtherUser =
         await notificationService.generateRandomNotification("Rep1");
       const postNotification = await notificationService.postNotifications(
@@ -3057,17 +3250,28 @@ export async function notificationsNegative(client: Client, request: Request) {
       const markAsReadForOtherUser = await notificationService.markAsRead({
         Keys: [postNotification.Key],
       });
-      console.log(markAsReadForOtherUser); // bug returns successful DI-19990
+    } catch(e) {
+      e instanceof Error
+      ? expect(
+          e.message,
+          "Failed on mark_as_read for another user not returning exception"
+        )
+          .to.be.a("string")
+          .that.is.equal(
+            'https://papi.staging.pepperi.com/V1.0/notifications/mark_as_read failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: The UserUUID is different from the notification UserUUID","detail":{"errorcode":"BadRequest"}}}'
+          )
+      : null;
+    }
     });
     //Need to talk to Chasky regarding the below
-    it("userDevice negative tests", async () => {})
+    it("userDevice negative tests", async () => {});
   });
 
   //need to add test cases for mark_as_read
   const testResults = await run();
   return testResults;
 }
-//Listener endpoint that gets the notifications for the automation
+//Listener endpoints that gets the notifications for the automation
 export async function notificationsLogger(client: Client, request: Request) {
   console.log(`notificationsLogger::Inside notificationsLogger`);
   let reqBody = request.body; // catch notification userDevice response
@@ -3076,21 +3280,56 @@ export async function notificationsLogger(client: Client, request: Request) {
   const user = await service.papiClient.users.find({
     where: `ExternalID='TEST'`,
   });
-  reqBody.Key = (reqBody.Key + user[0].UUID) as string;
+  console.log(reqBody);
+  const date = new Date().toISOString().split("T")[0] as string;
+  reqBody.Key = `${user[0].UUID}_${reqBody.Subject}_${reqBody.Message}_${date}`;
   console.log(
     `notificationsLogger::ADAL request body: ${JSON.stringify(reqBody)}`
   );
-  //const upsert = await service.upsertToADAL("NotificationsLogger", reqBody);
-  //debugger;
-  const upsert = await service.updateUDTValues(
-    "notifications",
-    reqBody.Key.toString(),
-    reqBody.CreationDateTime,
-    false,
-    reqBody.toString()
-  );
+
+  const upsert = await service.upsertToADAL("NotificationsLogger", reqBody);
 
   console.log(
     `notificationsLogger::ADAL request response: ${JSON.stringify(upsert)}`
   );
+
+  return "success";
+}
+
+export async function bulkNotificationsLogger(client: Client, request: Request) {
+  console.log(`bulkNotificationsLogger::Inside notificationsLogger`);
+  let reqBody = request.body; // catch notification userDevice response
+  // need to push notification into ADAL
+  const service = new MyService(client);
+  const user = await service.papiClient.users.find({
+    where: `ExternalID='TEST'`,
+  });
+  console.log(reqBody);
+  const date = new Date().toISOString();
+  reqBody.Key = `${user[0].UUID}_${reqBody.Message}_${date}`;
+  console.log(
+    `bulkNotificationsLogger::ADAL request body: ${JSON.stringify(reqBody)}`
+  );
+
+  const upsert = await service.upsertToADAL("NotificationsLogger", reqBody);
+
+  console.log(
+    `bulkNotificationsLogger::ADAL request response: ${JSON.stringify(upsert)}`
+  );
+
+  return "success";
+}
+
+export async function cleanseADAL(client: Client, request: Request) {
+  const service = new MyService(client);
+  const resultArr: any[] = [];
+  const date = new Date().toISOString();
+  const res = await service.getFromADALByDate("NotificationsLogger", date);
+
+  for (const obj of res) {
+    obj.Hidden = true;
+    const res = await service.upsertToADAL("NotificationsLogger", obj);
+    resultArr.push(res);
+  }
+  return resultArr;
 }

@@ -571,7 +571,7 @@ class MyService {
 
   async upsertToADAL(tableName: string, body: AddonData) {
     const upsert = await this.papiClient.addons.data
-      .uuid(thisAddonUUID)
+      .uuid(this.client.AddonUUID)
       .table(tableName)
       .upsert(body);
       
@@ -582,7 +582,17 @@ class MyService {
     const get = await this.papiClient.addons.data
       .uuid(this.client.AddonUUID)
       .table(tableName)
-      .find({ where: `Key=${Key}` });
+      .find({ where: `Key='${Key}'` });
+
+    return get;
+  }
+
+  async getFromADALByDate(tableName: string,date: string) {
+    const get = await this.papiClient.addons.data
+      .uuid(this.client.AddonUUID)
+      .table(tableName).find({
+        where: `CreationDateTime<'${date}'`
+      })
 
     return get;
   }

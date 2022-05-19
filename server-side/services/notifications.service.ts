@@ -14,7 +14,7 @@ export interface Notification {
 }
 
 export interface bulkNotification {
-  EmailList: string[];
+  Email: string;
   Title: string;
   Body: string;
 }
@@ -82,6 +82,11 @@ class NotificationService {
     return res;
   }
 
+  async postBulkNotification(array: bulkNotification[]) {
+    const res = await this.papiClient.post(`/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/import_notifications`, array);
+    return res;
+  }
+
   async postNotificationsNegative(body: any): Promise<any> {
     const res = await this.papiClient.post(`/notifications`, body);
     return res;
@@ -117,39 +122,38 @@ class NotificationService {
       where: `ExternalID='${userKey}'`, // a user with this ID should be created on addons intall
     });
     const userUUID = user[0].UUID as string;
+    const titleIndex = Math.floor(Math.random() * 3) + 1; //two indexes to randomize the key combinations more
+    const bodyIndex = Math.floor(Math.random() * 3) + 1;
+    const titleArr = ["IamIronMan","Earth_is_closed_today_squeedwerd","will_power_something_big","we_conected"];
+    const bodyArr = ["Playboy_Billionaire_Genius_Philanthrophist","Im_getting_the_door_for_you","you_brought_pizza","this_is_nice"];
     return {
       UserUUID: userUUID,
-      Title:
-        Math.random() > 0.5
-          ? "I am Iron Man"
-          : "Earth is closed today squeedwerd!",
-      Body:
-        Math.random() > 0.5
-          ? "Playboy,Billionaire,Genius,Philanthrophist"
-          : "This is not a hug,I'm getting the door for you",
-      Read: false,
+      Title: titleArr[titleIndex],
+      Body: bodyArr[bodyIndex],
     } as Notification;
   }
   //next version
-  async generateRandomBulkNotifications(): Promise<bulkNotification> {
+  async generateRandomBulkNotifications(): Promise<bulkNotification[]> {
     const users = await this.papiClient.users.find({
       where: `Hidden=false`,
     });
-    const userEmailArr: string[] = [];
-    for (const user of users) {
-      userEmailArr.push(user.Email as string);
-    }
-    return {
-      EmailList: userEmailArr,
+    const notificationArr: bulkNotification[] = [];
+    for(const user of users) {
+      if(user.Email) {
+        notificationArr.push({
+          Email: user.Email,
       Title:
         Math.random() > 0.5
-          ? "Bulk Tony stark is awesome"
-          : "Bulk Iron man is awesome",
+          ? "Bulk_Tony_stark_is_awesome"
+          : "Bulk_Iron_man_is_awesome",
       Body:
         Math.random() > 0.5
-          ? "Hulk-Buster or Silver centurion?"
-          : "Nano armor ofcourse",
-    } as bulkNotification;
+          ? "Hulk-Buster_or_Silver_centurion?"
+          : "Nano_armor_ofcourse",
+        } as bulkNotification)
+      }
+    }
+    return notificationArr;
   }
   //generates notifications for negative test
   async generateNegativeNotification(testCase: string): Promise<any> {
@@ -167,7 +171,6 @@ class NotificationService {
         Math.random() > 0.5
           ? "Playboy,Billionaire,Genius,Philanthrophist"
           : "This is not a hug,I'm getting the door for you",
-      Read: false,
     };
     switch (testCase) {
       case "Title-removed":
@@ -188,20 +191,21 @@ class NotificationService {
       case "User-number":
         negativeNotification.UserUUID = Math.random() * 100;
         break;
-      case "Read-removed":
-        delete negativeNotification.Read;
-        break;
-      case "Read-number":
-        negativeNotification.Read = Math.random() * 100;
-        break;
-      case "Read-string":
-        negativeNotification.Read = "I am iron man";
       case "all-wrong":
         negativeNotification.Body = Math.random() * 100;
         negativeNotification.Title = Math.random() * 100;
         negativeNotification.UserUUID = Math.random() * 100;
-        negativeNotification.Read = Math.random() * 100;
         break;
+      case "longTitle":
+        for(let i = 0;i<10;i++){
+          negativeNotification.Title += negativeNotification.Title;
+        }
+       break;
+       case "longBody":
+        for(let i = 0;i<20;i++){
+          negativeNotification.Body += negativeNotification.Body;
+        }
+       break;
     }
 
     return negativeNotification;
@@ -239,9 +243,11 @@ class NotificationService {
 
   async generateUserDevice(
     userExID?: string,
-    hidden?: boolean
+    hidden?: boolean,
+    AddonRelativeURL? : string
   ): Promise<userDevice> {
     const userKey = userExID ? userExID : "TEST";
+    const URL = AddonRelativeURL ? AddonRelativeURL : "/addons/api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/api/notificationsLogger";
     const hiddenFlag = hidden ? hidden : false;
     // const user = await this.papiClient.users.find({
     //   where: `ExternalID='${userKey}'`, // a user with this ID should be created on addons intall
@@ -249,16 +255,38 @@ class NotificationService {
     // const userUUID = user[0].UUID as string;
     return {
       AppKey: "com.wrnty.peppery",
-      DeviceKey: `random-device ${Math.floor(Math.random() * 1000)}`,
-      DeviceName: `test-name ${Math.floor(Math.random() * 1000)}`,
-      Token: `random-token ${Math.floor(Math.random() * 1000)}`,
+      DeviceKey: `random-device_${Math.floor(Math.random() * 1000)}`,
+      DeviceName: `test-name_${Math.floor(Math.random() * 1000)}`,
+      Token: `random-token_${Math.floor(Math.random() * 1000)}`,
       AppName: "Pepperi",
       DeviceType: "Test",
       PlatformType: "Addon",
-      AddonRelativeURL:
-        "/addons/api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/api/notificationsLogger", // logger endpoint on this addon to get the notification and post to ADAL
+      AddonRelativeURL: URL, // logger endpoint on this addon to get the notification and post to ADAL
       Hidden: hiddenFlag,
     };
+  }
+
+  async generateBulkUserDevice():Promise<userDevice[]> {
+    const users = await this.papiClient.users.find({
+      where: `Hidden=false`,
+    });
+    const userDeviceArr: userDevice[] = [];
+
+    for (const user of users) {
+      userDeviceArr.push({
+        AppKey: "com.wrnty.peppery",
+        DeviceKey: `random-device_${Math.floor(Math.random() * 1000)}`,
+        DeviceName: `test-name_${user.UUID}`,
+        Token: `random-token_${Math.floor(Math.random() * 1000)}`,
+        AppName: "Pepperi",
+        DeviceType: "Test",
+        PlatformType: "Addon",
+        AddonRelativeURL: "/addons/api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/api/bulkNotificationsLogger", // logger endpoint on this addon to get the notification and post to ADAL
+        Hidden: false,
+      })
+    }
+
+    return userDeviceArr;
   }
 
   async postNegativeUserDevice(body: any): Promise<any> {
@@ -269,7 +297,7 @@ class NotificationService {
     return res;
   }
   //need to do after talking to Chasky
-  async generateNegativeUserDevice(testCase: string) {
+  async generateNegativeUserDevice(testCase: string):Promise<any> {
     const userDevice = {
       AppKey: "com.wrnty.peppery",
       DeviceKey: `random-device ${Math.floor(Math.random() * 1000)}`,
