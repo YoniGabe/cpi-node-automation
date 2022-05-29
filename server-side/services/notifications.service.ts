@@ -9,7 +9,8 @@ export interface Notification {
   Title: string;
   Hidden?: boolean;
   CreatorUUID?: string;
-  UserUUID: string;
+  UserUUID?: string;
+  Email?: string;
   Key?: string;
 }
 
@@ -24,6 +25,7 @@ export interface negativeNotification {
   Body?: any;
   UserUUID?: any;
   Read?: any;
+  Email?: any;
 }
 
 export interface userDevice {
@@ -83,7 +85,10 @@ class NotificationService {
   }
 
   async postBulkNotification(array: bulkNotification[]) {
-    const res = await this.papiClient.post(`/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/import_notifications`, array);
+    const res = await this.papiClient.post(
+      `/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/import_notifications`,
+      array
+    );
     return res;
   }
 
@@ -124,10 +129,49 @@ class NotificationService {
     const userUUID = user[0].UUID as string;
     const titleIndex = Math.floor(Math.random() * 3) + 1; //two indexes to randomize the key combinations more
     const bodyIndex = Math.floor(Math.random() * 3) + 1;
-    const titleArr = ["IamIronMan","Earth_is_closed_today_squeedwerd","will_power_something_big","we_conected"];
-    const bodyArr = ["Playboy_Billionaire_Genius_Philanthrophist","Im_getting_the_door_for_you","you_brought_pizza","this_is_nice"];
+    const titleArr = [
+      "IamIronMan",
+      "Earth_is_closed_today_squeedwerd",
+      "will_power_something_big",
+      "we_conected",
+    ];
+    const bodyArr = [
+      "Playboy_Billionaire_Genius_Philanthrophist",
+      "Im_getting_the_door_for_you",
+      "you_brought_pizza",
+      "this_is_nice",
+    ];
     return {
       UserUUID: userUUID,
+      Title: titleArr[titleIndex],
+      Body: bodyArr[bodyIndex],
+    } as Notification;
+  }
+
+  async generateRandomNotificationWithEmail(
+    userExID?: string
+  ): Promise<Notification> {
+    const userKey = userExID ? userExID : "TEST";
+    const user = await this.papiClient.users.find({
+      where: `ExternalID='${userKey}'`, // a user with this ID should be created on addons intall
+    });
+    const email = user[0].Email as string;
+    const titleIndex = Math.floor(Math.random() * 3) + 1; //two indexes to randomize the key combinations more
+    const bodyIndex = Math.floor(Math.random() * 3) + 1;
+    const titleArr = [
+      "IamIronMan",
+      "Earth_is_closed_today_squeedwerd",
+      "will_power_something_big",
+      "we_conected",
+    ];
+    const bodyArr = [
+      "Playboy_Billionaire_Genius_Philanthrophist",
+      "Im_getting_the_door_for_you",
+      "you_brought_pizza",
+      "this_is_nice",
+    ];
+    return {
+      Email: email,
       Title: titleArr[titleIndex],
       Body: bodyArr[bodyIndex],
     } as Notification;
@@ -138,29 +182,31 @@ class NotificationService {
       where: `Hidden=false`,
     });
     const notificationArr: bulkNotification[] = [];
-    for(const user of users) {
-      if(user.Email) {
+    for (const user of users) {
+      if (user.Email) {
         notificationArr.push({
           Email: user.Email,
-      Title:
-        Math.random() > 0.5
-          ? "Bulk_Tony_stark_is_awesome"
-          : "Bulk_Iron_man_is_awesome",
-      Body:
-        Math.random() > 0.5
-          ? "Hulk-Buster_or_Silver_centurion?"
-          : "Nano_armor_ofcourse",
-        } as bulkNotification)
+          Title:
+            Math.random() > 0.5
+              ? "Bulk_Tony_stark_is_awesome"
+              : "Bulk_Iron_man_is_awesome",
+          Body:
+            Math.random() > 0.5
+              ? "Hulk-Buster_or_Silver_centurion?"
+              : "Nano_armor_ofcourse",
+        } as bulkNotification);
       }
     }
     return notificationArr;
   }
   //generates notifications for negative test
-  async generateNegativeNotification(testCase: string): Promise<any> {
-    const user = await this.papiClient.users.find({
-      where: `ExternalID='TEST'`, // a user with this ID should be created on addons intall
-    });
-    const userUUID = user[0].UUID as string;
+  async generateNegativeNotification(
+    testCase: string,
+    UserUUID?: string,
+    email? : string
+  ): Promise<any> {
+    const userUUID = UserUUID ? UserUUID : null;
+    const userEmail = email ? email : null;
     const negativeNotification: negativeNotification = {
       UserUUID: userUUID,
       Title:
@@ -197,15 +243,22 @@ class NotificationService {
         negativeNotification.UserUUID = Math.random() * 100;
         break;
       case "longTitle":
-        for(let i = 0;i<10;i++){
+        for (let i = 0; i < 10; i++) {
           negativeNotification.Title += negativeNotification.Title;
         }
-       break;
-       case "longBody":
-        for(let i = 0;i<20;i++){
+        break;
+      case "longBody":
+        for (let i = 0; i < 10; i++) {
           negativeNotification.Body += negativeNotification.Body;
         }
-       break;
+        break;
+      case "wrong-email":
+        negativeNotification.Email = userEmail?.split(".co")[0];
+        delete negativeNotification.UserUUID;
+        break;
+      case "uuid-email":
+        negativeNotification.Email = userEmail;
+        break;
     }
 
     return negativeNotification;
@@ -244,10 +297,12 @@ class NotificationService {
   async generateUserDevice(
     userExID?: string,
     hidden?: boolean,
-    AddonRelativeURL? : string
+    AddonRelativeURL?: string
   ): Promise<userDevice> {
     const userKey = userExID ? userExID : "TEST";
-    const URL = AddonRelativeURL ? AddonRelativeURL : "/addons/api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/api/notificationsLogger";
+    const URL = AddonRelativeURL
+      ? AddonRelativeURL
+      : "/addons/api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/api/notificationsLogger";
     const hiddenFlag = hidden ? hidden : false;
     // const user = await this.papiClient.users.find({
     //   where: `ExternalID='${userKey}'`, // a user with this ID should be created on addons intall
@@ -266,7 +321,7 @@ class NotificationService {
     };
   }
 
-  async generateBulkUserDevice():Promise<userDevice[]> {
+  async generateBulkUserDevice(): Promise<userDevice[]> {
     const users = await this.papiClient.users.find({
       where: `Hidden=false`,
     });
@@ -281,9 +336,10 @@ class NotificationService {
         AppName: "Pepperi",
         DeviceType: "Test",
         PlatformType: "Addon",
-        AddonRelativeURL: "/addons/api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/api/bulkNotificationsLogger", // logger endpoint on this addon to get the notification and post to ADAL
+        AddonRelativeURL:
+          "/addons/api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/api/bulkNotificationsLogger", // logger endpoint on this addon to get the notification and post to ADAL
         Hidden: false,
-      })
+      });
     }
 
     return userDeviceArr;
@@ -297,7 +353,7 @@ class NotificationService {
     return res;
   }
   //need to do after talking to Chasky
-  async generateNegativeUserDevice(testCase: string):Promise<any> {
+  async generateNegativeUserDevice(testCase: string): Promise<any> {
     const userDevice = {
       AppKey: "com.wrnty.peppery",
       DeviceKey: `random-device ${Math.floor(Math.random() * 1000)}`,
@@ -311,7 +367,7 @@ class NotificationService {
       Hidden: false,
     } as negativeUserDevice;
 
-    switch(testCase) {
+    switch (testCase) {
       case "no-app-key":
         delete userDevice.AppKey;
         break;
