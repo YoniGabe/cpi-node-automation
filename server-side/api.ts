@@ -212,7 +212,8 @@ export async function AddonAPITester(client: Client, request: Request) {
 /** Interceptors test */
 export async function InterceptorTester(client: Client, request: Request) {
   const service = new MyService(client);
-  const atdID = 305697; //can be solved with getActivities.ATDID
+  const atd = await service.getATD();
+  const atdID = atd.ActivityTypeID; 
   const { describe, it, expect, run } = Tester("My test");
   const isLocal = false;
   await service.setTestFlag({ InterceptorsTestActive: true });
@@ -599,6 +600,93 @@ export async function JWTTesterNegative(client: Client, request: Request) {
   });
 
   const testResults = await run();
+  return testResults;
+}
+
+export async function dataObjectCRUD(client: Client,request: Request) {
+  const service = new MyService(client);
+  const isLocal = false;
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  console.log(webAPIBaseURL);
+  console.log(accessToken);
+
+  if (isLocal) {
+    accessToken = "c8cff29a-56f6-4489-a21a-79534785fb85"; //fill in from CPINode debugger
+    webAPIBaseURL = "http://localhost:8093";
+  }
+  //run in case sync is running before tests
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
+  //run and get mocha tests results from cpiSide
+  const testResults = await service.runCPISideTest(
+    accessToken,
+    webAPIBaseURL,
+    "dataObjectCrud"
+  );
+  //deactive adal tesk trigger
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
+  //return test results
+  return testResults;
+}
+
+export async function dataObjectNegativeCRUD(client: Client,request: Request) {
+  const service = new MyService(client);
+  const isLocal = false;
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  console.log(webAPIBaseURL);
+  console.log(accessToken);
+
+  if (isLocal) {
+    accessToken = "c8cff29a-56f6-4489-a21a-79534785fb85"; //fill in from CPINode debugger
+    webAPIBaseURL = "http://localhost:8093";
+  }
+  //run in case sync is running before tests
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
+  //run and get mocha tests results from cpiSide
+  const testResults = await service.runCPISideTest(
+    accessToken,
+    webAPIBaseURL,
+    "dataObjectNegativeCrud"
+  );
+  //deactive adal tesk trigger
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
+  //return test results
+  return testResults;
+}
+
+export async function clientApiADALTester(client: Client,request: Request) {
+  const service = new MyService(client);
+  const isLocal = false;
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  console.log(webAPIBaseURL);
+  console.log(accessToken);
+
+  if (isLocal) {
+    accessToken = "c8cff29a-56f6-4489-a21a-79534785fb85"; //fill in from CPINode debugger
+    webAPIBaseURL = "http://localhost:8093";
+  }
+  //run in case sync is running before tests
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
+  //run and get mocha tests results from cpiSide
+  const testResults = await service.runCPISideTest(
+    accessToken,
+    webAPIBaseURL,
+    "ClientAPI/ADAL"
+  );
+  //deactive adal tesk trigger
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
+  //return test results
   return testResults;
 }
 //========================Scripts============================================
@@ -3670,42 +3758,10 @@ export async function cleanseADAL(client: Client, request: Request) {
 export async function testEmail(client: Client, request: Request) {
   console.log(`notificationsPositive::Test Started`);
   const service = new MyService(client);
-  const notificationService = new NotificationService(client);
-  const { describe, it, expect, run } = Tester("My test");
-  console.log(`notificationsPositive::Gotten services,initiating requests`);
-  const user = await notificationService.papiClient.users.find({
-    where: `ExternalID='TEST'`, // a user with this ID should be created on addons intall
-  });
-  const userUUID = user[0].UUID as string;
-  const userEmail = user[0].Email as string;
-
-  try {
-    const notificationObj12 =
-      await notificationService.generateNegativeNotification(
-        "uuid-email",
-        userUUID,
-        userEmail
-      );
-    const notificationWithEmailnUUID=
-      await notificationService.postNotificationsNegative(
-        notificationObj12
-      );
-  } catch (e) {
-//need to refactor in next version after noam changes the exception
-   e instanceof Error 
-      ? expect(
-          e.message,
-          "Failed on sending userUUID + email returning wrong exception"
-        )
-          .to.be.a("string")
-          .that.is.equal(
-            `https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: One of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}`
-          )
-      : null;
-   }
+  const atd = await service.getATD();
+  return atd;
 
 
 
-  const testResults = await run();
-  return testResults;
+ 
 }

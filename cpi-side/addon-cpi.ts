@@ -22,6 +22,8 @@ import DataService, {
 import { createUIObjectTest } from "./api-tests/create-ui-object";
 import { performanceTest } from "./api-tests/performance-test";
 import { clientApiADALTest } from "./api-tests/client-api-adal";
+import { dataObjectCrud } from "./api-tests/dataobject-crud";
+import { dataObjectNegativeCrud } from "./api-tests/dataobject-negative-crud";
 //jwt - https://www.npmjs.com/package/jwt-decode
 
 //**Test data variables */
@@ -1031,12 +1033,17 @@ export async function load(configuration: any) {
     //========================TransactionScope Interceptors===================================
     pepperi.events.intercept(OCEvents.preLoad, {}, async (data, next, main) => {
       console.log("preLoadTransactionScope interceptor");
-      let itemRes = await pepperi.api.items.get({
-        key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3
-        fields: ["InternalID", "ExternalID", "UUID"],
-      });
+      // let itemRes = await pepperi.api.items.get({
+      //   key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3
+      //   fields: ["InternalID", "ExternalID", "UUID"],
+      // });
 
-      let itemUUID = itemRes.object.UUID;
+      let itemRes = await pepperi.api.items.search({
+        fields: [ "UUID", "ExternalID" , "InternalID"] ,
+        filter: {"ApiName":"ExternalID","FieldType":"String","Operation":"IsEqual","Values":["AQ3"]}
+        });
+
+      let itemUUID = itemRes.objects[0].UUID;
 
       let itemDataObject: Item | undefined = await pepperi.DataObject.Get(
         "items",
@@ -1053,12 +1060,17 @@ export async function load(configuration: any) {
 
     pepperi.events.intercept(OCEvents.onLoad, {}, async (data, next, main) => {
       console.log("OnLoadTransactionScope interceptor");
-      let itemRes = await pepperi.api.items.get({
-        key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3
-        fields: ["InternalID", "ExternalID", "UUID"],
-      });
+      // let itemRes = await pepperi.api.items.get({
+      //   key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3
+      //   fields: ["InternalID", "ExternalID", "UUID"],
+      // });
 
-      let itemUUID = itemRes.object.UUID;
+      let itemRes = await pepperi.api.items.search({
+        fields: [ "UUID", "ExternalID" , "InternalID"] ,
+        filter: {"ApiName":"ExternalID","FieldType":"String","Operation":"IsEqual","Values":["AQ3"]}
+        });
+
+      let itemUUID = itemRes.objects[0].UUID;
 
       let itemDataObject: Item | undefined = await pepperi.DataObject.Get(
         "items",
@@ -10666,14 +10678,19 @@ router.get("/TransactionScope", async (req, res, next) => {
 
   const preLoadTrnScope = DataObject?.transactionScope; //-> suppose to be undefined -> if OC not loaded should return undefined
 
-  let itemRes = await pepperi.api.items.get({
-    key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3 // item per  environment
-    fields: ["InternalID", "ExternalID", "UUID"],
-  });
+  // let itemRes = await pepperi.api.items.get({
+  //   key: { UUID: "E9AAF730-90FC-43D0-945A-A81537908F8C" }, //AQ3 // item per  environment
+  //   fields: ["InternalID", "ExternalID", "UUID"],
+  // });
+
+      let itemRes = await pepperi.api.items.search({
+      fields: [ "UUID", "ExternalID" , "InternalID"] ,
+      filter: {"ApiName":"ExternalID","FieldType":"String","Operation":"IsEqual","Values":["AQ3"]}
+      });
   //isInTransition -> if its in a middle of transition
   //AvailableTransition -> should return possible transition
 
-  let itemUUID = itemRes.object.UUID;
+  let itemUUID = itemRes.objects[0].UUID;
 
   let itemDataObject: Item | undefined = await pepperi.DataObject.Get(
     "items",
@@ -10778,18 +10795,18 @@ router.get("/TransactionScope", async (req, res, next) => {
         .to.be.a("number")
         .that.is.above(1);
       //=====================getLines======================
-      expect(getLines, "Failed on getLines returning wrong array length")
-        .to.be.an("array")
-        .that.has.lengthOf(109);
+      expect(getLines.length, "Failed on getLines returning wrong array length")
+        .to.be.an("number")
+        .that.is.above(108);
       expect(getLines[0], "Failed on getLines returning empty").to.be.an(
         "object"
       ).that.is.not.null.and.is.not.undefined;
       expect(
-        getLines[0]?.children,
+        getLines[0]?.children.length,
         "Failed on getLines.children returning a value"
       )
-        .to.be.an("array")
-        .with.lengthOf(6);
+        .to.be.an("number")
+        .that.is.above(5);
       expect(
         getLines[0]?.hidden,
         "Failed on getLines.hidden returning true"
@@ -10851,7 +10868,7 @@ router.get("/TransactionScope", async (req, res, next) => {
         "Failed on getLines.children returning a value"
       )
         .to.be.an("array")
-        .with.lengthOf(6);
+        .with.lengthOf.above(5);
       expect(
         getLines[1]?.hidden,
         "Failed on getLines.hidden returning true"
@@ -10972,20 +10989,20 @@ router.get("/TransactionScope", async (req, res, next) => {
         .to.be.a("number")
         .that.is.above(1);
       //=====================onLoadedTrnScope.getLines======================
-      expect(onLoadgetLines, "Failed on getLines returning wrong array length")
-        .to.be.an("array")
-        .that.has.lengthOf(109);
+      expect(onLoadgetLines?.length, "Failed on getLines returning wrong array length")
+        .to.be.an("number")
+        .that.is.above(108);
       if (onLoadgetLines) {
         expect(
           onLoadgetLines[0],
           "Failed on onLoadgetLines getLines returning empty"
         ).to.be.an("object").that.is.not.null.and.is.not.undefined;
         expect(
-          onLoadgetLines[0]?.children,
+          onLoadgetLines[0]?.children.length,
           "Failed on onLoadgetLines getLines.children returning a value"
         )
-          .to.be.an("array")
-          .with.lengthOf(6);
+          .to.be.an("number")
+          .with.above(6);
         expect(
           onLoadgetLines[0]?.hidden,
           "Failed on onLoadgetLines getLines.hidden returning true"
@@ -11044,11 +11061,11 @@ router.get("/TransactionScope", async (req, res, next) => {
           "Failed on onLoadgetLines getLines returning empty"
         ).to.be.an("object").that.is.not.null.and.is.not.undefined;
         expect(
-          onLoadgetLines[1]?.children,
+          onLoadgetLines[1]?.children.length,
           "Failed on onLoadgetLines getLines.children returning a value"
         )
-          .to.be.an("array")
-          .with.lengthOf(6);
+          .to.be.an("number")
+          .with.above(6);
         expect(
           onLoadgetLines[1]?.hidden,
           "Failed on onLoadgetLines getLines.hidden returning true"
@@ -11185,18 +11202,18 @@ router.get("/TransactionScope", async (req, res, next) => {
         "Failed on onLoadGetLines returning wrong array length"
       )
         .to.be.an("array")
-        .that.has.lengthOf(109);
+        .that.has.lengthOf.above(108);
       if (onLoadGetLines) {
         expect(
           onLoadGetLines[0],
           "Failed on onLoadGetLines returning empty"
         ).to.be.an("object").that.is.not.null.and.is.not.undefined;
         expect(
-          onLoadGetLines[0]?.children,
+          onLoadGetLines[0]?.children.length,
           "Failed on onLoadGetLines.children returning a value"
         )
-          .to.be.an("array")
-          .with.lengthOf(6);
+          .to.be.an("number")
+          .with.above(5);
         expect(
           onLoadGetLines[0]?.hidden,
           "Failed on onLoadGetLines.hidden returning true"
@@ -11255,11 +11272,11 @@ router.get("/TransactionScope", async (req, res, next) => {
           "Failed on onLoadGetLines returning empty"
         ).to.be.an("object").that.is.not.null.and.is.not.undefined;
         expect(
-          onLoadGetLines[1]?.children,
+          onLoadGetLines[1]?.children.length,
           "Failed on onLoadGetLines.children returning a value"
         )
-          .to.be.an("array")
-          .with.lengthOf(6);
+          .to.be.an("number")
+          .with.above(5);
         expect(
           onLoadGetLines[1]?.hidden,
           "Failed on onLoadGetLines.hidden returning true"
@@ -11383,5 +11400,17 @@ router.get("/JWT", async (req, res, next) => {
 router.get("/UIObjectCreate", async (req, res, next) => {
   console.log("Inside uiObject.Create endpoint");
   const testResult = await createUIObjectTest();
+  res.json(testResult);
+});
+
+router.get("/dataObjectCrud",async(req, res, next) => {
+  console.log("Inside dataObjectCrud endpoint");
+  const testResult = await dataObjectCrud();
+  res.json(testResult);
+});
+
+router.get("/dataObjectNegativeCrud",async(req, res, next) => {
+  console.log("Inside dataObjectNegativeCrud endpoint");
+  const testResult = await dataObjectNegativeCrud();
   res.json(testResult);
 });

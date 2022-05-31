@@ -16,10 +16,10 @@ export interface testFlagOptions {
   clientActionsTestActive?: boolean;
   clientActionsWithinHudTestActive?: boolean;
   clientActionsNegativeTestActive?: boolean;
-  InterceptorActionsTest? : boolean;
+  InterceptorActionsTest?: boolean;
 }
 
-export const thisAddonUUID = "2b39d63e-0982-4ada-8cbb-737b03b9ee58"
+export const thisAddonUUID = "2b39d63e-0982-4ada-8cbb-737b03b9ee58";
 
 class MyService {
   papiClient: PapiClient;
@@ -152,7 +152,7 @@ class MyService {
     });
     return pepperi;
   }
-  //in use --> using privateUserAccount 
+  //in use --> using privateUserAccount
   async createTransaction(
     webAPIBaseURL: string,
     accessToken: string,
@@ -289,6 +289,7 @@ class MyService {
       ).json();
     }
     if (method === "Recalculate") {
+      // transactionuuid[1] = account uuid
       URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${addonUUID}/addon-cpi/recalculate/${transactionUUID[1]}/trigger`;
       trigger = await (
         await fetch(URL, {
@@ -483,7 +484,9 @@ class MyService {
       clientActionsNegativeTestActive: options.clientActionsNegativeTestActive
         ? options.clientActionsNegativeTestActive
         : false,
-      InterceptorActionsTest: options.InterceptorActionsTest ? options.InterceptorActionsTest : false
+      InterceptorActionsTest: options.InterceptorActionsTest
+        ? options.InterceptorActionsTest
+        : false,
     };
 
     const upsert = await this.upsertToADAL("Load_Test", body);
@@ -537,9 +540,9 @@ class MyService {
     testName: string
   ) {
     //make request to the CPISide tests
-    let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/automation-tests/${testName}/tests`;
-    if (testName === "ClientAPI/ADAL" || testName === "TransactionScope" || testName === "UIObjectCreate") {
-      URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/${testName}`;
+    let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/${testName}`;
+    if (testName === "UI1" || testName === "UI2") {
+      URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/automation-tests/${testName}/tests`;
     }
     const testResults = await (
       await fetch(URL, {
@@ -574,9 +577,9 @@ class MyService {
       .uuid(this.client.AddonUUID)
       .table(tableName)
       .upsert(body);
-      
+
     return upsert;
-  } 
+  }
 
   async getFromADAL(tableName: string, Key: string) {
     const get = await this.papiClient.addons.data
@@ -587,12 +590,13 @@ class MyService {
     return get;
   }
 
-  async getFromADALByDate(tableName: string,date: string) {
+  async getFromADALByDate(tableName: string, date: string) {
     const get = await this.papiClient.addons.data
       .uuid(this.client.AddonUUID)
-      .table(tableName).find({
-        where: `CreationDateTime<'${date}'`
-      })
+      .table(tableName)
+      .find({
+        where: `CreationDateTime<'${date}'`,
+      });
 
     return get;
   }
@@ -695,6 +699,13 @@ class MyService {
     }
 
     return apiRegion;
+  }
+
+  async getATD() {
+    const atd = await this.papiClient.transactions.find({
+      where: "Type='DorS CPINode Sales Order'",
+    });
+    return atd[0];
   }
 }
 

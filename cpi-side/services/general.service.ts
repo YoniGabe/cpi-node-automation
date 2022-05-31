@@ -6,7 +6,6 @@ export interface NavigationOptions {
   history?: "None" | "ClearTo" | "ClearAll";
 }
 
-
 export default class GeneralService {
   constructor() {}
 
