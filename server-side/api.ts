@@ -213,7 +213,7 @@ export async function AddonAPITester(client: Client, request: Request) {
 export async function InterceptorTester(client: Client, request: Request) {
   const service = new MyService(client);
   const atd = await service.getATD();
-  const atdID = atd.ActivityTypeID; 
+  const atdID = atd.ActivityTypeID;
   const { describe, it, expect, run } = Tester("My test");
   const isLocal = false;
   await service.setTestFlag({ InterceptorsTestActive: true });
@@ -603,7 +603,7 @@ export async function JWTTesterNegative(client: Client, request: Request) {
   return testResults;
 }
 
-export async function dataObjectCRUD(client: Client,request: Request) {
+export async function dataObjectCRUD(client: Client, request: Request) {
   const service = new MyService(client);
   const isLocal = false;
   let webAPIBaseURL = await service.getWebAPIBaseURL();
@@ -632,7 +632,7 @@ export async function dataObjectCRUD(client: Client,request: Request) {
   return testResults;
 }
 
-export async function dataObjectNegativeCRUD(client: Client,request: Request) {
+export async function dataObjectNegativeCRUD(client: Client, request: Request) {
   const service = new MyService(client);
   const isLocal = false;
   let webAPIBaseURL = await service.getWebAPIBaseURL();
@@ -661,7 +661,7 @@ export async function dataObjectNegativeCRUD(client: Client,request: Request) {
   return testResults;
 }
 
-export async function clientApiADALTester(client: Client,request: Request) {
+export async function clientApiADALTester(client: Client, request: Request) {
   const service = new MyService(client);
   const isLocal = false;
   let webAPIBaseURL = await service.getWebAPIBaseURL();
@@ -681,6 +681,64 @@ export async function clientApiADALTester(client: Client,request: Request) {
     accessToken,
     webAPIBaseURL,
     "ClientAPI/ADAL"
+  );
+  //deactive adal tesk trigger
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
+  //return test results
+  return testResults;
+}
+
+export async function firstUIObjectCRUD(client: Client, request: Request) {
+  const service = new MyService(client);
+  const isLocal = false;
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  console.log(webAPIBaseURL);
+  console.log(accessToken);
+
+  if (isLocal) {
+    accessToken = "c8cff29a-56f6-4489-a21a-79534785fb85"; //fill in from CPINode debugger
+    webAPIBaseURL = "http://localhost:8093";
+  }
+  //run in case sync is running before tests
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
+  //run and get mocha tests results from cpiSide
+  const testResults = await service.runCPISideTest(
+    accessToken,
+    webAPIBaseURL,
+    "firstUIObjectCrud"
+  );
+  //deactive adal tesk trigger
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
+  //return test results
+  return testResults;
+}
+
+export async function secondUIObjectCRUD(client: Client, request: Request) {
+  const service = new MyService(client);
+  const isLocal = false;
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  console.log(webAPIBaseURL);
+  console.log(accessToken);
+
+  if (isLocal) {
+    accessToken = "c8cff29a-56f6-4489-a21a-79534785fb85"; //fill in from CPINode debugger
+    webAPIBaseURL = "http://localhost:8093";
+  }
+  //run in case sync is running before tests
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
+  //run and get mocha tests results from cpiSide
+  const testResults = await service.runCPISideTest(
+    accessToken,
+    webAPIBaseURL,
+    "secondUIObjectCrud"
   );
   //deactive adal tesk trigger
   const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
@@ -2561,6 +2619,7 @@ export async function notificationsPositive(client: Client, request: Request) {
   //Mark as read
   const markAsRead = await notificationService.markAsRead({
     Keys: [notificationKey],
+    Read: true,
   });
 
   const notificationGetAfterRead =
@@ -2934,7 +2993,9 @@ export async function notificationsPositive(client: Client, request: Request) {
       expect(
         notificationPostWithEmail.UserUUID,
         "Failed on UserUUID returning the wrong value/type"
-      ).to.be.a("string").that.is.equal(notificationObj.UserUUID);
+      )
+        .to.be.a("string")
+        .that.is.equal(notificationObj.UserUUID);
       expect(
         notificationPostWithEmail.Key,
         "Failed on Key returning the wrong value/type"
@@ -3276,11 +3337,11 @@ export async function multiNotificationsAndUsersTester(
   console.log(userDeviceArr);
   const notificationsKeys: string[] = [];
 
-  const bulkNotificationsObjArr =
+  const bulkNotificationsObj =
     await notificationService.generateRandomBulkNotifications();
-  console.log(bulkNotificationsObjArr);
+  console.log(bulkNotificationsObj);
   const post = await notificationService.postBulkNotification(
-    bulkNotificationsObjArr
+    bulkNotificationsObj
   );
   console.log(post);
 
@@ -3347,20 +3408,19 @@ export async function multiNotificationsAndUsersTester(
         ).to.include("Z");
         expect(notification.Hidden, "Failed on returning wrong Hidden").that.is
           .false.and.is.not.undefined;
-        for (let bulkNotification of bulkNotificationsObjArr) {
-          if (bulkNotification.Title === notification.Title) {
-            expect(notification.Title, "Failed on returning wrong Title")
-              .to.be.a("string")
-              .that.is.equal(bulkNotification.Title).and.is.not.empty.and
-              .undefined;
-          }
-          if (bulkNotification.Body === notification.Body) {
-            expect(notification.Body, "Failed on returning wrong Body")
-              .to.be.a("string")
-              .that.is.equal(bulkNotification.Body).and.is.not.empty.and
-              .undefined;
-          }
+        if (bulkNotificationsObj.Title === notification.Title) {
+          expect(notification.Title, "Failed on returning wrong Title")
+            .to.be.a("string")
+            .that.is.equal(bulkNotificationsObj.Title).and.is.not.empty.and
+            .undefined;
         }
+        if (bulkNotificationsObj.Body === notification.Body) {
+          expect(notification.Body, "Failed on returning wrong Body")
+            .to.be.a("string")
+            .that.is.equal(bulkNotificationsObj.Body).and.is.not.empty.and
+            .undefined;
+        }
+
         for (let userDevice of userDeviceArr) {
           if (userDevice.UserUUID === notification.UserUUID) {
             expect(notification.UserUUID, "Failed on returning wrong userUUID")
@@ -3593,19 +3653,21 @@ export async function notificationsNegative(client: Client, request: Request) {
             userUUID,
             userEmail
           );
-        const notificationWithInvalidEmail=
+        const notificationWithInvalidEmail =
           await notificationService.postNotificationsNegative(
             notificationObj11
           );
       } catch (e) {
-       e instanceof Error 
+        e instanceof Error
           ? expect(
               e.message,
               "Failed on sending wrong user email returning wrong exception"
             )
               .to.be.a("string")
               .that.is.equal(
-                `https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: User with Email: ${userEmail.split(".co")[0]} does not exist","detail":{"errorcode":"BadRequest"}}}`
+                `https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: User with Email: ${
+                  userEmail.split(".co")[0]
+                } does not exist","detail":{"errorcode":"BadRequest"}}}`
               )
           : null;
       }
@@ -3616,13 +3678,13 @@ export async function notificationsNegative(client: Client, request: Request) {
             userUUID,
             userEmail
           );
-        const notificationWithEmailnUUID=
+        const notificationWithEmailnUUID =
           await notificationService.postNotificationsNegative(
             notificationObj12
           );
       } catch (e) {
-    //need to refactor in next version after noam changes the exception
-       e instanceof Error 
+        //need to refactor in next version after noam changes the exception
+        e instanceof Error
           ? expect(
               e.message,
               "Failed on sending userUUID + email returning wrong exception"
@@ -3632,13 +3694,14 @@ export async function notificationsNegative(client: Client, request: Request) {
                 `https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: One of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}`
               )
           : null;
-       }
+      }
       console.log("notificationsPositive::finished notifications tests");
     });
     it("mark_as_read negative tests", async () => {
       console.log("notificationsPositive::started mark_as_read tests");
       const markAsReadNoKey = await notificationService.markAsRead({
         Keys: ["value-that-does-not-exist"],
+        Read:true
       });
       expect(
         markAsReadNoKey,
@@ -3649,6 +3712,7 @@ export async function notificationsNegative(client: Client, request: Request) {
 
       const markAsReadWithNumber = await notificationService.markAsRead({
         Keys: [Math.random() * 100],
+        Read: false
       }); // bug returns [] DI-19988
       expect(
         markAsReadWithNumber,
@@ -3666,6 +3730,7 @@ export async function notificationsNegative(client: Client, request: Request) {
 
         const markAsReadForOtherUser = await notificationService.markAsRead({
           Keys: [postNotification.Key],
+          Read: true
         });
       } catch (e) {
         e instanceof Error
@@ -3753,15 +3818,4 @@ export async function cleanseADAL(client: Client, request: Request) {
     resultArr.push(res);
   }
   return resultArr;
-}
-//testing posting notification with email separately before inserting into main positive
-export async function testEmail(client: Client, request: Request) {
-  console.log(`notificationsPositive::Test Started`);
-  const service = new MyService(client);
-  const atd = await service.getATD();
-  return atd;
-
-
-
- 
 }

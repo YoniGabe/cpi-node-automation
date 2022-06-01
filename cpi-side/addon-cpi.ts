@@ -24,7 +24,8 @@ import { performanceTest } from "./api-tests/performance-test";
 import { clientApiADALTest } from "./api-tests/client-api-adal";
 import { dataObjectCrud } from "./api-tests/dataobject-crud";
 import { dataObjectNegativeCrud } from "./api-tests/dataobject-negative-crud";
-//jwt - https://www.npmjs.com/package/jwt-decode
+import { firstUIObjectCrud } from "./api-tests/ui-object-crud-1";
+import { secondUIObjectCrud } from "./api-tests/ui-object-crud-2";
 
 //**Test data variables */
 let accountGeoIndex: number;
@@ -428,6 +429,10 @@ export async function load(configuration: any) {
   console.log(
     "clientActionsTester::withinHudClientActionsTestActive: " +
       withinHudClientActionsTestActive
+  );
+  console.log(
+    "clientActionsTester::InterceptorActionsTest: " +
+    InterceptorActionsTest
   );
 
   if (InterceptorActionsTest === true) {
@@ -1319,7 +1324,7 @@ router.use("/debug-tester", async (req, res) => {
   console.log("Start");
   console.log("end");
 });
-/**CRUD Automation tests for CPINode */
+/**crud moved to separate files.will keep this till we see nothing broke*/
 router.use("/automation-tests/:v/tests", async (req, res) => {
   console.log("inside main test function CPISide");
   const service = new generalService();
@@ -11002,7 +11007,7 @@ router.get("/TransactionScope", async (req, res, next) => {
           "Failed on onLoadgetLines getLines.children returning a value"
         )
           .to.be.an("number")
-          .with.above(6);
+          .with.above(5);
         expect(
           onLoadgetLines[0]?.hidden,
           "Failed on onLoadgetLines getLines.hidden returning true"
@@ -11065,7 +11070,7 @@ router.get("/TransactionScope", async (req, res, next) => {
           "Failed on onLoadgetLines getLines.children returning a value"
         )
           .to.be.an("number")
-          .with.above(6);
+          .with.above(5);
         expect(
           onLoadgetLines[1]?.hidden,
           "Failed on onLoadgetLines getLines.hidden returning true"
@@ -11402,15 +11407,28 @@ router.get("/UIObjectCreate", async (req, res, next) => {
   const testResult = await createUIObjectTest();
   res.json(testResult);
 });
-
+//===========================Positive dataObject CRUD endpoint============================================
 router.get("/dataObjectCrud",async(req, res, next) => {
   console.log("Inside dataObjectCrud endpoint");
   const testResult = await dataObjectCrud();
   res.json(testResult);
 });
-
+//===========================Negative dataObject CRUD endpoint============================================
 router.get("/dataObjectNegativeCrud",async(req, res, next) => {
   console.log("Inside dataObjectNegativeCrud endpoint");
   const testResult = await dataObjectNegativeCrud();
   res.json(testResult);
 });
+//===========================Positive UIObject 1 CRUD endpoint============================================
+router.get("/firstUIObjectCrud",async(req, res, next) => {
+  console.log("Inside firstUIObjectCrud endpoint");
+  const testResult = await firstUIObjectCrud();
+  res.json(testResult);
+});
+//===========================Positive UIObject 2 CRUD endpoint============================================
+router.get("/secondUIObjectCrud",async(req, res, next) => {
+  console.log("Inside secondUIObjectCrud endpoint");
+  const testResult = await secondUIObjectCrud();
+  res.json(testResult);
+});
+

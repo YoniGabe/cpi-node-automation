@@ -541,7 +541,12 @@ class MyService {
   ) {
     //make request to the CPISide tests
     let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/${testName}`;
-    if (testName === "UI1" || testName === "UI2") {
+    if (
+      testName === "UI1" ||
+      testName === "UI2" ||
+      testName === "Data" ||
+      testName === "Negative"
+    ) {
       URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/automation-tests/${testName}/tests`;
     }
     const testResults = await (

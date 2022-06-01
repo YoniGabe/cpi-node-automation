@@ -15,7 +15,7 @@ export interface Notification {
 }
 
 export interface bulkNotification {
-  Email: string;
+  UserEmailList: string[];
   Title: string;
   Body: string;
 }
@@ -75,7 +75,11 @@ class NotificationService {
   }
 
   async markAsRead(body: any): Promise<Notification[]> {
-    const res = await this.papiClient.post(`/notifications/mark_as_read`, body);
+    const res = await this.papiClient.post(
+      `/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/update_notifications_read_status`,
+      body
+    );
+    //   `/notifications/update_notifications_read_status`
     return res;
   }
 
@@ -84,10 +88,10 @@ class NotificationService {
     return res;
   }
 
-  async postBulkNotification(array: bulkNotification[]) {
+  async postBulkNotification(object: bulkNotification) {
     const res = await this.papiClient.post(
-      `/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/import_notifications`,
-      array
+      `/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/bulk_notifications`,
+      object
     );
     return res;
   }
@@ -177,33 +181,33 @@ class NotificationService {
     } as Notification;
   }
   //next version
-  async generateRandomBulkNotifications(): Promise<bulkNotification[]> {
+  async generateRandomBulkNotifications(): Promise<bulkNotification> {
     const users = await this.papiClient.users.find({
       where: `Hidden=false`,
     });
-    const notificationArr: bulkNotification[] = [];
+    const usersArr: string[] = [];
     for (const user of users) {
       if (user.Email) {
-        notificationArr.push({
-          Email: user.Email,
-          Title:
-            Math.random() > 0.5
-              ? "Bulk_Tony_stark_is_awesome"
-              : "Bulk_Iron_man_is_awesome",
-          Body:
-            Math.random() > 0.5
-              ? "Hulk-Buster_or_Silver_centurion?"
-              : "Nano_armor_ofcourse",
-        } as bulkNotification);
+        usersArr.push(user.Email);
       }
     }
-    return notificationArr;
+    return {
+      UserEmailList: usersArr,
+      Title:
+        Math.random() > 0.5
+          ? "Bulk_Tony_stark_is_awesome"
+          : "Bulk_Iron_man_is_awesome",
+      Body:
+        Math.random() > 0.5
+          ? "Hulk-Buster_or_Silver_centurion?"
+          : "Nano_armor_ofcourse",
+    };
   }
   //generates notifications for negative test
   async generateNegativeNotification(
     testCase: string,
     UserUUID?: string,
-    email? : string
+    email?: string
   ): Promise<any> {
     const userUUID = UserUUID ? UserUUID : null;
     const userEmail = email ? email : null;
