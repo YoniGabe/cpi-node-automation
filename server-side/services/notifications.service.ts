@@ -12,6 +12,7 @@ export interface Notification {
   UserUUID?: string;
   Email?: string;
   Key?: string;
+  ExpirationDateTime?: string
 }
 
 export interface bulkNotification {
@@ -349,7 +350,7 @@ class NotificationService {
     return userDeviceArr;
   }
 
-  async postNegativeUserDevice(body: any): Promise<any> {
+  async postNegativeUserDevice(body: negativeUserDevice): Promise<any> {
     const res = await this.papiClient.post(
       `/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/user_devices`,
       body
@@ -357,7 +358,7 @@ class NotificationService {
     return res;
   }
   //need to do after talking to Chasky
-  async generateNegativeUserDevice(testCase: string): Promise<any> {
+  async generateNegativeUserDevice(testCase: string): Promise<negativeUserDevice> {
     const userDevice = {
       AppKey: "com.wrnty.peppery",
       DeviceKey: `random-device ${Math.floor(Math.random() * 1000)}`,
@@ -381,7 +382,34 @@ class NotificationService {
       case "no-device-name":
         delete userDevice.DeviceName;
         break;
+      case "no-token":
+        delete userDevice.Token;
+        break;
+      case "no-platform-type":
+        delete userDevice.PlatformType;
+        break;
+      case "no-url":
+        delete userDevice.AddonRelativeURL;
+        break;
+      case "no-device-type":
+        delete userDevice.DeviceType
+        break;
+      case "no-app-name":
+        delete userDevice.AppName;
+        break;
+      case "wrong-app-name":
+        userDevice.AppName = "Peppero";
+        break;
+      case "wrong-platform-type":
+        userDevice.PlatformType = "windowsPhone";
+        break;
+      case "wrong-app-key":
+        userDevice.AppKey = "Peppero.give.a.crap";
+        break;
+
     }
+
+    return userDevice;
   }
 }
 

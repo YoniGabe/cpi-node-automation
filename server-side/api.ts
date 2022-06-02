@@ -2584,6 +2584,7 @@ export async function notificationsPositive(client: Client, request: Request) {
   const userDevicePost = await notificationService.postUserDevice(
     userDeviceObj
   );
+
   const userDeviceKey = userDevicePost.Key as string;
 
   const userDeviceGet = await notificationService.getUserDeviceByKey(
@@ -2596,6 +2597,7 @@ export async function notificationsPositive(client: Client, request: Request) {
   const notificationPost = await notificationService.postNotifications(
     notificationObj
   );
+  console.log(notificationPost);
   //can test the post object against the original object;
   const notificationKey = notificationPost.Key as string;
 
@@ -2713,6 +2715,14 @@ export async function notificationsPositive(client: Client, request: Request) {
       )
         .to.be.a("string")
         .that.has.lengthOf(36);
+
+        const ExpirationDate = new Date();
+        const testExpirationDate = notificationPost.ExpirationDateTime?.split("T")[0];
+        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+
+        expect(testExpirationDate,"Failed on wrong expiration date returning").to.be.a("string").that.is.equal(ExpirationDateToText);
+      
     });
 
     it("Get parsed test results", async () => {
@@ -2770,6 +2780,13 @@ export async function notificationsPositive(client: Client, request: Request) {
       )
         .to.be.a("string")
         .that.has.lengthOf(36);
+
+        const ExpirationDate = new Date();
+        const testExpirationDate = notificationGet[0].ExpirationDateTime?.split("T")[0];
+        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+
+        expect(testExpirationDate,"Failed on wrong expiration date returning").to.be.a("string").that.is.equal(ExpirationDateToText);
     });
 
     it("mark_as_read parsed test results", async () => {
@@ -2827,6 +2844,14 @@ export async function notificationsPositive(client: Client, request: Request) {
       expect(markAsRead[0].Key, "Failed on Key returning the wrong value/type")
         .to.be.a("string")
         .that.has.lengthOf(36);
+
+        const ExpirationDate = new Date();
+        const testExpirationDate = markAsRead[0].ExpirationDateTime?.split("T")[0];
+        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+
+        expect(testExpirationDate,"Failed on wrong expiration date returning").to.be.a("string").that.is.equal(ExpirationDateToText);
+      
     });
 
     it("Get after mark_as_read Parsed test results", async () => {
@@ -2885,6 +2910,13 @@ export async function notificationsPositive(client: Client, request: Request) {
       )
         .to.be.a("string")
         .that.has.lengthOf(36);
+
+        const ExpirationDate = new Date();
+        const testExpirationDate = notificationGetAfterRead[0].ExpirationDateTime?.split("T")[0];
+        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+
+        expect(testExpirationDate,"Failed on wrong expiration date returning").to.be.a("string").that.is.equal(ExpirationDateToText);
     });
 
     it("Push notification from ADAL Parsed test results", async () => {
@@ -3002,6 +3034,13 @@ export async function notificationsPositive(client: Client, request: Request) {
       )
         .to.be.a("string")
         .that.has.lengthOf(36);
+
+        const ExpirationDate = new Date();
+        const testExpirationDate = notificationPostWithEmail.ExpirationDateTime?.split("T")[0];
+        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+
+        expect(testExpirationDate,"Failed on wrong expiration date returning").to.be.a("string").that.is.equal(ExpirationDateToText);
     });
 
     it("Get with Email instead of userUUID parsed test results", async () => {
@@ -3059,6 +3098,15 @@ export async function notificationsPositive(client: Client, request: Request) {
       )
         .to.be.a("string")
         .that.has.lengthOf(36);
+
+        const ExpirationDate = new Date();
+        const testExpirationDate = notificationGetWithEmail[0].ExpirationDateTime?.split("T")[0];
+        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+
+        expect(testExpirationDate,"Failed on wrong expiration date returning").to.be.a("string").that.is.equal(ExpirationDateToText);
+
+        
     });
   });
   describe("userDevice Positive automation test", async () => {
@@ -3135,12 +3183,17 @@ export async function notificationsPositive(client: Client, request: Request) {
       )
         .to.be.a("string")
         .that.has.lengthOf(24);
+        const ExpirationDate = new Date();
+        const testExpirationDate = userDevicePost.ExpirationDateTime?.split("T")[0];
+        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+
       expect(
-        userDevicePost.ExpirationDateTime,
+        testExpirationDate,
         "Failed on userDevice.ExpirationDateTime returning wrong type/value"
       )
         .to.be.a("string")
-        .that.has.lengthOf(24);
+        .that.is.equal(ExpirationDateToText);
       expect(
         userDevicePost.CreationDateTime,
         "Failed on userDevice.CreationDateTime returning wrong type/value"
@@ -3221,12 +3274,18 @@ export async function notificationsPositive(client: Client, request: Request) {
       )
         .to.be.a("string")
         .that.has.lengthOf(24);
+
+        const ExpirationDate = new Date();
+        const testExpirationDate = userDeviceGet[0].ExpirationDateTime?.split("T")[0];
+        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+
       expect(
-        userDeviceGet[0].ExpirationDateTime,
+        testExpirationDate,
         "Failed on userDevice.ExpirationDateTime returning wrong type/value"
       )
         .to.be.a("string")
-        .that.has.lengthOf(24);
+        .that.is.equal(ExpirationDateToText);
       expect(
         userDeviceGet[0].CreationDateTime,
         "Failed on userDevice.CreationDateTime returning wrong type/value"
@@ -3578,7 +3637,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: One of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Excactly one of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
       }
@@ -3598,7 +3657,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: UserUUID is not of a type(s) string\\nOne of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: UserUUID is not of a type(s) string\\nExcactly one of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
       }
@@ -3618,7 +3677,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Title is not of a type(s) string\\nBody is not of a type(s) string\\nUserUUID is not of a type(s) string\\nOne of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Title is not of a type(s) string\\nBody is not of a type(s) string\\nUserUUID is not of a type(s) string\\nExcactly one of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
       }
@@ -3683,7 +3742,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             notificationObj12
           );
       } catch (e) {
-        //need to refactor in next version after noam changes the exception
+        console.log(e);
         e instanceof Error
           ? expect(
               e.message,
@@ -3691,7 +3750,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                `https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: One of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}`
+                `https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Excactly one of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}`
               )
           : null;
       }
@@ -3701,7 +3760,7 @@ export async function notificationsNegative(client: Client, request: Request) {
       console.log("notificationsPositive::started mark_as_read tests");
       const markAsReadNoKey = await notificationService.markAsRead({
         Keys: ["value-that-does-not-exist"],
-        Read:true
+        Read: true,
       });
       expect(
         markAsReadNoKey,
@@ -3709,17 +3768,23 @@ export async function notificationsNegative(client: Client, request: Request) {
       )
         .to.be.an("array")
         .with.lengthOf(0);
-
-      const markAsReadWithNumber = await notificationService.markAsRead({
-        Keys: [Math.random() * 100],
-        Read: false
-      }); // bug returns [] DI-19988
-      expect(
-        markAsReadWithNumber,
-        "Failed on mark_as_read with numbver instead of key returning wrong output"
-      )
-        .to.be.an("array")
-        .with.lengthOf(0);
+      try {
+        const markAsReadWithNumber = await notificationService.markAsRead({
+          Keys: [Math.random() * 100],
+          Read: false,
+        });
+      } catch (e) {
+        e instanceof Error
+          ? expect(
+              e.message,
+              "Failed on mark_as_read with number instead of key returning wrong output"
+            )
+              .to.be.an("string")
+              .to.be.equal(
+                'https://papi.staging.pepperi.com/V1.0/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/update_notifications_read_status failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Keys[0] is not of a type(s) string","detail":{"errorcode":"BadRequest"}}}'
+              )
+          : null;
+      }
 
       try {
         const notificationForOtherUser =
@@ -3730,7 +3795,7 @@ export async function notificationsNegative(client: Client, request: Request) {
 
         const markAsReadForOtherUser = await notificationService.markAsRead({
           Keys: [postNotification.Key],
-          Read: true
+          Read: true,
         });
       } catch (e) {
         e instanceof Error
@@ -3740,14 +3805,21 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications/mark_as_read failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: The UserUUID is different from the notification UserUUID","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/update_notifications_read_status failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: The UserUUID is different from the notification UserUUID","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
       }
+
       console.log("notificationsPositive::finished mark_as_read tests");
     });
     //Need to talk to Chasky regarding the below
-    //it("userDevice negative tests", async () => {});
+    it("userDevice negative tests", async () => {
+      try {
+      
+      } catch(e) {
+
+      }
+    });
   });
   console.log(`notificationsPositive::Test Finished`);
   //need to add test cases for mark_as_read
