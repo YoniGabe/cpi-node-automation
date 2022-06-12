@@ -747,6 +747,68 @@ export async function secondUIObjectCRUD(client: Client, request: Request) {
   //return test results
   return testResults;
 }
+
+export async function interceptorsTimeoutTester(client: Client,request: Request) {
+  console.log("InterceptorsTimeoutTestActive::Test started");
+  //services setup and perconditions setup
+  const service = new MyService(client);
+  const clientActionsService = new ClientActionsService(client);
+  const { describe, it, expect, run } = Tester("My test");
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  //run in case sync is running before tests
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  //activate test flag on Load function
+  await service.setTestFlag({ InterceptorsTimeoutTestActive: true });
+  //sync again to trigger the test interceptors
+  const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
+  //wait till sync is over
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(5000);
+  const interceptorsNamesArr = [
+    "firstTimeout",
+    "secondTimeout",
+    "thirdTimeout",
+    "fourthTimeout",
+    "fifthTimeout",
+    "sixthTimeout",
+    "seventhTimeout",
+    "eigthTimeout",
+    "ninthTimeout",
+    "tenthTimeout"
+  ];
+  //setting up global map for client actions test data
+  global["map"] = new Map<string, any>();
+  console.log(
+    "InterceptorsTimeoutTestActive::Triggering buttonPressed event to get client actions"
+  );
+  //looping on each field to trigger cpi-side related events -> these will trigger the corresponding client actions
+  for (const button of interceptorsNamesArr) {
+    console.log(`InterceptorsTimeoutTestActive::Started triggering ${button}`);
+    const options = {
+      EventKey: "TSAButtonPressed",
+      EventData: JSON.stringify({
+        FieldID: button,
+      }),
+    };
+    //calling recursive function - event loop to run all client actions in existant for the current interceptor
+    const clientAction = await clientActionsService.EmitClientEvent(
+      webAPIBaseURL,
+      accessToken,
+      options
+    );
+    console.log(`InterceptorsTimeoutTestActive::Finished triggering ${button}`);
+  }
+  await service.setTestFlag({ InterceptorsTimeoutTestActive: false });
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.sleep(2000);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(10000);
+  const udtData = await service.getUDTValues("interceptorsTimeout", 1, "DESC");
+  console.log(udtData);
+  //getting actions back from global map after client actions responses (event loop finished)
+  const actions = global["map"] as Map<string, any>;
+}
 //========================Scripts============================================
 export async function scriptsListTester(client: Client, request: Request) {
   const scriptsService = new ScriptService(client);
@@ -2655,6 +2717,9 @@ export async function notificationsPositive(client: Client, request: Request) {
 
   const notificationGetWithEmail =
     await notificationService.getNotificationByKey(notificationKeyWithEmail);
+
+
+  //notifications removal
 
   //some mocha to test if the Original + POSTED + Gotten objects are the same
   console.log(`notificationsPositive::Starting Mocha tests`);

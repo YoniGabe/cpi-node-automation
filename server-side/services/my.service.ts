@@ -17,6 +17,7 @@ export interface testFlagOptions {
   clientActionsWithinHudTestActive?: boolean;
   clientActionsNegativeTestActive?: boolean;
   InterceptorActionsTest?: boolean;
+  InterceptorsTimeoutTestActive?: boolean;
 }
 
 export const thisAddonUUID = "2b39d63e-0982-4ada-8cbb-737b03b9ee58";
@@ -486,6 +487,9 @@ class MyService {
         : false,
       InterceptorActionsTest: options.InterceptorActionsTest
         ? options.InterceptorActionsTest
+        : false,
+      InterceptorsTimeoutTestActive: options.InterceptorsTimeoutTestActive
+        ? options.InterceptorsTimeoutTestActive
         : false,
     };
 
