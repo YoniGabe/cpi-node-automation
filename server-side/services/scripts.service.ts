@@ -12,14 +12,6 @@ export interface Script {
   Code: string;
 }
 
-export const scriptObjectsUUID = {
-  itemUUID: "393acff4-406a-40f8-9d79-a8c16bc0cbc7",
-  activityUUID: "19394430-40dd-49c8-9879-d7a74441f5e0",
-  transactionUUID: "b1554d3e-d789-49ab-a2a4-ae3535a1e75a",
-  accountUUID: "8d81508a-148b-4170-8c1c-db52ef08789c",
-  accountExID: "account" + Math.random(),
-};
-
 class ScriptService {
   papiClient: PapiClient;
 
@@ -109,6 +101,42 @@ class ScriptService {
       })
     ).json();
     return accountReload;
+  }
+
+  async getTestDataObject() {
+    const testObj = {
+      itemUUID: "",
+      activityUUID: "",
+      transactionUUID: "",
+      accountUUID: "",
+      accountExID: "account" + Math.random(),
+    };
+
+    const accounts = await this.papiClient.accounts.find({
+      where: `Name='Scripts Acc'`,
+      page_size: 1,
+    });
+    testObj.accountUUID = accounts[0].UUID as string;
+
+    const activities = await this.papiClient.activities.find({
+      where: `Account.UUID='${testObj.accountUUID}'`,
+      page_size: 1,
+    });
+    testObj.activityUUID = activities[0].UUID as string;
+
+    const transactions = await this.papiClient.transactions.find({
+      where: `Account.UUID='${testObj.accountUUID}'`,
+      page_size: 1,
+    });
+    testObj.transactionUUID = transactions[0].UUID as string;
+
+    const items = await this.papiClient.items.find({
+      where: `ExternalID='Drug0001'`,
+      page_size: 1,
+    });
+    testObj.itemUUID = items[0].UUID as string;
+
+    return testObj;
   }
 }
 

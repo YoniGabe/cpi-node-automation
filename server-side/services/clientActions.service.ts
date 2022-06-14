@@ -7,6 +7,7 @@ import ClientActionGeoLocationTest from "../classes/clientActionsGeoLocation";
 import ClientActionBarcodeScanTest from "../classes/clientActionsScanBarcode";
 import ClientActionHUDTest from "../classes/clientActionsHUD";
 import ClientActionNavigateTest from "../classes/clientActionsNavigate";
+import ClientActionGeoLocationWithTimeoutTest from "../classes/clientActionsGeoLocationWithTimeout";
 
 export interface ClientAction {
   Callback: string; //callback UUID
@@ -148,6 +149,42 @@ class ClientActionsService {
     await this.EmitClientEvent(webAPIBaseURL, accessToken, testedOPtions);
   }
 
+  async EmitClientEventWithTimeout(
+    webAPIBaseURL: string,
+    accessToken: string,
+    options
+  ): Promise<void> {
+    const map = global["map"] as Map<string, any>;
+    let res = await this.EmitEvent(webAPIBaseURL, accessToken, options);
+    const parsedActions = JSON.parse(res.Value);
+    console.log(parsedActions);
+    const Type = parsedActions.Type;
+    //stop condition -- if actions returns empty recurssion returns to the previous iteration
+    if (Object.entries(parsedActions).length === 0) {
+      return;
+    } // note that the callback EmitEvent does not return any values;
+    let action = (await this.generateClientActionWithTimeout(res)) as ClientActionBase;
+    const parsedData = await this.parseActionDataForTest(action.Data);
+    switch (Type) {
+      case "GeoLocation":
+        map.set(parsedActions.Callback, action.Data);
+        break;
+      default:
+        break;
+    }
+    const resTest = await action.Test(action.Data);
+    let result = resTest.resObject;
+    const testedOPtions = {
+      EventKey: parsedActions.Callback,
+      EventData: JSON.stringify(result),
+    };
+    global["map"] = map;
+    if (Object.entries(result).length === 0) {
+      return;
+    }
+    await this.EmitClientEvent(webAPIBaseURL, accessToken, testedOPtions);
+  }
+
   async generateClientAction(data: any): Promise<ClientActionBase> {
     const Data = data;
     const value = JSON.parse(Data.Value);
@@ -168,6 +205,21 @@ class ClientActionsService {
         break;
       case "Navigation":
         action = new ClientActionNavigateTest(Data, actionType);
+        break;
+      default:
+        break;
+    }
+    return action;
+  }
+
+  async generateClientActionWithTimeout(data: any): Promise<ClientActionBase> {
+    const Data = data;
+    const value = JSON.parse(Data.Value);
+    const actionType = value.Type;
+    let action;
+    switch (actionType) {
+      case "GeoLocation":
+        action = new ClientActionGeoLocationWithTimeoutTest(Data, actionType);
         break;
       default:
         break;

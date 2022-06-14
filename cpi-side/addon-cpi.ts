@@ -55,6 +55,15 @@ let preLoadGetLine: TransactionLine | undefined | number = 1;
 let preLoadGetLines: TransactionLine[] | undefined;
 let onLoadGetLine: TransactionLine | undefined;
 let onLoadGetLines: TransactionLine[] | undefined;
+let eventTimingObj = {
+  first: 0,
+  second: 0,
+  third: 0,
+  fourth: 0,
+  fifth: 0,
+  firstClientAction: 0,
+  secondClientAction: 0
+}
 
 /**initiates test data for all objects - cannot be moved to general.service due to it using variables from this file */
 export async function initTestData(
@@ -417,7 +426,7 @@ export async function load(configuration: any) {
   const clientActionsTestActive = adalData.clientActionsTestActive;
   const withinHudClientActionsTestActive =
     adalData.clientActionsWithinHudTestActive;
-  const InterceptorsTimeoutTestActive = true//adalData.InterceptorsTimeoutTestActive
+  const InterceptorsTimeoutTestActive = adalData.InterceptorsTimeoutTestActive
   const InterceptorActionsTest = adalData.InterceptorActionsTest;
   console.log("LoadTester::loadTestActive: " + loadTestActive);
   console.log("LoadTester::counter: " + loadTestCounter);
@@ -1123,6 +1132,7 @@ export async function load(configuration: any) {
       console.log(err);
     }
   }
+  //Interceptors test
   if (InterceptorsTestActive === true) {
     //=======================Interceptors test setup======================================
     //==================================Recalculate interceptors==========================
@@ -1322,13 +1332,15 @@ export async function load(configuration: any) {
       }
     );
   }
+  //InterceptorsTimeoutTest
   if(InterceptorsTimeoutTestActive === true) {
     //2 interceptors with next&main - timeout before main - should provide output of 1,5,6,7
     pepperi.events.intercept("TSAButtonPressed",{FieldID: "firstTimeout"},async (data,next) => {
+      eventTimingObj.first = performance.now();
       timeoutArr.push(1);
       await new Promise((resolve) => {
-        console.log("never resolve");
-      });
+        console.log('never resolve');
+    });
       timeoutArr.push(2);
       await next(async () => {
         timeoutArr.push(3);
@@ -1336,104 +1348,125 @@ export async function load(configuration: any) {
       timeoutArr.push(4);
     });
 
-    pepperi.events.intercept("TSAButtonPressed",{FieldID: "secondTimeout"},async (data,next) => {
+    pepperi.events.intercept("TSAButtonPressed",{FieldID: "firstTimeout"},async (data,next) => {
       timeoutArr.push(5);
       await next(async () => {
         timeoutArr.push(6);
       });
       timeoutArr.push(7);
+      eventTimingObj.first = performance.now() - eventTimingObj.first;
     });
 
     //2 interceptors with next & main - timeout after main - should output 8,11,12,13
-    pepperi.events.intercept("TSAButtonPressed",{FieldID: "thirdTimeout"},async (data,next) => {
+    pepperi.events.intercept("TSAButtonPressed",{FieldID: "secondTimeout"},async (data,next) => {
+      eventTimingObj.second = performance.now();
       timeoutArr.push(8);
       await next(async () => {
         timeoutArr.push(9);
-      })
+      });
       await new Promise((resolve) => {
-        console.log("never resolve");
-        timeoutArr.push(-1);
-      })
-      timeoutArr.push(10);
+        console.log('never resolve');
+    });
+      timeoutArr.push(-1);
     });
 
-    pepperi.events.intercept("TSAButtonPressed",{FieldID:"fourthTimeout"},async (data,next) => {
+    pepperi.events.intercept("TSAButtonPressed",{FieldID: "secondTimeout"},async (data,next) => {
       timeoutArr.push(11);
       await next(async () => {
         timeoutArr.push(12);
       })
       timeoutArr.push(13);
+      eventTimingObj.second = performance.now() - eventTimingObj.second;
     });
 
     //2 interceptors with next & main - timeout within main - should output 14,17,19,16
-    pepperi.events.intercept("TSAButtonPressed",{FieldID:"fifthTimeout"},async (data,next) => {
+    pepperi.events.intercept("TSAButtonPressed",{FieldID: "thirdTimeout"},async (data,next) => {
+     eventTimingObj.third = performance.now();
      timeoutArr.push(14);
      await next(async () => {
       timeoutArr.push(15);
      })
      timeoutArr.push(16);
+     eventTimingObj.third = performance.now() - eventTimingObj.third;
     });
     
-    pepperi.events.intercept("TSAButtonPressed",{FieldID: "sixthTimeout"},async (data,next) => {
+    pepperi.events.intercept("TSAButtonPressed",{FieldID: "thirdTimeout"},async (data,next) => {
     timeoutArr.push(17);
     await next(async () => {
-      await new Promise((resolve)=> {
-        console.log("never resolved");
-      });
+      await new Promise((resolve) => {
+        console.log('never resolve');
+    });
       timeoutArr.push(18);
     })
     timeoutArr.push(19);
     });
 
     //2 interceptors with next & main - timeout before and after main - should output 20,24,25
-    pepperi.events.intercept("TSAButtonPressed",{FieldID: "seventhTimeout"},async (data,next) => {
+    pepperi.events.intercept("TSAButtonPressed",{FieldID: "fourthTimeout"},async (data,next) => {
+     eventTimingObj.fourth = performance.now();
      timeoutArr.push(20);
-     await new Promise(resolve => {
-      console.log("never resolve");
-      timeoutArr.push(21);
+     await new Promise((resolve) => {
+      console.log('never resolve');
      });
+     timeoutArr.push(21);
      await next(async () => {
       timeoutArr.push(22);
      });
      timeoutArr.push(23);
     });
 
-    pepperi.events.intercept("TSAButtonPressed",{FieldID: "eigthTimeout"},async (data,next) => {
+    pepperi.events.intercept("TSAButtonPressed",{FieldID: "fourthTimeout"},async (data,next) => {
       timeoutArr.push(24);
       await next(async ()=>{
         timeoutArr.push(25);
       })
-      await new Promise(resolve => {
-        console.log("never resolve");
-      })
+      eventTimingObj.fourth = performance.now() - eventTimingObj.fourth;
+      await new Promise((resolve) => {
+        console.log('never resolve');
+       });
       timeoutArr.push(26);
     });
 
-    //2 interceptors with next & main - timeout exclude client actions time - should output 27,28,30,31,32,33,29
-    pepperi.events.intercept("TSAButtonPressed",{FieldID: "ninthTimeout"},async (data,next) => {
+    //2 interceptors with next & main - timeout exclude client actions time - should output 27,28,31,32,33,34
+    pepperi.events.intercept("TSAButtonPressed",{FieldID: "fifthTimeout"},async (data,next) => {
+    eventTimingObj.fifth = performance.now();
     timeoutArr.push(27);
     const res = await data.client?.captureGeoLocation({maxWaitTime: 200,accuracy:"Medium"});
     timeoutArr.push(28);
     await next(async () =>{
-      timeoutArr.push(-2);
+      timeoutArr.push(29);
     })
-    timeoutArr.push(29); 
+    timeoutArr.push(30); 
     });
 
-    pepperi.events.intercept("TSAButtonPressed",{FieldID: "tenthTimeout"},async (data,next) => {
-    timeoutArr.push(30);
-    const res = await data.client?.captureGeoLocation({maxWaitTime: 200,accuracy: "Medium"});
+    pepperi.events.intercept("TSAButtonPressed",{FieldID: "fifthTimeout"},async (data,next) => {
     timeoutArr.push(31);
+    const res = await data.client?.captureGeoLocation({maxWaitTime: 200,accuracy: "Medium"});
+    timeoutArr.push(32);
     await next(async () => {
-      timeoutArr.push(32);
+      timeoutArr.push(33);
     })
-    timeoutArr.push(33);
+    timeoutArr.push(34);
+    eventTimingObj.fifth = performance.now() - eventTimingObj.fifth;
+
     try {
       const upsert = await pepperi.api.userDefinedTables.upsert({
         table: "interceptorsTimeout",
         mainKey: new Date().toISOString(),
         secondaryKey: "TestResults",
         value: timeoutArr.toString(),
+      });
+      console.log(upsert);
+    } catch (err) {
+      console.log(err);
+    }
+
+    try {
+      const upsert = await pepperi.api.userDefinedTables.upsert({
+        table: "interceptorsTiming",
+        mainKey: new Date().toISOString(),
+        secondaryKey: "TestResults",
+        value: JSON.stringify(eventTimingObj),
       });
       console.log(upsert);
     } catch (err) {

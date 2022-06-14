@@ -3,7 +3,6 @@ import { Client, Request } from "@pepperi-addons/debug-server";
 import Tester from "./tester";
 import { AddonData } from "@pepperi-addons/papi-sdk";
 import ScriptService, {
-  scriptObjectsUUID,
   Script,
 } from "./services/scripts.service";
 import ClientActionsService, {
@@ -748,7 +747,10 @@ export async function secondUIObjectCRUD(client: Client, request: Request) {
   return testResults;
 }
 
-export async function interceptorsTimeoutTester(client: Client,request: Request) {
+export async function interceptorsTimeoutTester(
+  client: Client,
+  request: Request
+) {
   console.log("InterceptorsTimeoutTestActive::Test started");
   //services setup and perconditions setup
   const service = new MyService(client);
@@ -770,12 +772,7 @@ export async function interceptorsTimeoutTester(client: Client,request: Request)
     "secondTimeout",
     "thirdTimeout",
     "fourthTimeout",
-    "fifthTimeout",
-    "sixthTimeout",
-    "seventhTimeout",
-    "eigthTimeout",
-    "ninthTimeout",
-    "tenthTimeout"
+    "fifthTimeout"
   ];
   //setting up global map for client actions test data
   global["map"] = new Map<string, any>();
@@ -792,12 +789,13 @@ export async function interceptorsTimeoutTester(client: Client,request: Request)
       }),
     };
     //calling recursive function - event loop to run all client actions in existant for the current interceptor
-    const clientAction = await clientActionsService.EmitClientEvent(
+    const clientAction = await clientActionsService.EmitClientEventWithTimeout(
       webAPIBaseURL,
       accessToken,
       options
     );
     console.log(`InterceptorsTimeoutTestActive::Finished triggering ${button}`);
+    await service.sleep(2000);
   }
   await service.setTestFlag({ InterceptorsTimeoutTestActive: false });
   const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
@@ -806,8 +804,54 @@ export async function interceptorsTimeoutTester(client: Client,request: Request)
   await service.sleep(10000);
   const udtData = await service.getUDTValues("interceptorsTimeout", 1, "DESC");
   console.log(udtData);
+  const udtDataTimingData = await service.getUDTValues("interceptorsTiming", 1, "DESC");
+  console.log(udtDataTimingData);
   //getting actions back from global map after client actions responses (event loop finished)
   const actions = global["map"] as Map<string, any>;
+
+  try {
+    const res = await service.updateUDTValues(
+      udtData[0].MapDataExternalID,
+      udtData[0].MainKey,
+      udtData[0].SecondaryKey,
+      true
+    );
+    console.log(
+      `InterceptorsTimeoutTestActive::Updated UDTLineID ${udtData[0].InternalID},with the following hidden status: ${res.Hidden} `
+    );
+  } catch (err) {
+    console.log(`InterceptorsTimeoutTestActive:: UDT removal error: ${err}`);
+  }
+
+  try {
+    const res = await service.updateUDTValues(
+      udtDataTimingData[0].MapDataExternalID,
+      udtDataTimingData[0].MainKey,
+      udtDataTimingData[0].SecondaryKey,
+      true
+    );
+    console.log(
+      `InterceptorsTimeoutTestActive::Updated UDTLineID ${udtDataTimingData[0].InternalID},with the following hidden status: ${res.Hidden} `
+    );
+  } catch (err) {
+    console.log(`InterceptorsTimeoutTestActive:: UDT removal error: ${err}`);
+  }
+
+  describe("Interceptors timeouts automation test", async () => {
+    console.log("InterceptorsTimeoutTestActive:: Started mocha section");
+
+    it("Testing sequence", async () => {
+      expect(
+        udtData[0].Values,
+        "Failed on wrong sequence returning from test"
+      ).to.deep.equal([
+        '1,5,6,7,8,11,12,13,14,17,19,16,20,24,25,27,28,31,32,33,34',
+      ]);
+    });
+  });
+  console.log("InterceptorsTimeoutTestActive:: Test finished");
+  const testResults = await run();
+  return testResults;
 }
 //========================Scripts============================================
 export async function scriptsListTester(client: Client, request: Request) {
@@ -846,6 +890,7 @@ export async function scriptClientAPITester(client: Client, request: Request) {
   const clientAPIScriptList: Script[] = await scriptsService.getAllScripts();
   console.log("scriptClientAPITester::after getting scripts list");
   const map = new Map<string, [string, string]>();
+  const scriptObjectsUUID = await scriptsService.getTestDataObject();
   //when this endpoint will allow filtering by name -> will be refactored
   for (const script of clientAPIScriptList) {
     if (script.Name.includes("ClientAPI")) {
@@ -2718,7 +2763,6 @@ export async function notificationsPositive(client: Client, request: Request) {
   const notificationGetWithEmail =
     await notificationService.getNotificationByKey(notificationKeyWithEmail);
 
-
   //notifications removal
 
   //some mocha to test if the Original + POSTED + Gotten objects are the same
@@ -2781,13 +2825,15 @@ export async function notificationsPositive(client: Client, request: Request) {
         .to.be.a("string")
         .that.has.lengthOf(36);
 
-        const ExpirationDate = new Date();
-        const testExpirationDate = notificationPost.ExpirationDateTime?.split("T")[0];
-        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
-        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+      const ExpirationDate = new Date();
+      const testExpirationDate =
+        notificationPost.ExpirationDateTime?.split("T")[0];
+      ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+      const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
 
-        expect(testExpirationDate,"Failed on wrong expiration date returning").to.be.a("string").that.is.equal(ExpirationDateToText);
-      
+      expect(testExpirationDate, "Failed on wrong expiration date returning")
+        .to.be.a("string")
+        .that.is.equal(ExpirationDateToText);
     });
 
     it("Get parsed test results", async () => {
@@ -2846,12 +2892,15 @@ export async function notificationsPositive(client: Client, request: Request) {
         .to.be.a("string")
         .that.has.lengthOf(36);
 
-        const ExpirationDate = new Date();
-        const testExpirationDate = notificationGet[0].ExpirationDateTime?.split("T")[0];
-        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
-        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+      const ExpirationDate = new Date();
+      const testExpirationDate =
+        notificationGet[0].ExpirationDateTime?.split("T")[0];
+      ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+      const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
 
-        expect(testExpirationDate,"Failed on wrong expiration date returning").to.be.a("string").that.is.equal(ExpirationDateToText);
+      expect(testExpirationDate, "Failed on wrong expiration date returning")
+        .to.be.a("string")
+        .that.is.equal(ExpirationDateToText);
     });
 
     it("mark_as_read parsed test results", async () => {
@@ -2910,13 +2959,15 @@ export async function notificationsPositive(client: Client, request: Request) {
         .to.be.a("string")
         .that.has.lengthOf(36);
 
-        const ExpirationDate = new Date();
-        const testExpirationDate = markAsRead[0].ExpirationDateTime?.split("T")[0];
-        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
-        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+      const ExpirationDate = new Date();
+      const testExpirationDate =
+        markAsRead[0].ExpirationDateTime?.split("T")[0];
+      ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+      const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
 
-        expect(testExpirationDate,"Failed on wrong expiration date returning").to.be.a("string").that.is.equal(ExpirationDateToText);
-      
+      expect(testExpirationDate, "Failed on wrong expiration date returning")
+        .to.be.a("string")
+        .that.is.equal(ExpirationDateToText);
     });
 
     it("Get after mark_as_read Parsed test results", async () => {
@@ -2976,12 +3027,15 @@ export async function notificationsPositive(client: Client, request: Request) {
         .to.be.a("string")
         .that.has.lengthOf(36);
 
-        const ExpirationDate = new Date();
-        const testExpirationDate = notificationGetAfterRead[0].ExpirationDateTime?.split("T")[0];
-        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
-        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+      const ExpirationDate = new Date();
+      const testExpirationDate =
+        notificationGetAfterRead[0].ExpirationDateTime?.split("T")[0];
+      ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+      const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
 
-        expect(testExpirationDate,"Failed on wrong expiration date returning").to.be.a("string").that.is.equal(ExpirationDateToText);
+      expect(testExpirationDate, "Failed on wrong expiration date returning")
+        .to.be.a("string")
+        .that.is.equal(ExpirationDateToText);
     });
 
     it("Push notification from ADAL Parsed test results", async () => {
@@ -3100,12 +3154,15 @@ export async function notificationsPositive(client: Client, request: Request) {
         .to.be.a("string")
         .that.has.lengthOf(36);
 
-        const ExpirationDate = new Date();
-        const testExpirationDate = notificationPostWithEmail.ExpirationDateTime?.split("T")[0];
-        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
-        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+      const ExpirationDate = new Date();
+      const testExpirationDate =
+        notificationPostWithEmail.ExpirationDateTime?.split("T")[0];
+      ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+      const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
 
-        expect(testExpirationDate,"Failed on wrong expiration date returning").to.be.a("string").that.is.equal(ExpirationDateToText);
+      expect(testExpirationDate, "Failed on wrong expiration date returning")
+        .to.be.a("string")
+        .that.is.equal(ExpirationDateToText);
     });
 
     it("Get with Email instead of userUUID parsed test results", async () => {
@@ -3164,14 +3221,15 @@ export async function notificationsPositive(client: Client, request: Request) {
         .to.be.a("string")
         .that.has.lengthOf(36);
 
-        const ExpirationDate = new Date();
-        const testExpirationDate = notificationGetWithEmail[0].ExpirationDateTime?.split("T")[0];
-        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
-        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+      const ExpirationDate = new Date();
+      const testExpirationDate =
+        notificationGetWithEmail[0].ExpirationDateTime?.split("T")[0];
+      ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+      const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
 
-        expect(testExpirationDate,"Failed on wrong expiration date returning").to.be.a("string").that.is.equal(ExpirationDateToText);
-
-        
+      expect(testExpirationDate, "Failed on wrong expiration date returning")
+        .to.be.a("string")
+        .that.is.equal(ExpirationDateToText);
     });
   });
   describe("userDevice Positive automation test", async () => {
@@ -3248,10 +3306,11 @@ export async function notificationsPositive(client: Client, request: Request) {
       )
         .to.be.a("string")
         .that.has.lengthOf(24);
-        const ExpirationDate = new Date();
-        const testExpirationDate = userDevicePost.ExpirationDateTime?.split("T")[0];
-        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
-        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+      const ExpirationDate = new Date();
+      const testExpirationDate =
+        userDevicePost.ExpirationDateTime?.split("T")[0];
+      ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+      const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
 
       expect(
         testExpirationDate,
@@ -3340,10 +3399,11 @@ export async function notificationsPositive(client: Client, request: Request) {
         .to.be.a("string")
         .that.has.lengthOf(24);
 
-        const ExpirationDate = new Date();
-        const testExpirationDate = userDeviceGet[0].ExpirationDateTime?.split("T")[0];
-        ExpirationDate.setDate(ExpirationDate.getDate() + 30);
-        const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
+      const ExpirationDate = new Date();
+      const testExpirationDate =
+        userDeviceGet[0].ExpirationDateTime?.split("T")[0];
+      ExpirationDate.setDate(ExpirationDate.getDate() + 30);
+      const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
 
       expect(
         testExpirationDate,
@@ -3880,10 +3940,7 @@ export async function notificationsNegative(client: Client, request: Request) {
     //Need to talk to Chasky regarding the below
     it("userDevice negative tests", async () => {
       try {
-      
-      } catch(e) {
-
-      }
+      } catch (e) {}
     });
   });
   console.log(`notificationsPositive::Test Finished`);
@@ -3955,4 +4012,13 @@ export async function cleanseADAL(client: Client, request: Request) {
     resultArr.push(res);
   }
   return resultArr;
+}
+
+export async function testSomeCrap(client: Client, request: Request) {
+  const scriptsService = new ScriptService(client);
+  const service = new MyService(client);
+
+  const getTestObj = await scriptsService.getTestDataObject() 
+
+  console.log(getTestObj);
 }
