@@ -19,6 +19,7 @@ import DataService, {
   addonUUID,
   adalTableName,
 } from "./services/data.service";
+import { runScript } from "./services/scripts.service";
 import { createUIObjectTest } from "./api-tests/create-ui-object";
 import { performanceTest } from "./api-tests/performance-test";
 import { clientApiADALTest } from "./api-tests/client-api-adal";
@@ -11589,4 +11590,13 @@ router.get("/secondUIObjectCrud",async(req, res, next) => {
   const testResult = await secondUIObjectCrud();
   res.json(testResult);
 });
+//runScript cpi-side endpoint
+router.get("/runScript",async (req,res,next) => {
+console.log("Inside runScript endpoint on automation addon");
+const scriptKey = req.body.Key;
+const scriptData = req.body.Data;
+
+const scriptRun = await runScript(scriptKey,scriptData);
+res.json(scriptRun);
+})
 

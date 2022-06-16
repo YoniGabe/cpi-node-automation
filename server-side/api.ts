@@ -2,9 +2,7 @@ import MyService from "./services/my.service";
 import { Client, Request } from "@pepperi-addons/debug-server";
 import Tester from "./tester";
 import { AddonData } from "@pepperi-addons/papi-sdk";
-import ScriptService, {
-  Script,
-} from "./services/scripts.service";
+import ScriptService, { Script } from "./services/scripts.service";
 import ClientActionsService, {
   ClientAction,
 } from "./services/clientActions.service";
@@ -772,7 +770,7 @@ export async function interceptorsTimeoutTester(
     "secondTimeout",
     "thirdTimeout",
     "fourthTimeout",
-    "fifthTimeout"
+    "fifthTimeout",
   ];
   //setting up global map for client actions test data
   global["map"] = new Map<string, any>();
@@ -804,7 +802,11 @@ export async function interceptorsTimeoutTester(
   await service.sleep(10000);
   const udtData = await service.getUDTValues("interceptorsTimeout", 1, "DESC");
   console.log(udtData);
-  const udtDataTimingData = await service.getUDTValues("interceptorsTiming", 1, "DESC");
+  const udtDataTimingData = await service.getUDTValues(
+    "interceptorsTiming",
+    1,
+    "DESC"
+  );
   console.log(udtDataTimingData);
   //getting actions back from global map after client actions responses (event loop finished)
   const actions = global["map"] as Map<string, any>;
@@ -845,7 +847,7 @@ export async function interceptorsTimeoutTester(
         udtData[0].Values,
         "Failed on wrong sequence returning from test"
       ).to.deep.equal([
-        '1,5,6,7,8,11,12,13,14,17,19,16,20,24,25,27,28,31,32,33,34',
+        "1,5,6,7,8,11,12,13,14,17,19,16,20,24,25,27,28,31,32,33,34",
       ]);
     });
   });
@@ -1213,6 +1215,143 @@ export async function scriptsPositiveTester(client: Client, request: Request) {
                 `scriptsNegativeTester::currently running ${value} - ${testKey} script`
               );
               response = await scriptsService.runScript(
+                webAPIBaseURL,
+                accessToken,
+                key,
+                Data
+              );
+            });
+            it(`Parsed test results for ${value} - ${testKey} script data `, async () => {
+              const responseType = typeof response.Result;
+              if (response.Error) {
+                expect(
+                  response,
+                  "Response error object returned with wrong type"
+                ).to.be.an("object").that.is.not.null.and.undefined;
+                expect(
+                  response.Error,
+                  "Failed on WithParameters script returning value although not parameters were sent"
+                )
+                  .to.be.a("string")
+                  .that.is.equal("invalid parameter value");
+              }
+              switch (responseType) {
+                case "string":
+                  expect(
+                    response.Result,
+                    "Failed on string type not returning the correct type"
+                  )
+                    .to.be.a("string")
+                    .that.is.equal("string");
+                  break;
+                case "boolean":
+                  expect(
+                    response.Result,
+                    "Failed on boolean type not returning the correct type"
+                  )
+                    .to.be.a("boolean")
+                    .that.is.equal(true);
+                  break;
+                case "number":
+                  expect(
+                    response.Result,
+                    "Failed on number type not returning the correct type"
+                  )
+                    .to.be.a("number")
+                    .that.is.equal(10);
+                  break;
+                case "object":
+                  expect(
+                    response.Result,
+                    "Failed on object type not returning the correct type"
+                  )
+                    .to.be.a("object")
+                    .that.is.deep.equal({
+                      string: "strung",
+                      number: 9,
+                      boolean: false,
+                    });
+                  break;
+                case "undefined":
+                  expect(
+                    response.Result,
+                    "Failed on undefined type not returning the correct type"
+                  )
+                    .to.be.a("undefined")
+                    .that.is.equal(undefined);
+                  break;
+                default:
+                  break;
+              }
+            });
+          }
+          break;
+        default:
+          break;
+      }
+    }
+  });
+  const testResults = await run();
+  return testResults;
+}
+
+export async function runCPISideScriptTester(client: Client, request: Request) {
+  console.log("runCPISideScriptTester::Test started");
+  const scriptsService = new ScriptService(client);
+  const service = new MyService(client);
+  const { describe, it, expect, run } = Tester("My test");
+  console.log("runCPISideScriptTester::before getting scripts list");
+  const scripstList: Script[] = await scriptsService.getAllScripts();
+  console.log("runCPISideScriptTester::after getting scripts list");
+  const map = new Map<string, string>();
+  //when this endpoint will allow filtering by name -> will be refactored
+  for (const script of scripstList) {
+    if (script.Description.includes("Positive")) {
+      const Description = script.Description;
+      //need to change according to negative logic and requests
+      switch (Description) {
+        case "Positive":
+          map.set(script.Key, script.Name);
+          break;
+
+        default:
+          break;
+      }
+    }
+  }
+
+  const testValuesObject = {
+    number: { number: 10, string: "strung", boolean: false, object: undefined },
+    string: { number: 9, string: "string", boolean: false, object: undefined },
+    boolean: { number: 9, string: "strung", boolean: true, object: undefined },
+    object: { number: 9, string: "strung", boolean: false, object: undefined },
+    undefined: { number: 9, string: "strung", boolean: false, object: {} },
+    negative: {},
+  };
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.sleep(2000);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(10000);
+
+  describe("Scripts runCPISideScriptTester Positive automation test", async () => {
+    for (const [key, value] of map) {
+      switch (value) {
+        case "WithParameters":
+          for (const [testKey, testValue] of Object.entries(testValuesObject)) {
+            let Data;
+            let response;
+
+            Data = {
+              Data: testValue,
+            };
+
+            it(`Initializing ${value} - ${testKey} script data `, async () => {
+              console.log(
+                `runCPISideScriptTester::currently running ${value} - ${testKey} script`
+              );
+              response = await scriptsService.runCPISideScript(
                 webAPIBaseURL,
                 accessToken,
                 key,
@@ -3243,9 +3382,8 @@ export async function notificationsPositive(client: Client, request: Request) {
         "Failed on userDevice.Key returning wrong value"
       )
         .to.be.a("string")
-        .that.is.equal(
-          `${userDevicePost.UserUUID}_${userDeviceObj.DeviceKey}_${userDeviceObj.AppKey}`
-        ).and.is.not.null.and.undefined;
+        .that.is.equal(`${userDeviceObj.DeviceKey}_${userDeviceObj.AppKey}`).and
+        .is.not.null.and.undefined;
       expect(
         userDevicePost.AddonRelativeURL,
         "Failed on userDevice.AddonRelativeURL returning wrong value"
@@ -3335,9 +3473,8 @@ export async function notificationsPositive(client: Client, request: Request) {
         "Failed on userDevice.Key returning wrong value"
       )
         .to.be.a("string")
-        .that.is.equal(
-          `${userDevicePost.UserUUID}_${userDeviceObj.DeviceKey}_${userDeviceObj.AppKey}`
-        ).and.is.not.null.and.undefined;
+        .that.is.equal(`${userDeviceObj.DeviceKey}_${userDeviceObj.AppKey}`).and
+        .is.not.null.and.undefined;
       expect(
         userDeviceGet[0].AddonRelativeURL,
         "Failed on userDevice.AddonRelativeURL returning wrong value"
@@ -4012,13 +4149,4 @@ export async function cleanseADAL(client: Client, request: Request) {
     resultArr.push(res);
   }
   return resultArr;
-}
-
-export async function testSomeCrap(client: Client, request: Request) {
-  const scriptsService = new ScriptService(client);
-  const service = new MyService(client);
-
-  const getTestObj = await scriptsService.getTestDataObject() 
-
-  console.log(getTestObj);
 }

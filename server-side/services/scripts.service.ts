@@ -58,6 +58,31 @@ class ScriptService {
     return scriptResults;
   }
 
+  async runCPISideScript(
+    webAPIBaseURL: string,
+    accessToken: string,
+    scriptKey: string,
+    Data: Object
+  ) {
+    let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/addon-cpi/runScript`;
+    let body = {
+      Key: scriptKey,
+      Data: Data
+    }
+    const scriptResults = await (
+      await fetch(URL, {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: {
+          PepperiSessionToken: accessToken,
+          "Content-Type": "text/plain",
+        },
+      })
+    ).json();
+
+    return scriptResults;
+  }
+
   async getAllScripts(): Promise<Script[]> {
     const res = await this.papiClient.get(
       `/addons/api/9f3b727c-e88c-4311-8ec4-3857bc8621f3/api/scripts`
