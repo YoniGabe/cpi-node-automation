@@ -1880,7 +1880,6 @@ export async function clientActionsTester(client: Client, request: Request) {
         case "Navigation":
           const history = parsedActionData.Data.History;
           const url = parsedActionData.Data.URL;
-          const presentationStyle = parsedActionData.Data.PresentationStyle;
           it(`Client Actions Automation - ${Type} - ${url} `, async () => {
             expect(
               parsedActionData,
@@ -1901,41 +1900,16 @@ export async function clientActionsTester(client: Client, request: Request) {
                   : expect(history, "Failed on history returning wrong value")
                       .to.be.a("string")
                       .that.is.equal("None");
-                presentationStyle === "FullScreen"
-                  ? expect(
-                      presentationStyle,
-                      "presentatioStyle returned wrong value"
-                    )
-                      .to.be.a("string")
-                      .that.is.equal("FullScreen")
-                  : expect(
-                      presentationStyle,
-                      "presentatioStyle returned wrong value"
-                    )
-                      .to.be.a("string")
-                      .that.is.equal("Modal");
                 break;
               case "/homepage":
                 expect(history, "Failed on history returning wrong value")
                   .to.be.a("string")
                   .that.is.equal("None");
-                expect(
-                  presentationStyle,
-                  "presentatioStyle returned wrong value"
-                )
-                  .to.be.a("string")
-                  .that.is.equal("FullScreen");
                 break;
               case "back":
                 expect(history, "Failed on history returning wrong value")
                   .to.be.a("string")
                   .that.is.equal("None");
-                expect(
-                  presentationStyle,
-                  "presentatioStyle returned wrong value"
-                )
-                  .to.be.a("string")
-                  .that.is.equal("FullScreen");
                 break;
             }
           });
@@ -1965,12 +1939,6 @@ export async function clientActionsTester(client: Client, request: Request) {
       )
         .to.be.a("string")
         .that.is.equal("None");
-      expect(
-        parsedAction.Data.PresentationStyle,
-        "Failed on presentationStyle returning wrong value on last action"
-      )
-        .to.be.a("string")
-        .that.is.equal("FullScreen");
       expect(
         parsedAction.Data.URL,
         "Failed on URL returning wrong value on last action"
@@ -4067,7 +4035,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/update_notifications_read_status failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: The UserUUID is different from the notification UserUUID","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/update_notifications_read_status failed with status: 403 - Forbidden error: {"fault":{"faultstring":"Failed due to exception: The UserUUID is different from the notification UserUUID","detail":{"errorcode":"Forbidden"}}}'
               )
           : null;
       }

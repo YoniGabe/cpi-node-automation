@@ -426,36 +426,6 @@ class MyService {
     return updateUDTLineRes;
   }
 
-  async setTestFlag_OLD(
-    LoadFlag: boolean,
-    interceptorsFlag: boolean,
-    counter?: number,
-    TrnScopeFlag?: boolean,
-    clientActionsFlag?: boolean
-  ) {
-    const body = {
-      Key: "testKey1",
-      Hidden: false,
-      Name: "Load_Test",
-      DateTime: new Date().toISOString(),
-      object: {
-        object: {},
-        String: "String",
-        Object: {},
-        Array: [],
-      },
-      TestRunCounter: counter ? counter : 0,
-      TestActive: LoadFlag,
-      InterceptorsTestActive: interceptorsFlag,
-      TrnScopeTestActive: TrnScopeFlag ? TrnScopeFlag : false,
-      clientActionsTestActive: clientActionsFlag ? clientActionsFlag : false,
-    };
-
-    const upsert = await this.upsertToADAL("Load_Test", body);
-
-    return upsert;
-  }
-
   async setTestFlag(options: testFlagOptions) {
     const body = {
       Key: "testKey1",
@@ -545,14 +515,6 @@ class MyService {
   ) {
     //make request to the CPISide tests
     let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/${testName}`;
-    if (
-      testName === "UI1" ||
-      testName === "UI2" ||
-      testName === "Data" ||
-      testName === "Negative"
-    ) {
-      URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/automation-tests/${testName}/tests`;
-    }
     const testResults = await (
       await fetch(URL, {
         method: "GET",
