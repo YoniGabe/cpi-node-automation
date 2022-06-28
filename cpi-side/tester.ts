@@ -3,6 +3,7 @@ import chai, { expect, assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
 import Mochawesome from 'mochawesome';
+//note this is an older version of the server sider tester, this is due this file being written by chasky and could work on the client itself
 
 export default function Tester(testName?: string, environment?: string) {
     const isLocal = false;

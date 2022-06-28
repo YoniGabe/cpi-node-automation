@@ -23,7 +23,7 @@ export async function InitiateLoad(client: Client, request: Request) {
   const isLocal = false;
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
 
   if (isLocal) {
     accessToken = "c8cff29a-56f6-4489-a21a-79534785fb85"; //fill in from CPINode debugger
@@ -119,7 +119,7 @@ export async function AddonAPITester(client: Client, request: Request) {
     { uuid: "00000000-0000-0000-0000-00000000ada1", phased: true }, // adal
     { uuid: "00000000-0000-0000-0000-000000040fa9", phased: true }, // pns
   ];
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   if (isLocal) {
@@ -211,7 +211,7 @@ export async function InterceptorTester(client: Client, request: Request) {
   const service = new MyService(client);
   const atd = await service.getATD();
   const atdID = atd.ActivityTypeID;
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   const isLocal = false;
   await service.setTestFlag({ InterceptorsTestActive: true });
   let webAPIBaseURL = await service.getWebAPIBaseURL();
@@ -304,36 +304,6 @@ export async function InterceptorTester(client: Client, request: Request) {
   const testResults = await run();
   return testResults;
 }
-/** runs CPISide tests */
-export async function runCPISideTests(client: Client, request: Request) {
-  const service = new MyService(client);
-  let testName = request.body.testName;
-  const tests = ["UI1", "UI2", "Data", "Negative", "ClientAPI/ADAL"];
-  if (!tests.includes(testName)) {
-    testName = "error";
-  }
-  if (testName === "error") {
-    const error =
-      "Test Name is invalid,please try: UI1/UI2/Data/Negative or ClientAPI/ADAL";
-    throw new Error(error);
-  }
-  const isLocal = false;
-  let webAPIBaseURL = await service.getWebAPIBaseURL();
-  let accessToken = await service.getAccessToken(webAPIBaseURL);
-
-  if (isLocal) {
-    accessToken = "c8cff29a-56f6-4489-a21a-79534785fb85"; //fill in from CPINode debugger
-    webAPIBaseURL = "http://localhost:8093";
-  }
-
-  const testResults = await service.runCPISideTest(
-    accessToken,
-    webAPIBaseURL,
-    testName
-  );
-
-  return testResults;
-}
 /**method to cleanse UDT lines in case one of the test goes wrong */
 export async function cleanseUDTLines(client: Client, request: Request) {
   const service = new MyService(client);
@@ -366,7 +336,7 @@ export async function cleanseUDTLines(client: Client, request: Request) {
 /**method to run Performence test*/
 export async function PerformenceTester(client: Client, request: Request) {
   const service = new MyService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   const cpasAddon = await service.papiClient.addons.installedAddons
@@ -512,7 +482,7 @@ export async function UIObjectCreate(client: Client, request: Request) {
 export async function JWTTesterPositive(client: Client, request: Request) {
   const service = new MyService(client);
   const isLocal = false;
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   if (isLocal) {
@@ -571,7 +541,7 @@ export async function JWTTesterPositive(client: Client, request: Request) {
 /**method to run JWTTesterNegative test - negative */
 export async function JWTTesterNegative(client: Client, request: Request) {
   const service = new MyService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
 
   const JWTFromAdal = await service.getFromADAL("Load_Test", "JWTKey1");
   const JWT = JWTFromAdal[0].Token;
@@ -753,7 +723,7 @@ export async function interceptorsTimeoutTester(
   //services setup and perconditions setup
   const service = new MyService(client);
   const clientActionsService = new ClientActionsService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   //run in case sync is running before tests
@@ -887,7 +857,7 @@ export async function scriptClientAPITester(client: Client, request: Request) {
   console.log("scriptClientAPITester::Test started");
   const scriptsService = new ScriptService(client);
   const service = new MyService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   console.log("scriptClientAPITester::before getting scripts list");
   const clientAPIScriptList: Script[] = await scriptsService.getAllScripts();
   console.log("scriptClientAPITester::after getting scripts list");
@@ -1012,7 +982,7 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
   console.log("scriptsNegativeTester::Test started");
   const scriptsService = new ScriptService(client);
   const service = new MyService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   console.log("scriptsNegativeTester::before getting scripts list");
   const scripstList: Script[] = await scriptsService.getAllScripts();
   console.log("scriptsNegativeTester::after getting scripts list");
@@ -1166,7 +1136,7 @@ export async function scriptsPositiveTester(client: Client, request: Request) {
   console.log("scriptsPositiveTester::Test started");
   const scriptsService = new ScriptService(client);
   const service = new MyService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   console.log("scriptsPositiveTester::before getting scripts list");
   const scripstList: Script[] = await scriptsService.getAllScripts();
   console.log("scriptsPositiveTester::after getting scripts list");
@@ -1299,7 +1269,7 @@ export async function runCPISideScriptTester(client: Client, request: Request) {
   console.log("runCPISideScriptTester::Test started");
   const scriptsService = new ScriptService(client);
   const service = new MyService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   console.log("runCPISideScriptTester::before getting scripts list");
   const scripstList: Script[] = await scriptsService.getAllScripts();
   console.log("runCPISideScriptTester::after getting scripts list");
@@ -1438,7 +1408,7 @@ export async function clientActionsTester(client: Client, request: Request) {
   //services setup and perconditions setup
   const service = new MyService(client);
   const clientActionsService = new ClientActionsService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   //run in case sync is running before tests
@@ -1963,7 +1933,7 @@ export async function negativeClientActionsTester(
   //services setup and perconditions setup
   const service = new MyService(client);
   const clientActionsService = new ClientActionsService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   //run in case sync is running before tests
@@ -2023,7 +1993,7 @@ export async function withinHudClientActionsTester(
   //services setup and perconditions setup
   const service = new MyService(client);
   const clientActionsService = new ClientActionsService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   //run in case sync is running before tests
@@ -2492,7 +2462,7 @@ export async function clientActionsInterceptorsTester(
   //services setup and perconditions setup
   const service = new MyService(client);
   const clientActionsService = new ClientActionsService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   //run in case sync is running before tests
@@ -2790,7 +2760,7 @@ export async function notificationsPositive(client: Client, request: Request) {
   console.log(`notificationsPositive::Test Started`);
   const service = new MyService(client);
   const notificationService = new NotificationService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   console.log(`notificationsPositive::Gotten services,initiating requests`);
   //userDevice
   const userDeviceObj = await notificationService.generateUserDevice();
@@ -3541,7 +3511,7 @@ export async function bulkNotificationTester(client: Client, request: Request) {
   console.log(`bulkNotificationTester::Test Started`);
   const service = new MyService(client);
   const notificationService = new NotificationService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   const userDeviceArr: userDevice[] = [];
 
   for (let i = 0; i < 10; i++) {
@@ -3614,7 +3584,7 @@ export async function multiNotificationsAndUsersTester(
   console.log(`multiNotificationsAndUsersTester::Test Started`);
   const service = new MyService(client);
   const notificationService = new NotificationService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
 
   const userDeviceObjArr = await notificationService.generateBulkUserDevice();
   const userDeviceArr: userDevice[] = [];
@@ -3779,7 +3749,7 @@ export async function notificationsNegative(client: Client, request: Request) {
   console.log(`notificationsNegative::Test Started`);
   //const service = new MyService(client);
   const notificationService = new NotificationService(client);
-  const { describe, it, expect, run } = Tester("My test");
+  const { describe, it, expect, run } = Tester();
   console.log(`notificationsNegative::Gotten services,initiating requests`);
   //remarked sections are sections for bugs/future changes
   const user = await notificationService.papiClient.users.find({

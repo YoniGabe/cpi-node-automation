@@ -1,12 +1,17 @@
 import Mocha, { Suite } from 'mocha';
 import chai, { expect, assert } from 'chai';
+import promised from 'chai-as-promised';
 import fs from 'fs';
 import path from 'path';
 import Mochawesome from 'mochawesome';
+import { Client } from '@pepperi-addons/debug-server';
+//import { ConsoleColors } from './services/general.service'; - removed due to this package not existing in this addon
+//note this is a newer version of the cpi-side's tester,the other file stayed in the old version since chasky wrote it and it can potentially run on the client itself (don't update unless its a must)
 
+chai.use(promised);
 
-export default function Tester(testName?: string, environment?: string) {
-    const isLocal = false;
+export default function Tester(client?: Client, testName?: string, environment?: string) {
+    const isLocal = false //client ? client.AssetsBaseUrl.includes('/localhost:') : true;
     const testObject = {};
     const mochaDir = `/tmp/${testName ? testName : 'Mocha'}-${
         environment ? environment : 'Default'
@@ -23,18 +28,21 @@ export default function Tester(testName?: string, environment?: string) {
             reportDir: mochaDir,
             reportFilename: fileName,
             html: isLocal,
+            autoOpen: isLocal,
             consoleReporter: 'none',
         },
         timeout: 1200000,
     });
     const root = mocha.suite;
     let context: Suite | undefined = root;
+    let nestedGap = '';
 
     return {
         describe: (name: string, fn: () => any) => {
             const suite = new Mocha.Suite(name);
             context?.addSuite(suite);
             context = suite;
+
             fn();
             context = suite.parent;
         },
@@ -53,6 +61,38 @@ export default function Tester(testName?: string, environment?: string) {
                     .run((failures) => {
                         console.log(failures);
                     })
+                    .on('suite', (data) => {
+                        if (data.title != '') {
+                            nestedGap += '\t';
+                            console.log(
+                                `${nestedGap.slice(1)}Test Suite Start: ${data.title}`
+                            );
+                        }
+                    })
+                    .on('suite end', (data) => {
+                        if (data.title != '') {
+                            nestedGap = nestedGap.slice(1);
+                            console.log(
+                                `${nestedGap}Test Suite End: ${data.title}\n`
+                            );
+                        }
+                    })
+                    .on('test', (data) => {
+                        console.log(
+                            `${nestedGap.slice(1)}Test Start: ${data.title}`
+                        );
+                    })
+                    .on('test end', (data) => {
+                        if (data.state != 'passed') {
+                            console.log(
+                                `${nestedGap.slice(1)}Test End: ${data.title}: Result: ${data.state}`
+                            );
+                        } else {
+                            console.log(
+                                `${nestedGap.slice(1)}Test End: ${data.title}: Result: ${data.state}`
+                            );
+                        }
+                    })
                     .on('end', () => {
                         // resolve((runner as any).testResults);
                         setTimeout(() => {
@@ -64,14 +104,19 @@ export default function Tester(testName?: string, environment?: string) {
                                     let res;
                                     try {
                                         res = JSON.parse(data.toString());
-                                    } catch (e) {
-                                        return resolve(e.toString());
+                                    } catch (error) {
+                                        if (error instanceof Error) {
+                                            return resolve(error.toString());
+                                        } else {
+                                            return resolve(String(error));
+                                        }
                                     }
 
                                     //Test results report might be to big for the addon, so remove some data from response
                                     let outpot = JSON.stringify(res);
                                     //Check response length to remove the code parts if needed
-                                    if (outpot.length > 200000) {
+                                    //Changed from 200000 to 100000 since KB limitation is set to 128KB (16/11/2021 by Nofar)
+                                    if (outpot.length > 100000) {
                                         outpot = outpot
                                             .replace(/\s/g, '')
                                             .replace(/,"fullFile":""/g, '')
