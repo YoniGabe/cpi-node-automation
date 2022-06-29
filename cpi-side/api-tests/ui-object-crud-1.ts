@@ -3536,8 +3536,12 @@ export async function firstUIObjectCrud(testParms?: any) {
         "%cDetails - Accessors - UIObject Finished CRUD testing!",
         "color: #bada55"
       );
+
+      await dataObject?.setFieldValue("Hidden", true);
+      await accDataObject?.setFieldValue("Hidden", true);
     });
   });
+
   console.log("firstUIObjectCrud::Finished test");
   const testResult = await run();
   return testResult;

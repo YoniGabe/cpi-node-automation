@@ -26,11 +26,21 @@ let preLoadGetLines: TransactionLine[] | undefined;
 let onLoadGetLine: TransactionLine | undefined;
 let onLoadGetLines: TransactionLine[] | undefined;
 let eventTimingObj = {
-  first: 0,
-  second: 0,
-  third: 0,
-  fourth: 0,
-  fifth: 0,
+  first1: 0,
+  first2: 0,
+  first3: 0,
+  second1: 0,
+  second2: 0,
+  second3: 0,
+  third1: 0,
+  third2: 0,
+  third3: 0,
+  fourth1: 0,
+  fourth2: 0,
+  fourth3: 0,
+  fifth1: 0,
+  fifth2: 0,
+  fifth3: 0,
   firstClientAction: 0,
   secondClientAction: 0,
 };
@@ -1000,12 +1010,12 @@ export async function load(configuration: any) {
   }
   //InterceptorsTimeoutTest
   if (InterceptorsTimeoutTestActive === true) {
-    //2 interceptors with next&main - timeout before main - should provide output of 1,5,6,7
+    //3 interceptors with next&main - timeout before main - should provide output of 1,5,8,9,10,7
     pepperi.events.intercept(
       "TSAButtonPressed",
       { FieldID: "firstTimeout" },
       async (data, next) => {
-        eventTimingObj.first = performance.now();
+        eventTimingObj.first1 = performance.now();
         timeoutArr.push(1);
         await new Promise((resolve) => {
           console.log("never resolve");
@@ -1022,24 +1032,55 @@ export async function load(configuration: any) {
       "TSAButtonPressed",
       { FieldID: "firstTimeout" },
       async (data, next) => {
+        eventTimingObj.first2 = performance.now();
+        eventTimingObj.first1 = performance.now() - eventTimingObj.first1;
         timeoutArr.push(5);
         await next(async () => {
           timeoutArr.push(6);
         });
         timeoutArr.push(7);
-        eventTimingObj.first = performance.now() - eventTimingObj.first;
+        //eventTimingObj.first = performance.now() - eventTimingObj.first;
       }
     );
 
-    //2 interceptors with next & main - timeout after main - should output 8,11,12,13
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "firstTimeout" },
+      async (data, next) => {
+        eventTimingObj.first3 = performance.now();
+        eventTimingObj.first2 = performance.now() - eventTimingObj.first2;
+        timeoutArr.push(8);
+        await next(async () => {
+          timeoutArr.push(9);
+        });
+        timeoutArr.push(10);
+        eventTimingObj.first3 = performance.now() - eventTimingObj.first3;
+      }
+    );
+
+    //3 interceptors with next & main - timeout after main - should output 11,13,16,17,18,15
     pepperi.events.intercept(
       "TSAButtonPressed",
       { FieldID: "secondTimeout" },
       async (data, next) => {
-        eventTimingObj.second = performance.now();
-        timeoutArr.push(8);
+        eventTimingObj.second1 = performance.now();
+        timeoutArr.push(11);
         await next(async () => {
-          timeoutArr.push(9);
+          timeoutArr.push(12);
+        });
+        timeoutArr.push(15);
+      }
+    );
+
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "secondTimeout" },
+      async (data, next) => {
+        eventTimingObj.second1 = performance.now() - eventTimingObj.second1;
+        eventTimingObj.second2 = performance.now();
+        timeoutArr.push(13);
+        await next(async () => {
+          timeoutArr.push(14);
         });
         await new Promise((resolve) => {
           console.log("never resolve");
@@ -1052,27 +1093,28 @@ export async function load(configuration: any) {
       "TSAButtonPressed",
       { FieldID: "secondTimeout" },
       async (data, next) => {
-        timeoutArr.push(11);
-        await next(async () => {
-          timeoutArr.push(12);
-        });
-        timeoutArr.push(13);
-        eventTimingObj.second = performance.now() - eventTimingObj.second;
-      }
-    );
-
-    //2 interceptors with next & main - timeout within main - should output 14,17,19,16
-    pepperi.events.intercept(
-      "TSAButtonPressed",
-      { FieldID: "thirdTimeout" },
-      async (data, next) => {
-        eventTimingObj.third = performance.now();
-        timeoutArr.push(14);
-        await next(async () => {
-          timeoutArr.push(15);
-        });
+        eventTimingObj.second2 = performance.now() - eventTimingObj.second2;
+        eventTimingObj.second3 = performance.now();
         timeoutArr.push(16);
-        eventTimingObj.third = performance.now() - eventTimingObj.third;
+        await next(async () => {
+          timeoutArr.push(17);
+        });
+        timeoutArr.push(18);
+        eventTimingObj.second3 = performance.now() - eventTimingObj.second3;
+      }
+    );
+
+    //3 interceptors with next & main - timeout within main - should output 19,22,25,26,27,24,21
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "thirdTimeout" },
+      async (data, next) => {
+        eventTimingObj.third1 = performance.now();
+        timeoutArr.push(19);
+        await next(async () => {
+          timeoutArr.push(20);
+        });
+        timeoutArr.push(21);
       }
     );
 
@@ -1080,86 +1122,138 @@ export async function load(configuration: any) {
       "TSAButtonPressed",
       { FieldID: "thirdTimeout" },
       async (data, next) => {
-        timeoutArr.push(17);
+        eventTimingObj.third2 = performance.now();
+        eventTimingObj.third1 = performance.now() - eventTimingObj.third1;
+        timeoutArr.push(22);
         await next(async () => {
           await new Promise((resolve) => {
             console.log("never resolve");
           });
-          timeoutArr.push(18);
+          timeoutArr.push(23);
         });
-        timeoutArr.push(19);
-      }
-    );
-
-    //2 interceptors with next & main - timeout before and after main - should output 20,24,25
-    pepperi.events.intercept(
-      "TSAButtonPressed",
-      { FieldID: "fourthTimeout" },
-      async (data, next) => {
-        eventTimingObj.fourth = performance.now();
-        timeoutArr.push(20);
-        await new Promise((resolve) => {
-          console.log("never resolve");
-        });
-        timeoutArr.push(21);
-        await next(async () => {
-          timeoutArr.push(22);
-        });
-        timeoutArr.push(23);
-      }
-    );
-
-    pepperi.events.intercept(
-      "TSAButtonPressed",
-      { FieldID: "fourthTimeout" },
-      async (data, next) => {
         timeoutArr.push(24);
+      }
+    );
+
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "thirdTimeout" },
+      async (data, next) => {
+        eventTimingObj.third2 = performance.now() - eventTimingObj.third2;
+        eventTimingObj.third3 = performance.now();
+        timeoutArr.push(25);
         await next(async () => {
-          timeoutArr.push(25);
+          timeoutArr.push(26);
         });
-        eventTimingObj.fourth = performance.now() - eventTimingObj.fourth;
+        timeoutArr.push(27);
+        eventTimingObj.third3 = performance.now() - eventTimingObj.third3;
+      }
+    );
+
+    //3 interceptors with next & main - timeout before and after main - should output 28,32,35,36,37
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "fourthTimeout" },
+      async (data, next) => {
+        eventTimingObj.fourth1 = performance.now();
+        timeoutArr.push(28);
         await new Promise((resolve) => {
           console.log("never resolve");
         });
-        timeoutArr.push(26);
-      }
-    );
-
-    //2 interceptors with next & main - timeout exclude client actions time - should output 27,28,31,32,33,34
-    pepperi.events.intercept(
-      "TSAButtonPressed",
-      { FieldID: "fifthTimeout" },
-      async (data, next) => {
-        eventTimingObj.fifth = performance.now();
-        timeoutArr.push(27);
-        const res = await data.client?.captureGeoLocation({
-          maxWaitTime: 200,
-          accuracy: "Medium",
-        });
-        timeoutArr.push(28);
+        timeoutArr.push(29);
         await next(async () => {
-          timeoutArr.push(29);
+          timeoutArr.push(30);
         });
-        timeoutArr.push(30);
+        timeoutArr.push(31);
       }
     );
 
     pepperi.events.intercept(
       "TSAButtonPressed",
-      { FieldID: "fifthTimeout" },
+      { FieldID: "fourthTimeout" },
       async (data, next) => {
-        timeoutArr.push(31);
-        const res = await data.client?.captureGeoLocation({
-          maxWaitTime: 200,
-          accuracy: "Medium",
-        });
+        eventTimingObj.fourth1 = performance.now() - eventTimingObj.fourth1;
+        eventTimingObj.fourth2 = performance.now();
         timeoutArr.push(32);
         await next(async () => {
           timeoutArr.push(33);
         });
+        await new Promise((resolve) => {
+          console.log("never resolve");
+        });
         timeoutArr.push(34);
-        eventTimingObj.fifth = performance.now() - eventTimingObj.fifth;
+      }
+    );
 
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "fourthTimeout" },
+      async (data, next) => {
+        eventTimingObj.fourth2 = performance.now() - eventTimingObj.fourth2;
+        eventTimingObj.fourth3 = performance.now();
+        timeoutArr.push(35);
+        await next(async () => {
+          timeoutArr.push(36);
+        });
+        timeoutArr.push(37);
+        eventTimingObj.fourth3 = performance.now() - eventTimingObj.fourth3;
+      }
+    );
+
+    //3 interceptors with next & main - timeout exclude client actions time - should output 38,39,42,43,46,47,48
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "fifthTimeout" },
+      async (data, next) => {
+        eventTimingObj.fifth1 = performance.now();
+        timeoutArr.push(38);
+        eventTimingObj.firstClientAction = performance.now();
+        const res = await data.client?.captureGeoLocation({
+          maxWaitTime: 200,
+          accuracy: "Medium",
+        });
+        eventTimingObj.firstClientAction = performance.now() - eventTimingObj.firstClientAction;
+        timeoutArr.push(39);
+        await next(async () => {
+          timeoutArr.push(40);
+        });
+        timeoutArr.push(41);
+      }
+    );
+
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "fifthTimeout" },
+      async (data, next) => {
+        eventTimingObj.fifth1 = performance.now() - eventTimingObj.fifth1 - eventTimingObj.firstClientAction;
+        eventTimingObj.fifth2 = performance.now();
+        timeoutArr.push(42);
+        eventTimingObj.secondClientAction = performance.now();
+        const res = await data.client?.captureGeoLocation({
+          maxWaitTime: 200,
+          accuracy: "Medium",
+        });
+        eventTimingObj.secondClientAction = performance.now() - eventTimingObj.secondClientAction;
+        timeoutArr.push(43);
+        await next(async () => {
+          timeoutArr.push(44);
+        });
+        timeoutArr.push(45);
+      }
+    );
+
+    pepperi.events.intercept(
+      "TSAButtonPressed",
+      { FieldID: "fifthTimeout" },
+      async (data, next) => {
+        eventTimingObj.fifth2 = performance.now() - eventTimingObj.fifth2 - eventTimingObj.secondClientAction;
+        eventTimingObj.fifth3 = performance.now();
+        timeoutArr.push(46);
+        await next(async () => {
+          timeoutArr.push(47);
+        });
+        timeoutArr.push(48);
+        eventTimingObj.fifth3 = performance.now() - eventTimingObj.fifth3;
         try {
           const upsert = await pepperi.api.userDefinedTables.upsert({
             table: "interceptorsTimeout",

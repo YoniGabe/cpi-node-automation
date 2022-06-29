@@ -44,30 +44,6 @@ class MyService {
     //this.papiClient.accounts.find({where: "Name='Scripts Acc'"});
     return this.papiClient.addons.installedAddons.find({});
   }
-  //NOT IN USE -- keep around in case something breaks
-  async getWebAPIBaseURL_OLD() {
-    let environment = jwtDecode(this.client.OAuthAccessToken)[
-      "pepperi.datacenter"
-    ];
-    const webappAddon = await this.papiClient.addons.installedAddons
-      .addonUUID("00000000-0000-0000-0000-0000003eba91")
-      .get();
-    environment = environment == "sandbox" ? "sandbox." : "";
-
-    let baseURL = "";
-    //if is not longer relevant since no one uses 16.55 anymore,will be removed during refactor
-    if (webappAddon.Version?.indexOf("16.55") != -1) {
-      const webappVersion = webappAddon.Version?.split(".");
-      const versionMain = webappVersion ? webappVersion[0] : "";
-      const versionMinor = webappVersion ? webappVersion[1] : "";
-      const versionPatch = webappVersion ? webappVersion[2] : "";
-      baseURL = `https://webapi.${environment}pepperi.com/V${versionMain}_${versionMinor}/WebApp_${versionPatch}`;
-    } else {
-      baseURL = `https://webapi.${environment}pepperi.com/${webappAddon.Version}/webapi`;
-    }
-
-    return baseURL;
-  }
   //the below works according to https://pepperi.atlassian.net/browse/DI-18769
   // and https://apidesign.pepperi.com/not-in-use/webapi/get-region-webapi-baseurl
   async getWebAPIBaseURL() {
@@ -92,7 +68,7 @@ class MyService {
 
     return webAPIBaseURL;
   }
-
+  //gets cpi-side access token
   async getAccessToken(webAPIBaseURL) {
     const URL = `${webAPIBaseURL}/Service1.svc/v1/CreateSession`;
     const Body = {
@@ -123,7 +99,7 @@ class MyService {
 
     return accessToken;
   }
-
+  //gets pepperi clientAPI object
   async getPepperiClientAPI(webAPIBaseURL: string, accessToken: string) {
     const pepperi = ClientApi(async (params) => {
       const url = `${webAPIBaseURL}/Service1.svc/v1/ClientApi/Execute`;
@@ -318,7 +294,7 @@ class MyService {
 
     return trigger;
   }
-
+  //method that initiates sync
   async initSync(accessToken: string, webAPIBaseURL: string) {
     //webapi.sandbox.pepperi.com/16.60.82/webapi/Service1.svc/v1/HomePage
     const URL = `${webAPIBaseURL}/Service1.svc/v1/HomePage`;
@@ -401,14 +377,14 @@ class MyService {
     });
     return udtData;
   }
-
+  //remove udt values after test
   async removeUDTValues(internalID: number) {
     const removeUDTLineRes = await this.papiClient.userDefinedTables.delete(
       internalID
     );
     return removeUDTLineRes;
   }
-
+  //update udt values
   async updateUDTValues(
     tableName: string,
     MainKey: string,
@@ -425,7 +401,7 @@ class MyService {
     });
     return updateUDTLineRes;
   }
-
+  //set test triggers
   async setTestFlag(options: testFlagOptions) {
     const body = {
       Key: "testKey1",
@@ -467,7 +443,7 @@ class MyService {
 
     return upsert;
   }
-
+  //get sync status
   async getSyncStatus(
     accessToken: string,
     webAPIBaseURL: string,
@@ -502,12 +478,12 @@ class MyService {
     );
     return syncStatusReposnse;
   }
-
+  //sleep
   async sleep(ms: number) {
     console.debug(`%cSleep: ${ms} milliseconds`, "color: #f7df1e");
     await new Promise((f) => setTimeout(f, ms));
   }
-
+  //runs mocha tests that run on cpi-side
   async runCPISideTest(
     accessToken: string,
     webAPIBaseURL: string,
@@ -527,7 +503,7 @@ class MyService {
 
     return testResults;
   }
-
+  
   async PerformenceTester(webAPIBaseURL, accessToken) {
     let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/PerformenceTest`;
     const testResults = await (
@@ -542,7 +518,7 @@ class MyService {
 
     return testResults;
   }
-
+ //upsert to ADAL
   async upsertToADAL(tableName: string, body: AddonData) {
     const upsert = await this.papiClient.addons.data
       .uuid(this.client.AddonUUID)
@@ -551,7 +527,7 @@ class MyService {
 
     return upsert;
   }
-
+ //get from ADAL
   async getFromADAL(tableName: string, Key: string) {
     const get = await this.papiClient.addons.data
       .uuid(this.client.AddonUUID)

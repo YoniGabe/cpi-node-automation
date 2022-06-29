@@ -95,11 +95,10 @@ export async function dataObjectNegativeCrud(testParams?: any) {
     itemTypeDefUUID
   );
 
-
   let itemDataObject = await pepperi.DataObject.Get("items", itemUUID);
 
   let actDataObject = await pepperi.DataObject.Get("activities", activityUUID);
-   
+
   let dataObject = await pepperi.DataObject.Get(
     "transactions",
     transactionUUID
@@ -363,19 +362,13 @@ export async function dataObjectNegativeCrud(testParams?: any) {
 
       const getTSADate = await itemDataObject?.getFieldValue("TSADate");
 
-      expect(getTSADate, "Failed on getTSADate").that.is.not.equal(
-        dateOnly
-      );
+      expect(getTSADate, "Failed on getTSADate").that.is.not.equal(dateOnly);
 
       const getTSADT = await itemDataObject?.getFieldValue("TSADateTime");
 
-      expect(getTSADT, "Failed on getTSADateTime").that.is.not.equal(
-        dateOnly
-      );
+      expect(getTSADT, "Failed on getTSADateTime").that.is.not.equal(dateOnly);
 
-      const getTSADecimal = await itemDataObject?.getFieldValue(
-        "TSADecimal"
-      );
+      const getTSADecimal = await itemDataObject?.getFieldValue("TSADecimal");
 
       expect(getTSADecimal, "Failed on getTSADecimal").that.is.not.equal(
         +randDiscount.toFixed(3)
@@ -387,17 +380,13 @@ export async function dataObjectNegativeCrud(testParams?: any) {
         quantitiesTotal
       );
 
-      const getTSACurrency = await itemDataObject?.getFieldValue(
-        "TSACurrency"
-      );
+      const getTSACurrency = await itemDataObject?.getFieldValue("TSACurrency");
 
       expect(getTSACurrency, "Failed on getTSACurrency").that.is.not.equal(
         quantitiesTotal
       );
 
-      const getTSACheckbox = await itemDataObject?.getFieldValue(
-        "TSACheckbox"
-      );
+      const getTSACheckbox = await itemDataObject?.getFieldValue("TSACheckbox");
 
       expect(getTSACheckbox, "Failed on getTSACheckbox").that.is.not.equal(
         randBool
@@ -405,15 +394,11 @@ export async function dataObjectNegativeCrud(testParams?: any) {
 
       const getTSAEmail = await itemDataObject?.getFieldValue("TSAEmail");
 
-      expect(getTSAEmail, "Failed on getTSAEmail").that.is.not.equal(
-        userEmail
-      );
+      expect(getTSAEmail, "Failed on getTSAEmail").that.is.not.equal(userEmail);
 
       const getTSAPhone = await itemDataObject?.getFieldValue("TSAPhone");
 
-      expect(getTSAPhone, "Failed on getTSAPhone").that.is.not.equal(
-        randPhone
-      );
+      expect(getTSAPhone, "Failed on getTSAPhone").that.is.not.equal(randPhone);
 
       const getTSALink = await itemDataObject?.getFieldValue("TSALink");
 
@@ -431,17 +416,13 @@ export async function dataObjectNegativeCrud(testParams?: any) {
 
       expect(getName, "Failed on getName").that.is.not.equal(name);
 
-      const getLngDesc = await itemDataObject?.getFieldValue(
-        "LongDescription"
-      );
+      const getLngDesc = await itemDataObject?.getFieldValue("LongDescription");
 
       expect(getLngDesc, "Failed on getLngDesc").that.is.not.equal(name);
 
       const getPrice = await itemDataObject?.getFieldValue("Price");
 
-      expect(getPrice, "Failed on getPrice").that.is.not.equal(
-        quantitiesTotal
-      );
+      expect(getPrice, "Failed on getPrice").that.is.not.equal(quantitiesTotal);
     });
     it("Basic CRUD for Items DataObject Accessors", async () => {
       const ExternalID = itemDataObject?.externalID;
@@ -450,12 +431,12 @@ export async function dataObjectNegativeCrud(testParams?: any) {
       const resource = itemDataObject?.resource;
       const typeDef = itemDataObjectTypeDef?.typeDefinition; // CG2 special item with ATDID Sales Order
       const uuid = itemDataObject?.uuid;
-      
+
       expect(hidden, "Failed on hidden accessor").to.be.a("boolean").that.is
         .false.and.is.not.null.and.is.not.undefined;
 
-      expect(ExternalID, "Failed on ExternalID accessor").to.be.a("string")
-        .and.is.not.null.and.is.not.undefined;
+      expect(ExternalID, "Failed on ExternalID accessor").to.be.a("string").and
+        .is.not.null.and.is.not.undefined;
 
       expect(resource, "Failed on resource accessor")
         .to.be.a("string")
@@ -635,10 +616,7 @@ export async function dataObjectNegativeCrud(testParams?: any) {
       }
       //currently no validation firing for the below
       try {
-        await actDataObject?.setFieldValue(
-          "TSALimitedLineTextACT",
-          longString
-        );
+        await actDataObject?.setFieldValue("TSALimitedLineTextACT", longString);
       } catch (err) {
         if (err instanceof Error) {
           expect(err.message)
@@ -674,10 +652,7 @@ export async function dataObjectNegativeCrud(testParams?: any) {
       }
 
       try {
-        await actDataObject?.setFieldValue(
-          "SubmissionGeoCodeLAT",
-          randBool
-        );
+        await actDataObject?.setFieldValue("SubmissionGeoCodeLAT", randBool);
       } catch (err) {
         if (err instanceof Error) {
           expect(err.message)
@@ -727,9 +702,11 @@ export async function dataObjectNegativeCrud(testParams?: any) {
             );
         }
       }
+
+      await actDataObject?.setFieldValue("Hidden", true);
+      await dataObject?.setFieldValue("Hidden", true);
     });
   });
-
 
   console.log("dataObjectNegativeCrud::test finished");
   const testResult = await run();

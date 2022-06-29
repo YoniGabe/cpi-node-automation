@@ -809,6 +809,8 @@ export async function interceptorsTimeoutTester(
     console.log(`InterceptorsTimeoutTestActive:: UDT removal error: ${err}`);
   }
 
+  const timingData = JSON.parse(udtDataTimingData[0].Values[0]);
+
   describe("Interceptors timeouts automation test", async () => {
     console.log("InterceptorsTimeoutTestActive:: Started mocha section");
 
@@ -817,9 +819,16 @@ export async function interceptorsTimeoutTester(
         udtData[0].Values,
         "Failed on wrong sequence returning from test"
       ).to.deep.equal([
-        "1,5,6,7,8,11,12,13,14,17,19,16,20,24,25,27,28,31,32,33,34",
+        "1,5,8,9,10,7,11,13,16,17,18,15,19,22,25,26,27,24,21,28,32,35,36,37,38,39,42,43,46,47,48",
       ]);
     });
+
+    for (const [key, value] of Object.entries(timingData)) {
+      it(`Testing timing for ${key} inteceptor`, async () => {
+        const executionTime = value as number;
+        expect(executionTime/1000).to.be.a("number").that.is.below(11);
+      });
+    }
   });
   console.log("InterceptorsTimeoutTestActive:: Test finished");
   const testResults = await run();
@@ -864,6 +873,7 @@ export async function scriptClientAPITester(client: Client, request: Request) {
   const map = new Map<string, [string, string]>();
   const scriptObjectsUUID = await scriptsService.getTestDataObject();
   //when this endpoint will allow filtering by name -> will be refactored
+  //when scripts use data instead of cpi-meta-data this will need to be refactored, the GET endpoint will be able to filter by name,now it can't and this is the workaround
   for (const script of clientAPIScriptList) {
     if (script.Name.includes("ClientAPI")) {
       const Description = script.Description;
@@ -988,6 +998,7 @@ export async function scriptsNegativeTester(client: Client, request: Request) {
   console.log("scriptsNegativeTester::after getting scripts list");
   const map = new Map<string, string>();
   //when this endpoint will allow filtering by name -> will be refactored
+  //when scripts use data instead of cpi-meta-data this will need to be refactored, the GET endpoint will be able to filter by name,now it can't and this is the workaround
   for (const script of scripstList) {
     if (
       script.Description.includes("Security") ||
@@ -1142,10 +1153,10 @@ export async function scriptsPositiveTester(client: Client, request: Request) {
   console.log("scriptsPositiveTester::after getting scripts list");
   const map = new Map<string, string>();
   //when this endpoint will allow filtering by name -> will be refactored
+  //when scripts use data instead of cpi-meta-data this will need to be refactored, the GET endpoint will be able to filter by name,now it can't and this is the workaround
   for (const script of scripstList) {
     if (script.Description.includes("Positive")) {
       const Description = script.Description;
-      //need to change according to negative logic and requests
       switch (Description) {
         case "Positive":
           map.set(script.Key, script.Name);
@@ -1275,6 +1286,7 @@ export async function runCPISideScriptTester(client: Client, request: Request) {
   console.log("runCPISideScriptTester::after getting scripts list");
   const map = new Map<string, string>();
   //when this endpoint will allow filtering by name -> will be refactored
+  //when scripts use data instead of cpi-meta-data this will need to be refactored, the GET endpoint will be able to filter by name,now it can't and this is the workaround
   for (const script of scripstList) {
     if (script.Description.includes("Positive")) {
       const Description = script.Description;

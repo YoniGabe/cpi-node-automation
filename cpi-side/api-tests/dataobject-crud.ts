@@ -372,7 +372,6 @@ export async function dataObjectCrud(testOptions?: any) {
   HTML = await dataService.getHTML();
   randDays = await dataService.getRandDays();
 
-
   let accRes = await pepperi.app.accounts.add({
     type: { Name: "Customer" },
     object: {
@@ -412,15 +411,15 @@ export async function dataObjectCrud(testOptions?: any) {
 
   const lineUUID = lineRes.result[0].id;
 
-//   let itemRes = await pepperi.api.items.search({
-//     fields: ["UUID", "ExternalID", "InternalID"],
-//     filter: {
-//       ApiName: "ExternalID",
-//       FieldType: "String",
-//       Operation: "IsEqual",
-//       Values: ["AQ3"],
-//     },
-//   }); //AQ3
+  //   let itemRes = await pepperi.api.items.search({
+  //     fields: ["UUID", "ExternalID", "InternalID"],
+  //     filter: {
+  //       ApiName: "ExternalID",
+  //       FieldType: "String",
+  //       Operation: "IsEqual",
+  //       Values: ["AQ3"],
+  //     },
+  //   }); //AQ3
 
   //let itemUUID = itemRes.objects[0].UUID;
 
@@ -430,7 +429,6 @@ export async function dataObjectCrud(testOptions?: any) {
   });
 
   const cnctUUID = cnctRes.id;
-
 
   //   let itemResTypeDef = await pepperi.api.items.search({
   //     fields: [ "UUID", "ExternalID" , "InternalID"] ,
@@ -464,10 +462,15 @@ export async function dataObjectCrud(testOptions?: any) {
 
   let cnctDataObject = await pepperi.DataObject.Get("contacts", cnctUUID);
 
-  let userRes =  await pepperi.api.users.search({
-    fields: [ "UUID", "ExternalID" , "InternalID"] ,
-    filter: {"ApiName":"ExternalID","FieldType":"String","Operation":"IsEqual","Values":["TEST"]}
-    });
+  let userRes = await pepperi.api.users.search({
+    fields: ["UUID", "ExternalID", "InternalID"],
+    filter: {
+      ApiName: "ExternalID",
+      FieldType: "String",
+      Operation: "IsEqual",
+      Values: ["TEST"],
+    },
+  });
 
   const userUUID = userRes.objects[0].UUID;
 
@@ -2070,9 +2073,15 @@ export async function dataObjectCrud(testOptions?: any) {
         .that.has.lengthOf(36).and.is.not.null.and.is.not.undefined;
 
       console.log("User - Dataobject Finished Basic CRUD for Accessors");
+
+      await actDataObject?.setFieldValue("Hidden", true);
+      await dataObject?.setFieldValue("Hidden", true);
+      await cnctDataObject?.setFieldValue("Hidden", true);
+      await accDataObject?.setFieldValue("Hidden", true);
     });
   });
   //test end
+
   console.log("dataObjectCrud::test finished");
   const testResult = await run();
 

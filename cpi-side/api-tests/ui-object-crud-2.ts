@@ -11,7 +11,7 @@ import {
 import Tester from "../tester";
 import DataService, {
   screenSize,
-  accounDataArr
+  accounDataArr,
 } from "../services/data.service";
 import generalService from "../services/general.service";
 
@@ -3539,6 +3539,9 @@ export async function secondUIObjectCrud(testParams?: any) {
         "%cDetails - Accounts - Accessors - UIObject Finished CRUD testing!",
         "color: #bada55"
       );
+
+      await accDataObject?.setFieldValue("Hidden", true);
+      await dataObject?.setFieldValue("Hidden", true);
     });
   });
 
