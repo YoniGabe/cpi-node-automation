@@ -1,6 +1,8 @@
 import { PapiClient, FindOptions } from "@pepperi-addons/papi-sdk";
 import { Client } from "@pepperi-addons/debug-server";
 
+//https://apidesign.pepperi.com/notifications/notifications
+//interface for regular notifications /push_notifications endpoint
 export interface Notification {
   ModificationDateTime?: string;
   Read?: boolean;
@@ -14,13 +16,13 @@ export interface Notification {
   Key?: string;
   ExpirationDateTime?: string
 }
-
+//interface for bulkNotifications -> done by dimx on notifications end
 export interface bulkNotification {
   UserEmailList: string[];
   Title: string;
   Body: string;
 }
-
+//notifications interface for negative test
 export interface negativeNotification {
   Title?: any;
   Body?: any;
@@ -28,7 +30,7 @@ export interface negativeNotification {
   Read?: any;
   Email?: any;
 }
-
+//user device interface for positive and regular tests
 export interface userDevice {
   Key?: string;
   UserUUID?: string;
@@ -45,7 +47,7 @@ export interface userDevice {
   CreationDateTime?: string;
   ExpirationDateTime?: string;
 }
-
+//user device interface for negative tests
 export interface negativeUserDevice {
   Key?: string;
   UserUUID?: string;
@@ -75,6 +77,8 @@ class NotificationService {
     });
   }
 
+  //https://apidesign.pepperi.com/notifications/notifications
+  //marks a notifications as read
   async markAsRead(body: any): Promise<Notification[]> {
     const res = await this.papiClient.post(
       `/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/update_notifications_read_status`,
@@ -83,12 +87,12 @@ class NotificationService {
     //   `/notifications/update_notifications_read_status`
     return res;
   }
-
+  //posts notifications (not in bulk)
   async postNotifications(body: Notification): Promise<Notification> {
     const res = await this.papiClient.post(`/notifications`, body);
     return res;
   }
-
+  //posts notifications in bulk
   async postBulkNotification(object: bulkNotification) {
     const res = await this.papiClient.post(
       `/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/bulk_notifications`,
@@ -96,17 +100,17 @@ class NotificationService {
     );
     return res;
   }
-
+  //post for negative test
   async postNotificationsNegative(body: any): Promise<any> {
     const res = await this.papiClient.post(`/notifications`, body);
     return res;
   }
-
+  //gets all notifications
   async getAllNotifications(): Promise<Notification[]> {
     const res = await this.papiClient.get(`/notifications`);
     return res;
   }
-
+  //get notification with filter
   async getNotificationssWithFindOptions(
     findOptions: FindOptions
   ): Promise<Notification[]> {
@@ -120,12 +124,12 @@ class NotificationService {
     const res = await this.papiClient.get(url);
     return res;
   }
-  //not working at the moment
+ //gets notifications by key
   async getNotificationByKey(key: string): Promise<Notification> {
     const res = await this.papiClient.get(`/notifications?where=Key='${key}'`);
     return res;
   }
-
+  //generates random notifications
   async generateRandomNotification(userExID?: string): Promise<Notification> {
     const userKey = userExID ? userExID : "TEST";
     const user = await this.papiClient.users.find({
@@ -152,7 +156,7 @@ class NotificationService {
       Body: bodyArr[bodyIndex],
     } as Notification;
   }
-
+  //genreates random noticiations with email
   async generateRandomNotificationWithEmail(
     userExID?: string
   ): Promise<Notification> {
@@ -181,7 +185,7 @@ class NotificationService {
       Body: bodyArr[bodyIndex],
     } as Notification;
   }
-  //next version
+  //generates notifications objects for bulk
   async generateRandomBulkNotifications(): Promise<bulkNotification> {
     const users = await this.papiClient.users.find({
       where: `Hidden=false`,
@@ -204,7 +208,7 @@ class NotificationService {
           : "Nano_armor_ofcourse",
     };
   }
-  //generates notifications for negative test
+  //generates notifications for negative test object
   async generateNegativeNotification(
     testCase: string,
     UserUUID?: string,
@@ -268,15 +272,8 @@ class NotificationService {
 
     return negativeNotification;
   }
-  //temp to replace getByKey
-  async getNotificationByKeyTemp(key: string): Promise<Notification> {
-    const allNotifications = await this.getAllNotifications();
-    let res = allNotifications.filter(
-      (notification) => notification.Key === key
-    );
-    return res[0];
-  }
 
+  //post for userDevice
   async postUserDevice(body: userDevice): Promise<userDevice> {
     const res = await this.papiClient.post(
       `/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/user_devices`,
@@ -284,21 +281,21 @@ class NotificationService {
     );
     return res;
   }
-
+  //gets user device for this user
   async getUserDevice(): Promise<userDevice> {
     const res = await this.papiClient.get(
       `/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/user_devices`
     );
     return res;
   }
-
+  //gets user devcie by key
   async getUserDeviceByKey(key: string): Promise<userDevice> {
     const res = await this.papiClient.get(
       `/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/user_devices?where=Key='${key}'`
     );
     return res;
   }
-
+  //generates user devices objects
   async generateUserDevice(
     userExID?: string,
     hidden?: boolean,
@@ -325,7 +322,7 @@ class NotificationService {
       Hidden: hiddenFlag,
     };
   }
-
+  //same as the above just in bulk
   async generateBulkUserDevice(): Promise<userDevice[]> {
     const users = await this.papiClient.users.find({
       where: `Hidden=false`,
@@ -349,7 +346,7 @@ class NotificationService {
 
     return userDeviceArr;
   }
-
+  //posts negative user device
   async postNegativeUserDevice(body: negativeUserDevice): Promise<any> {
     const res = await this.papiClient.post(
       `/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/user_devices`,
@@ -357,7 +354,7 @@ class NotificationService {
     );
     return res;
   }
-  //need to do after talking to Chasky
+  //generates negative user device
   async generateNegativeUserDevice(testCase: string): Promise<negativeUserDevice> {
     const userDevice = {
       AppKey: "com.wrnty.peppery",

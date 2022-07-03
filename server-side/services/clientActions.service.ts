@@ -8,7 +8,7 @@ import ClientActionBarcodeScanTest from "../classes/clientActionsScanBarcode";
 import ClientActionHUDTest from "../classes/clientActionsHUD";
 import ClientActionNavigateTest from "../classes/clientActionsNavigate";
 import ClientActionGeoLocationWithTimeoutTest from "../classes/clientActionsGeoLocationWithTimeout";
-
+//https://pepperi-addons.github.io/client-actions-docs/
 export interface ClientAction {
   Callback: string; //callback UUID
   Type: string; //action Type
@@ -26,8 +26,8 @@ class ClientActionsService {
       addonUUID: client.AddonUUID,
     });
   }
-  //basic emitEvent endpoint
-  async EmitEvent(webAPIBaseURL: string, accessToken: string, options) {
+  //basic emitEvent endpoint - emits an event on cpi-level
+  async EmitEvent(webAPIBaseURL: string, accessToken: string, options: any) {
     //webapi.sandbox.pepperi.com/16.80.3/webapi/Service1.svc/v1/
     // const testedOPtions = {
     //   EventKey: EventKey,  ====> basic structure for body
@@ -46,11 +46,11 @@ class ClientActionsService {
     ).json();
     return EmitEvent;
   }
-  //client actions event loops for positive tests
+  //client actions event loops for positive tests -> recursive function that call the interceptors for client actions related tests
   async EmitClientEvent(
     webAPIBaseURL: string,
     accessToken: string,
-    options
+    options: any
   ): Promise<void> {
     const map = global["map"] as Map<string, any>;
     let res = await this.EmitEvent(webAPIBaseURL, accessToken, options);
@@ -148,7 +148,7 @@ class ClientActionsService {
     global["negative"] = map;
     await this.EmitClientEvent(webAPIBaseURL, accessToken, testedOPtions);
   }
-
+  //function for emiting client event with somewhat of a timeout
   async EmitClientEventWithTimeout(
     webAPIBaseURL: string,
     accessToken: string,
@@ -163,7 +163,9 @@ class ClientActionsService {
     if (Object.entries(parsedActions).length === 0) {
       return;
     } // note that the callback EmitEvent does not return any values;
-    let action = (await this.generateClientActionWithTimeout(res)) as ClientActionBase;
+    let action = (await this.generateClientActionWithTimeout(
+      res
+    )) as ClientActionBase;
     const parsedData = await this.parseActionDataForTest(action.Data);
     switch (Type) {
       case "GeoLocation":
@@ -184,7 +186,7 @@ class ClientActionsService {
     }
     await this.EmitClientEvent(webAPIBaseURL, accessToken, testedOPtions);
   }
-
+  //generates the client action class according to the relevant type -> see the classes used inside - each class is an action
   async generateClientAction(data: any): Promise<ClientActionBase> {
     const Data = data;
     const value = JSON.parse(Data.Value);
@@ -211,7 +213,7 @@ class ClientActionsService {
     }
     return action;
   }
-
+  //generates client action class with timeout
   async generateClientActionWithTimeout(data: any): Promise<ClientActionBase> {
     const Data = data;
     const value = JSON.parse(Data.Value);
@@ -226,7 +228,7 @@ class ClientActionsService {
     }
     return action;
   }
-
+  //parsing data for test
   async parseActionDataForTest(Data: any) {
     const parsedData = JSON.parse(Data);
     const parsedValue = JSON.parse(parsedData.Value);

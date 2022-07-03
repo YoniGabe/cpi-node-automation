@@ -34,7 +34,7 @@ class ScriptService {
   // {
   //     "Result": {}
   // }
-
+  //function to run script via API
   async runScript(
     webAPIBaseURL: string,
     accessToken: string,
@@ -57,7 +57,7 @@ class ScriptService {
 
     return scriptResults;
   }
-
+  //function to run script via function on this addons cpi-side (see scripts.service on cpi-side)
   async runCPISideScript(
     webAPIBaseURL: string,
     accessToken: string,
@@ -82,14 +82,14 @@ class ScriptService {
 
     return scriptResults;
   }
-
+  //function to get all scripts
   async getAllScripts(): Promise<Script[]> {
     const res = await this.papiClient.get(
       `/addons/api/9f3b727c-e88c-4311-8ec4-3857bc8621f3/api/scripts`
     );
     return res;
   }
-
+  //this gets scripts according to parameters,currently not optional due to it being cpi-meta-data
   async getScriptsWithFindOptions(findOptions: FindOptions): Promise<Script[]> {
     let url = `/addons/api/9f3b727c-e88c-4311-8ec4-3857bc8621f3/api/scripts?`;
     const obj = findOptions;
@@ -109,7 +109,7 @@ class ScriptService {
     );
     return res;
   }
-
+  //connect account in order to make sure the data is on the sqlite for this user
   async connectAccount(
     webAPIBaseURL: string,
     accessToken: string,
@@ -127,7 +127,7 @@ class ScriptService {
     ).json();
     return accountReload;
   }
-
+  //gets objects for clientAPI automation test
   async getTestDataObject() {
     const testObj = {
       itemUUID: "",

@@ -16,7 +16,8 @@ let date;
 let dateOnly;
 let link: string;
 let HTML: string;
-
+//https://pepperi-addons.github.io/cpi-node/modules/app_entities.html
+//relevant docs https://pepperi-addons.github.io/cpi-node/classes/app_entities.dataobject.html
 export async function dataObjectNegativeCrud(testParams?: any) {
   console.log("dataObjectNegativeCrud::Started test");
   const dataService = new DataService();

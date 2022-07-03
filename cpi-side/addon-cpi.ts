@@ -44,8 +44,14 @@ let eventTimingObj = {
   firstClientAction: 0,
   secondClientAction: 0,
 };
-
+//how to debug? - https://pepperi-addons.github.io/cpi-node/index.html#debugging
+//CPI NODE DOCS https://pepperi-addons.github.io/cpi-node/
 /** Load function - setup for interceptors/load tests*/
+//The function below sets up interceptors for the automation tests
+//https://pepperi-addons.github.io/cpi-node/interfaces/events.interceptor.html
+//It is a standard feature on a cpi-node addon
+//see load function docs as well
+//https://pepperi-addons.github.io/cpi-node/index.html#load
 export async function load(configuration: any) {
   console.log("cpi side works!");
   console.log("Setting up test variables");
@@ -56,7 +62,8 @@ export async function load(configuration: any) {
   actionsArr = [];
   timeoutArr = [];
   console.log("Finished setting up test variables");
-
+  //get for test triggers, if one of these return true (happens automatically by the relevant test,triggers on and off when the test starts and ends)
+  //See setTestFlag interface and function on server-side/my.service.ts
   //====================================ADAL================================================
   const adalData = await pepperi.api.adal
     .get({
@@ -95,7 +102,7 @@ export async function load(configuration: any) {
     "interceptorsTimeoutTester::InterceptorsTimeoutTestActive: " +
       InterceptorsTimeoutTestActive
   );
-
+  //feature flagging -> meaning these load and work in the background only when the relevant flag is available on ADAL (triggerd by test)
   if (InterceptorActionsTest === true) {
     //two exact events with two separate actions
     pepperi.events.intercept(
@@ -783,6 +790,8 @@ export async function load(configuration: any) {
   }
 
   //==========================Load inserts into UDT/ADAL====================================
+  //Load test essentially performs a sync while this is active,after the sync the Load function should run again (that's the scenario)
+  //PLEASE DEBUG THE TESTS THAT THE INTERCEPTORS BELOW ARE RELATED TO ON THE SERVER SIDE,NO REAL WAY TO DEBUG THESE IN A LIVE CODE SESSION FROM CPI-SIDE
   if (
     loadTestActive === true &&
     (loadTestCounter === 0 || loadTestCounter === 1)
@@ -1283,12 +1292,13 @@ export async function load(configuration: any) {
 }
 
 export const router = Router();
-//debugger for specific code chunks
+//debugger for specific code chunks,use this if you need a dummy endpoint on cpi-side
 router.use("/debug-tester", async (req, res) => {
   console.log("Start");
   console.log("end");
 });
 //setup routers for AddonAPI automation tests
+//docs https://pepperi-addons.github.io/cpi-node/index.html#addon-api
 router.get("/addon-api/get", (req, res) => {
   console.log("AddonAPI test currently on CPISide - GET with query params");
   const queryString = req.query.q;
@@ -1334,7 +1344,7 @@ router.use("/addon-api/:v/use", async (req, res, next) => {
     res.json({ result: "failure", error: err });
   }
 });
-//Recalculate trigger for interceptors test
+//Recalculate trigger for interceptors test - triggers a recalculate event in which there is an awaiting interceptor
 router.get("/recalculate/:UUID/trigger", async (req, res, next) => {
   const accountUUID = req.params.UUID;
   if (accountUUID === null || accountUUID === undefined || accountUUID === "") {
@@ -1374,6 +1384,8 @@ router.get("/PerformenceTest", async (req, res, next) => {
   });
 });
 //==========================TransactionScope tests===================================
+//Leave this test here,it takes gloabl variables that gets valued on the Load function
+//test for the TrnScope functions and interceptors - debug here and not on server side - make sure the test trigger is set to true inside load function
 router.get("/TransactionScope", async (req, res, next) => {
   console.log(
     "TransactionScopeTester:: Started TransactionScope automation test"
@@ -2164,7 +2176,7 @@ router.get("/secondUIObjectCrud", async (req, res, next) => {
   const testResult = await secondUIObjectCrud();
   res.json(testResult);
 });
-//runScript cpi-side endpoint
+//===================runScript cpi-side endpoint==========================================================
 router.get("/runScript", async (req, res, next) => {
   console.log("Inside runScript endpoint on automation addon");
   const scriptKey = req.body.Key;
@@ -2172,4 +2184,9 @@ router.get("/runScript", async (req, res, next) => {
 
   const scriptRun = await runScript(scriptKey, scriptData);
   res.json(scriptRun);
+});
+//=========================get Synced data from udc - if the data is here the sync test should be good==========================================
+router.get("/getDataFromSync", async (req,res,next) => {
+const response = await pepperi.api.userDefinedCollections.getList({table:"FirstTestCollection"});
+res.json(response);
 });

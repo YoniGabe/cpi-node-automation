@@ -34,18 +34,9 @@ class MyService {
     });
   }
 
-  // async getCrap() {
-  //   //await this.papiClient.accounts.find({where: "Name='Scripts Acc'"});
-  //   const res = await this.papiClient.apiCall("GET","/users");
-  //   return res.json();
-  // }
-
-  getAddons(): Promise<InstalledAddon[]> {
-    //this.papiClient.accounts.find({where: "Name='Scripts Acc'"});
-    return this.papiClient.addons.installedAddons.find({});
-  }
   //the below works according to https://pepperi.atlassian.net/browse/DI-18769
   // and https://apidesign.pepperi.com/not-in-use/webapi/get-region-webapi-baseurl
+  //gets CPAS base url for api requests
   async getWebAPIBaseURL() {
     let environment = jwtDecode(this.client.OAuthAccessToken)[
       "pepperi.datacenter"
@@ -198,7 +189,8 @@ class MyService {
     }
     return line.result[0].id;
   }
-  //trigger event function
+  //trigger event function - used only on interceptors sanity test - basically makes request to CPAS
+  //to mimic increment/decrement/setFieldValue and recalculate event in order to trigger interceptors
   async triggerEvent(
     accessToken: string,
     transactionUUID: any[],
@@ -536,7 +528,7 @@ class MyService {
 
     return get;
   }
-
+ 
   async getFromADALByDate(tableName: string, date: string) {
     const get = await this.papiClient.addons.data
       .uuid(this.client.AddonUUID)
@@ -547,7 +539,7 @@ class MyService {
 
     return get;
   }
-
+  //performs a get to this addon cpi-side to get JWT
   async getJWTFromCPISide(webAPIBaseURL: string, accessToken: string) {
     let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/${this.client.AddonUUID}/addon-cpi/JWT`;
     const JWT = await (
@@ -562,7 +554,7 @@ class MyService {
 
     return JWT;
   }
-
+  //for JWT test
   async getAccountViaAPI(JWT: string) {
     let apiRegion: string = await this.getAPIRegion();
 
@@ -622,7 +614,7 @@ class MyService {
       installedVersion: installedVersion,
     };
   }
-
+  //api region for api calls
   async getAPIRegion(): Promise<string> {
     let environment = jwtDecode(this.client.OAuthAccessToken)[
       "pepperi.datacenter"
@@ -647,7 +639,7 @@ class MyService {
 
     return apiRegion;
   }
-
+  //gets Transaction by ATD name
   async getATD() {
     const atd = await this.papiClient.transactions.find({
       where: "Type='DorS CPINode Sales Order'",

@@ -1,8 +1,8 @@
-
+//https://pepperi-addons.github.io/client-actions-docs/
 export default class ClientActionBase {
   Data: string;
   Type: string;
-
+  //master class for client actions
   constructor(Data: string, Type: string) {
     this.Data = JSON.stringify(Data);
     this.Type = Type;

@@ -2,7 +2,7 @@ import "@pepperi-addons/cpi-node";
 import Tester from "../tester";
 import { UIField } from "@pepperi-addons/cpi-node";
 import DataService from "../services/data.service"
-
+//test that sets and gets data in a very high rate,suppose to measure the performance inside the cpi itself
 export async function performanceTest() {
   const dataService = new DataService();
   const ExID = await dataService.getExID();

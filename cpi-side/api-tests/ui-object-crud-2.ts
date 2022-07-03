@@ -348,7 +348,7 @@ export async function initTestData(
   }
   return dataObject;
 }
-
+//relevant docs https://pepperi-addons.github.io/cpi-node/classes/app_entities.uiobject.html
 export async function secondUIObjectCrud(testParams?: any) {
   console.log("secondUIObjectCrud::Started test");
   const dataService = new DataService();

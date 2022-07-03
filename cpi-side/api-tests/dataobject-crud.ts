@@ -344,8 +344,8 @@ export async function initTestData(
     }
   }
   return dataObject;
-}
-
+}//https://pepperi-addons.github.io/cpi-node/modules/app_entities.html
+//relevant docs https://pepperi-addons.github.io/cpi-node/classes/app_entities.dataobject.html
 export async function dataObjectCrud(testOptions?: any) {
   console.log("dataObjectCrud::Started test");
   const dataService = new DataService();

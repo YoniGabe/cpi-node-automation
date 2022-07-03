@@ -350,7 +350,7 @@ export async function initTestData(
   }
   return dataObject;
 }
-
+//relevant docs https://pepperi-addons.github.io/cpi-node/classes/app_entities.uiobject.html
 export async function firstUIObjectCrud(testParms?: any) {
   console.log("firstUIObjectCrud::Started test");
   const dataService = new DataService();

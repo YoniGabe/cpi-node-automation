@@ -1,5 +1,5 @@
 import "@pepperi-addons/cpi-node";
-
+//interface for navigate client action
 export interface NavigationOptions {
   url: string;
   history?: "None" | "ClearTo" | "ClearAll";

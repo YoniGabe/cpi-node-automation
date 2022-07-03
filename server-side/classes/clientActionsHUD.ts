@@ -1,5 +1,6 @@
 import ClientActionBase from "./clientActionsBase";
-
+//class for client actions hud class response - according to hud state:
+//https://pepperi-addons.github.io/client-actions-docs/actions/hud.html
 export default class ClientActionHUDTest extends ClientActionBase {
   async Test(data): Promise<{ success: boolean; resObject: any }> {
     const Data = JSON.parse(data);

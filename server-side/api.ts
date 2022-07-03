@@ -10,12 +10,11 @@ import NotificationService, {
   userDevice,
   Notification,
 } from "./services/notifications.service";
+import SyncService from "./services/sync.service";
+//note each test does two things on its start:
+//1.gets webAPI AKA CPAS token
+//2.gets webAPI AKA CPAS base url (changes between each env)
 
-export async function getInstalledAddons(client: Client, request: Request) {
-  const service = new MyService(client);
-  const res = await service.getAddons();
-  return res;
-}
 //==============================cpi-node======================================
 /** Load function test endpoint */
 export async function InitiateLoad(client: Client, request: Request) {
@@ -826,7 +825,9 @@ export async function interceptorsTimeoutTester(
     for (const [key, value] of Object.entries(timingData)) {
       it(`Testing timing for ${key} inteceptor`, async () => {
         const executionTime = value as number;
-        expect(executionTime/1000).to.be.a("number").that.is.below(11);
+        expect(executionTime / 1000)
+          .to.be.a("number")
+          .that.is.below(11);
       });
     }
   });
@@ -4099,4 +4100,51 @@ export async function cleanseADAL(client: Client, request: Request) {
     resultArr.push(res);
   }
   return resultArr;
+}
+
+//======================================Sync========================================
+export async function SyncFromFile(client: Client, request: Request) {
+  console.log(`SyncFromFile::Test Started`);
+  const service = new MyService(client);
+  const syncService = new SyncService(client);
+  const tableName = "SyncTable2"; //change if you setup a new table
+  const { describe, it, expect, run } = Tester();
+  console.log(`SyncFromFile::Gotten services,initiating requests`);
+  const settings = await syncService.setSyncOptions({
+    Key: "SyncVariables",
+    SYNC_DATA_SIZE_LIMITATION: 4,
+    SYNC_TIME_LIMITATION: 10,
+    USER_DEFINED_COLLECTIONS: tableName,
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
+  });
+
+  const date = new Date();
+  console.log(date.toISOString());
+  await service.sleep(10000);
+  const document = await syncService.generateDocument(11);
+  console.log(document);
+
+  const upsert = await syncService.upsertDocument(tableName, document); //collection hard-coded for now since it can't be removed
+  console.log(upsert);
+  await service.sleep(2000);
+  const sync = await syncService.pullDataToGetURL({
+    ModificationDateTime: date.toISOString(),
+  });
+
+
+  const auditLog = await syncService.getAuditLogResultObjectIfValid(sync.ExecutionURI,30);
+  const fileURI = JSON.parse(auditLog.AuditInfo.ResultObject);
+  console.log(fileURI);
+  const syncFile = await syncService.getSyncFromAuditLog(fileURI.ResourcesURL);
+
+  const testData = syncFile.ResourcesData[0].Objects[0];
+  console.log(testData);
+
+
+
+  testData.Hidden = true;
+  const upsertToHidden = await syncService.upsertDocument(tableName,testData);
+  console.log(upsertToHidden);
+
+  return;
 }
