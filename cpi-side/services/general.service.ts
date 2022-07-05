@@ -5,6 +5,11 @@ export interface NavigationOptions {
   history?: "None" | "ClearTo" | "ClearAll";
 }
 
+export interface UDCGetListParams {
+  table: string;
+  index?: string;
+}
+
 export default class GeneralService {
   constructor() {}
 

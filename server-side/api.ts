@@ -4103,48 +4103,418 @@ export async function cleanseADAL(client: Client, request: Request) {
 }
 
 //======================================Sync========================================
-export async function SyncFromFile(client: Client, request: Request) {
-  console.log(`SyncFromFile::Test Started`);
+export async function SyncWithFile(client: Client, request: Request) {
+  console.log(`SyncWithFile::Test Started`);
   const service = new MyService(client);
   const syncService = new SyncService(client);
   const tableName = "SyncTable2"; //change if you setup a new table
   const { describe, it, expect, run } = Tester();
-  console.log(`SyncFromFile::Gotten services,initiating requests`);
-  const settings = await syncService.setSyncOptions({
+  console.log(`SyncWithFile::Gotten services,initiating requests`);
+  const syncOptions = {
     Key: "SyncVariables",
     SYNC_DATA_SIZE_LIMITATION: 4,
     SYNC_TIME_LIMITATION: 10,
     USER_DEFINED_COLLECTIONS: tableName,
     USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
-  });
-
+  };
+  const settings = await syncService.setSyncOptions(syncOptions);
   const date = new Date();
-  console.log(date.toISOString());
   await service.sleep(10000);
   const document = await syncService.generateDocument(11);
-  console.log(document);
-
   const upsert = await syncService.upsertDocument(tableName, document); //collection hard-coded for now since it can't be removed
-  console.log(upsert);
   await service.sleep(2000);
   const sync = await syncService.pullDataToGetURL({
     ModificationDateTime: date.toISOString(),
   });
+  await service.sleep(20000);
+  const auditLog = await syncService.getAuditLogResultObjectIfValid(
+    sync.ExecutionURI,
+    50
+  );
 
-
-  const auditLog = await syncService.getAuditLogResultObjectIfValid(sync.ExecutionURI,30);
   const fileURI = JSON.parse(auditLog.AuditInfo.ResultObject);
-  console.log(fileURI);
+
   const syncFile = await syncService.getSyncFromAuditLog(fileURI.ResourcesURL);
 
   const testData = syncFile.ResourcesData[0].Objects[0];
-  console.log(testData);
-
-
 
   testData.Hidden = true;
-  const upsertToHidden = await syncService.upsertDocument(tableName,testData);
-  console.log(upsertToHidden);
+  const upsertToHidden = await syncService.upsertDocument(tableName, testData);
+  console.log(`SyncWithFile::Gotten all data objects,Starting Mocha tests`);
 
-  return;
+  describe("Sync with File automation test", async () => {
+    it("Settings Post Test", async () => {
+      expect(
+        settings.Hidden,
+        "Failed on settings hidden returning wrong output"
+      ).to.be.a("boolean").that.is.false;
+      expect(settings.Key, "Failed on settings Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(syncOptions.Key);
+      expect(
+        settings.SYNC_DATA_SIZE_LIMITATION,
+        "Sync data size limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_DATA_SIZE_LIMITATION);
+      expect(
+        settings.SYNC_TIME_LIMITATION,
+        "Sync data time limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_TIME_LIMITATION);
+
+      const ModificationDate = settings.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
+      expect(ModificationDate, "Sync modificationdate returned wrong output")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+    });
+    it("Sync Data - UDC Document insertion test", async () => {
+      expect(testData.testField1, "Failed on Field1 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField1);
+      expect(testData.Key, "Failed on Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField1);
+      expect(testData.testField2, "Failed on Field2 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField2);
+      expect(testData.testField3, "Failed on Field3 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField3);
+      expect(testData.testField4, "Failed on Field4 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField4);
+      expect(testData.testField5, "Failed on Field5 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField5);
+      expect(testData.testField6, "Failed on Field6 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField6);
+      expect(testData.testField7, "Failed on Field7 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField7);
+      expect(testData.testField8, "Failed on Field8 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField8);
+      expect(testData.testField9, "Failed on Field9 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField9);
+      expect(testData.testField10, "Failed on Field10 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField10);
+      expect(
+        testData.Hidden,
+        "Failed on hidden returning wrong output"
+      ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
+
+      const CreationDate = testData.CreationDateTime?.split("T")[0];
+      const ModificationDate = testData.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
+
+      expect(ModificationDate, "Failed on wrong modification date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+      expect(CreationDate, "Failed on wrong creation date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+    });
+    it("Sync Pull endpoint response", async () => {
+      expect(
+        sync.UpToDate,
+        "Failed on up to date returning wrong output/format"
+      ).to.be.a("boolean").that.is.not.null.and.undefined;
+      expect(sync.ExecutionURI, "Failed on audit log URI returning wrong")
+        .to.be.a("string")
+        .that.has.lengthOf(48);
+      expect(sync.ExecutionURI, "Failed on executionURI returning wrong URL")
+        .to.be.a("string")
+        .that.includes("/audit_logs/");
+    });
+  });
+
+  console.log(`SyncWithFile::Finished Mocha tests`);
+
+  const testResults = await run();
+  return testResults;
+}
+
+export async function SyncWithAuditLog(client: Client, request: Request) {
+  console.log(`SyncWithAuditLog::Test Started`);
+  const service = new MyService(client);
+  const syncService = new SyncService(client);
+  const tableName = "SyncTable2"; //change if you setup a new table
+  const { describe, it, expect, run } = Tester();
+  console.log(`SyncWithAuditLog::Gotten services,initiating requests`);
+  const syncOptions = {
+    Key: "SyncVariables",
+    SYNC_DATA_SIZE_LIMITATION: 4,
+    SYNC_TIME_LIMITATION: 10,
+    USER_DEFINED_COLLECTIONS: tableName,
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
+  };
+  const settings = await syncService.setSyncOptions(syncOptions);
+  const date = new Date();
+  await service.sleep(10000);
+  const document = await syncService.generateDocument(11);
+  const upsert = await syncService.upsertDocument(tableName, document); //collection hard-coded for now since it can't be removed
+  await service.sleep(2000);
+  const sync = await syncService.pullData({
+    ModificationDateTime: date.toISOString(),
+  });
+  await service.sleep(20000); //sleep for audit log being written
+  const auditLog = await syncService.getAuditLogResultObjectIfValid(
+    sync.ExecutionURI,
+    50
+  );
+  console.log(auditLog);
+
+  const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
+  const testData = resultObject.ResourcesData[0];
+
+  const Objects = testData.Objects[0];
+  console.log(Objects);
+  const Schema = testData.Schema;
+  console.log(Schema);
+
+
+  Objects.Hidden = true;
+  const upsertToHidden = await syncService.upsertDocument(tableName, Objects);
+  console.log(upsertToHidden);
+  console.log(`SyncWithAuditLog::Gotten all data objects,Starting Mocha tests`);
+
+  describe("Sync with Audit Log automation test", async () => {
+    it("Settings Post Test", async () => {
+      expect(
+        settings.Hidden,
+        "Failed on settings hidden returning wrong output"
+      ).to.be.a("boolean").that.is.false;
+      expect(settings.Key, "Failed on settings Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(syncOptions.Key);
+      expect(
+        settings.SYNC_DATA_SIZE_LIMITATION,
+        "Sync data size limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_DATA_SIZE_LIMITATION);
+      expect(
+        settings.SYNC_TIME_LIMITATION,
+        "Sync data time limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_TIME_LIMITATION);
+
+      const ModificationDate = settings.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
+      expect(ModificationDate, "Sync modificationdate returned wrong output")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+    });
+    it("Sync Data - UDC Document insertion test", async () => {
+      expect(Objects.testField1, "Failed on Field1 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField1);
+      expect(Objects.Key, "Failed on Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField1);
+      expect(Objects.testField2, "Failed on Field2 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField2);
+      expect(Objects.testField3, "Failed on Field3 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField3);
+      expect(Objects.testField4, "Failed on Field4 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField4);
+      expect(Objects.testField5, "Failed on Field5 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField5);
+      expect(Objects.testField6, "Failed on Field6 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField6);
+      expect(Objects.testField7, "Failed on Field7 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField7);
+      expect(Objects.testField8, "Failed on Field8 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField8);
+      expect(Objects.testField9, "Failed on Field9 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField9);
+      expect(Objects.testField10, "Failed on Field10 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField10);
+      expect(
+        Objects.Hidden,
+        "Failed on hidden returning wrong output"
+      ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
+
+      const CreationDate = Objects.CreationDateTime?.split("T")[0];
+      const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
+
+      expect(ModificationDate, "Failed on wrong modification date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+      expect(CreationDate, "Failed on wrong creation date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+    });
+    it("Sync Data - Schema",async ()=> {
+    expect(Schema.AddonUUID,"Failed on UUID returning wrong output").to.be.a("string").that.is.equal("122c0e9d-c240-4865-b446-f37ece866c22");
+    expect(Schema.Name,"Failed on Schema returning wrong output").to.be.a("string").that.is.equal(tableName);
+    expect(Schema.SyncData.IndexedField,"Failed on indexed field returning wrong value").to.be.a("string").that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD)
+    })
+  });
+
+  console.log(`SyncWithAuditLog::Finished Mocha tests`);
+
+  const testResults = await run();
+  return testResults;
+}
+
+export async function SyncWithCPISideTest(client: Client, request: Request) {
+  console.log(`SyncWithCPISideTest::Test Started`);
+  const service = new MyService(client);
+  const syncService = new SyncService(client);
+  const tableName = "SyncTable2"; //change if you setup a new table
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  console.log(webAPIBaseURL);
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  const { describe, it, expect, run } = Tester();
+  console.log(`SyncWithCPISideTest::Gotten services,initiating requests`);
+  const syncOptions = {
+    Key: "SyncVariables",
+    SYNC_DATA_SIZE_LIMITATION: 4,
+    SYNC_TIME_LIMITATION: 10,
+    USER_DEFINED_COLLECTIONS: tableName,
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
+  };
+  const settings = await syncService.setSyncOptions(syncOptions);
+  const date = new Date();
+  await service.sleep(10000);
+  const document = await syncService.generateDocument(11);
+  const upsert = await syncService.upsertDocument(tableName, document); //collection hard-coded for now since it can't be removed
+  await service.sleep(2000);
+  const sync = await syncService.pullData({
+    ModificationDateTime: date.toISOString(),
+  });
+  await service.sleep(20000); //sleep for audit log being written
+  const auditLog = await syncService.getAuditLogResultObjectIfValid(
+    sync.ExecutionURI,
+    50
+  );
+  console.log(auditLog);
+
+  const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
+  const testData = resultObject.ResourcesData[0];
+
+  const Objects = testData.Objects[0];
+  console.log(Objects);
+  const Schema = testData.Schema;
+  console.log(Schema);
+
+  await service.getSyncStatus(accessToken,webAPIBaseURL,30);
+
+  const dataFromCPISide = await syncService.getDataFromCPISide(webAPIBaseURL,accessToken,tableName);
+  console.log(dataFromCPISide);
+
+
+
+  // Objects.Hidden = true;
+  // const upsertToHidden = await syncService.upsertDocument(tableName, Objects);
+  // console.log(upsertToHidden);
+  // console.log(`SyncWithAuditLog::Gotten all data objects,Starting Mocha tests`);
+
+  // describe("Sync with Audit Log automation test", async () => {
+  //   it("Settings Post Test", async () => {
+  //     expect(
+  //       settings.Hidden,
+  //       "Failed on settings hidden returning wrong output"
+  //     ).to.be.a("boolean").that.is.false;
+  //     expect(settings.Key, "Failed on settings Key returning wrong output")
+  //       .to.be.a("string")
+  //       .that.is.equal(syncOptions.Key);
+  //     expect(
+  //       settings.SYNC_DATA_SIZE_LIMITATION,
+  //       "Sync data size limit returned wrong value"
+  //     )
+  //       .to.be.a("number")
+  //       .that.is.equal(syncOptions.SYNC_DATA_SIZE_LIMITATION);
+  //     expect(
+  //       settings.SYNC_TIME_LIMITATION,
+  //       "Sync data time limit returned wrong value"
+  //     )
+  //       .to.be.a("number")
+  //       .that.is.equal(syncOptions.SYNC_TIME_LIMITATION);
+
+  //     const ModificationDate = settings.ModificationDateTime?.split("T")[0];
+  //     const dateToText = date.toISOString().split("T")[0];
+  //     expect(ModificationDate, "Sync modificationdate returned wrong output")
+  //       .to.be.a("string")
+  //       .that.is.equal(dateToText);
+  //   });
+  //   it("Sync Data - UDC Document insertion test", async () => {
+  //     expect(Objects.testField1, "Failed on Field1 returning wrong output")
+  //       .to.be.a("string")
+  //       .that.is.equal(document.testField1);
+  //     expect(Objects.Key, "Failed on Key returning wrong output")
+  //       .to.be.a("string")
+  //       .that.is.equal(document.testField1);
+  //     expect(Objects.testField2, "Failed on Field2 returning wrong output")
+  //       .to.be.a("string")
+  //       .that.is.equal(document.testField2);
+  //     expect(Objects.testField3, "Failed on Field3 returning wrong output")
+  //       .to.be.a("string")
+  //       .that.is.equal(document.testField3);
+  //     expect(Objects.testField4, "Failed on Field4 returning wrong output")
+  //       .to.be.a("string")
+  //       .that.is.equal(document.testField4);
+  //     expect(Objects.testField5, "Failed on Field5 returning wrong output")
+  //       .to.be.a("string")
+  //       .that.is.equal(document.testField5);
+  //     expect(Objects.testField6, "Failed on Field6 returning wrong output")
+  //       .to.be.a("string")
+  //       .that.is.equal(document.testField6);
+  //     expect(Objects.testField7, "Failed on Field7 returning wrong output")
+  //       .to.be.a("string")
+  //       .that.is.equal(document.testField7);
+  //     expect(Objects.testField8, "Failed on Field8 returning wrong output")
+  //       .to.be.a("string")
+  //       .that.is.equal(document.testField8);
+  //     expect(Objects.testField9, "Failed on Field9 returning wrong output")
+  //       .to.be.a("string")
+  //       .that.is.equal(document.testField9);
+  //     expect(Objects.testField10, "Failed on Field10 returning wrong output")
+  //       .to.be.a("string")
+  //       .that.is.equal(document.testField10);
+  //     expect(
+  //       Objects.Hidden,
+  //       "Failed on hidden returning wrong output"
+  //     ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
+
+  //     const CreationDate = Objects.CreationDateTime?.split("T")[0];
+  //     const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
+  //     const dateToText = date.toISOString().split("T")[0];
+
+  //     expect(ModificationDate, "Failed on wrong modification date")
+  //       .to.be.a("string")
+  //       .that.is.equal(dateToText);
+  //     expect(CreationDate, "Failed on wrong creation date")
+  //       .to.be.a("string")
+  //       .that.is.equal(dateToText);
+  //   });
+  //   it("Sync Data - Schema",async ()=> {
+  //   expect(Schema.AddonUUID,"Failed on UUID returning wrong output").to.be.a("string").that.is.equal("122c0e9d-c240-4865-b446-f37ece866c22");
+  //   expect(Schema.Name,"Failed on Schema returning wrong output").to.be.a("string").that.is.equal(tableName);
+  //   expect(Schema.SyncData.IndexedField,"Failed on indexed field returning wrong value").to.be.a("string").that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD)
+  //   })
+  // });
+
+  console.log(`SyncWithCPISideTest::Finished Mocha tests`);
+
+  const testResults = await run();
+  return testResults;
 }

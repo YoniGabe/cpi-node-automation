@@ -1,7 +1,7 @@
 import "@pepperi-addons/cpi-node";
 import Tester from "./tester";
 import { Item, TransactionLine, Transaction } from "@pepperi-addons/cpi-node";
-import { NavigationOptions } from "./services/general.service";
+import { NavigationOptions,UDCGetListParams } from "./services/general.service";
 import DataService, {
   OCEvents,
   addonUUID,
@@ -54,6 +54,8 @@ let eventTimingObj = {
 //https://pepperi-addons.github.io/cpi-node/index.html#load
 export async function load(configuration: any) {
   console.log("cpi side works!");
+  const x = "why this is happening";
+  console.log(x);
   console.log("Setting up test variables");
   const dataService = new DataService();
 
@@ -62,9 +64,9 @@ export async function load(configuration: any) {
   actionsArr = [];
   timeoutArr = [];
   console.log("Finished setting up test variables");
-  //get for test triggers, if one of these return true (happens automatically by the relevant test,triggers on and off when the test starts and ends)
-  //See setTestFlag interface and function on server-side/my.service.ts
-  //====================================ADAL================================================
+  // get for test triggers, if one of these return true (happens automatically by the relevant test,triggers on and off when the test starts and ends)
+  // See setTestFlag interface and function on server-side/my.service.ts
+  // ====================================ADAL================================================
   const adalData = await pepperi.api.adal
     .get({
       addon: addonUUID,
@@ -2186,7 +2188,18 @@ router.get("/runScript", async (req, res, next) => {
   res.json(scriptRun);
 });
 //=========================get Synced data from udc - if the data is here the sync test should be good==========================================
-router.get("/getDataFromSync", async (req,res,next) => {
-const response = await pepperi.api.userDefinedCollections.getList({table:"FirstTestCollection"});
-res.json(response);
-});
+// router.get("/getDataFromSync", async (req,res,next) => {
+// const tableName = req.body.tableName;
+// const index = req.body.index;
+// let filterObj = {} as UDCGetListParams;
+// if(index) {
+//   filterObj = {
+//   table: tableName,
+//   index: index
+// }} else {
+//  filterObj = {
+//   table: tableName,
+//  }}
+// const response = await pepperi.api.userDefinedCollections.getList(filterObj);
+// res.json(response);
+// });

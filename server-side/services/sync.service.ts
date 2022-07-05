@@ -56,7 +56,9 @@ class SyncService {
   }
 
   async pullData(syncObject: any) {
-    const res = await this.papiClient.post(`/addons/data/pull`, syncObject);
+    //const url = `/addons/data/pull`;
+    const url = `/addons/api/5122dc6d-745b-4f46-bb8e-bd25225d350a/api/pull`;
+    const res = await this.papiClient.post(url, syncObject);
     return res;
   }
 
@@ -68,14 +70,12 @@ class SyncService {
   }
 
   async getSyncFromAuditLog(url: string) {
-    let syncDataFromFile = (
-      await (
-        await fetch(url, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        })
-      ).json()
-    );
+    let syncDataFromFile = await (
+      await fetch(url, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      })
+    ).json();
 
     return syncDataFromFile;
   }
@@ -224,6 +224,39 @@ class SyncService {
   }
 
   async dropUDCTable(tableName: string) {} // not implemented yet on UDC
+
+  async getDataFromCPISide(
+    webAPIBaseURL: string,
+    accessToken: string,
+    tableName: string,
+    index?: string
+  ) {
+    let body = {};
+    if (index) {
+      body = {
+        tableName: tableName,
+        index: index,
+      };
+    } else {
+      body = { tableName: tableName };
+    }
+
+    let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/addon-cpi/getDataFromSync`;
+    console.log(URL);
+    const res = await (
+      await fetch(URL, {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: {
+          PepperiSessionToken: accessToken,
+          "Content-Type": "text/plain",
+        },
+      })
+    ).json();
+     //"application/json", replace once DI-18306 is fixed -->change "text/plain" once fixed
+
+    return res;
+  }
 }
 
 export default SyncService;
