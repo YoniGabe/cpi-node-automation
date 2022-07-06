@@ -4381,7 +4381,6 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
   const syncService = new SyncService(client);
   const tableName = "SyncTable2"; //change if you setup a new table
   let webAPIBaseURL = await service.getWebAPIBaseURL();
-  console.log(webAPIBaseURL);
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   const { describe, it, expect, run } = Tester();
   console.log(`SyncWithCPISideTest::Gotten services,initiating requests`);
@@ -4390,7 +4389,7 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
     SYNC_DATA_SIZE_LIMITATION: 4,
     SYNC_TIME_LIMITATION: 10,
     USER_DEFINED_COLLECTIONS: tableName,
-    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "", 
   };
   const settings = await syncService.setSyncOptions(syncOptions);
   const date = new Date();
@@ -4406,115 +4405,421 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
     sync.ExecutionURI,
     50
   );
-  console.log(auditLog);
+
 
   const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
   const testData = resultObject.ResourcesData[0];
 
   const Objects = testData.Objects[0];
-  console.log(Objects);
+
   const Schema = testData.Schema;
-  console.log(Schema);
 
+  await service.initSync(accessToken,webAPIBaseURL);
   await service.getSyncStatus(accessToken,webAPIBaseURL,30);
+  const key = document.testField1;
 
-  const dataFromCPISide = await syncService.getDataFromCPISide(webAPIBaseURL,accessToken,tableName);
-  console.log(dataFromCPISide);
+  await service.sleep(5000);
+  const dataFromCPISide = await syncService.getDataFromCPISide(webAPIBaseURL,accessToken,tableName,key);
 
+  
+  Objects.Hidden = true;
+  const upsertToHidden = await syncService.upsertDocument(tableName, Objects);
 
+  console.log(`SyncWithAuditLog::Gotten all data objects,Starting Mocha tests`);
 
-  // Objects.Hidden = true;
-  // const upsertToHidden = await syncService.upsertDocument(tableName, Objects);
-  // console.log(upsertToHidden);
-  // console.log(`SyncWithAuditLog::Gotten all data objects,Starting Mocha tests`);
+  describe("Sync with Get from CPISide automation test", async () => {
+    it("Settings Post Test", async () => {
+      expect(
+        settings.Hidden,
+        "Failed on settings hidden returning wrong output"
+      ).to.be.a("boolean").that.is.false;
+      expect(settings.Key, "Failed on settings Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(syncOptions.Key);
+      expect(
+        settings.SYNC_DATA_SIZE_LIMITATION,
+        "Sync data size limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_DATA_SIZE_LIMITATION);
+      expect(
+        settings.SYNC_TIME_LIMITATION,
+        "Sync data time limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_TIME_LIMITATION);
 
-  // describe("Sync with Audit Log automation test", async () => {
-  //   it("Settings Post Test", async () => {
-  //     expect(
-  //       settings.Hidden,
-  //       "Failed on settings hidden returning wrong output"
-  //     ).to.be.a("boolean").that.is.false;
-  //     expect(settings.Key, "Failed on settings Key returning wrong output")
-  //       .to.be.a("string")
-  //       .that.is.equal(syncOptions.Key);
-  //     expect(
-  //       settings.SYNC_DATA_SIZE_LIMITATION,
-  //       "Sync data size limit returned wrong value"
-  //     )
-  //       .to.be.a("number")
-  //       .that.is.equal(syncOptions.SYNC_DATA_SIZE_LIMITATION);
-  //     expect(
-  //       settings.SYNC_TIME_LIMITATION,
-  //       "Sync data time limit returned wrong value"
-  //     )
-  //       .to.be.a("number")
-  //       .that.is.equal(syncOptions.SYNC_TIME_LIMITATION);
+      const ModificationDate = settings.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
+      expect(ModificationDate, "Sync modificationdate returned wrong output")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+    });
+    it("Sync Data - UDC Document insertion test", async () => {
+      expect(Objects.testField1, "Failed on Field1 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField1);
+      expect(Objects.Key, "Failed on Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField1);
+      expect(Objects.testField2, "Failed on Field2 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField2);
+      expect(Objects.testField3, "Failed on Field3 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField3);
+      expect(Objects.testField4, "Failed on Field4 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField4);
+      expect(Objects.testField5, "Failed on Field5 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField5);
+      expect(Objects.testField6, "Failed on Field6 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField6);
+      expect(Objects.testField7, "Failed on Field7 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField7);
+      expect(Objects.testField8, "Failed on Field8 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField8);
+      expect(Objects.testField9, "Failed on Field9 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField9);
+      expect(Objects.testField10, "Failed on Field10 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField10);
+      expect(
+        Objects.Hidden,
+        "Failed on hidden returning wrong output"
+      ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
 
-  //     const ModificationDate = settings.ModificationDateTime?.split("T")[0];
-  //     const dateToText = date.toISOString().split("T")[0];
-  //     expect(ModificationDate, "Sync modificationdate returned wrong output")
-  //       .to.be.a("string")
-  //       .that.is.equal(dateToText);
-  //   });
-  //   it("Sync Data - UDC Document insertion test", async () => {
-  //     expect(Objects.testField1, "Failed on Field1 returning wrong output")
-  //       .to.be.a("string")
-  //       .that.is.equal(document.testField1);
-  //     expect(Objects.Key, "Failed on Key returning wrong output")
-  //       .to.be.a("string")
-  //       .that.is.equal(document.testField1);
-  //     expect(Objects.testField2, "Failed on Field2 returning wrong output")
-  //       .to.be.a("string")
-  //       .that.is.equal(document.testField2);
-  //     expect(Objects.testField3, "Failed on Field3 returning wrong output")
-  //       .to.be.a("string")
-  //       .that.is.equal(document.testField3);
-  //     expect(Objects.testField4, "Failed on Field4 returning wrong output")
-  //       .to.be.a("string")
-  //       .that.is.equal(document.testField4);
-  //     expect(Objects.testField5, "Failed on Field5 returning wrong output")
-  //       .to.be.a("string")
-  //       .that.is.equal(document.testField5);
-  //     expect(Objects.testField6, "Failed on Field6 returning wrong output")
-  //       .to.be.a("string")
-  //       .that.is.equal(document.testField6);
-  //     expect(Objects.testField7, "Failed on Field7 returning wrong output")
-  //       .to.be.a("string")
-  //       .that.is.equal(document.testField7);
-  //     expect(Objects.testField8, "Failed on Field8 returning wrong output")
-  //       .to.be.a("string")
-  //       .that.is.equal(document.testField8);
-  //     expect(Objects.testField9, "Failed on Field9 returning wrong output")
-  //       .to.be.a("string")
-  //       .that.is.equal(document.testField9);
-  //     expect(Objects.testField10, "Failed on Field10 returning wrong output")
-  //       .to.be.a("string")
-  //       .that.is.equal(document.testField10);
-  //     expect(
-  //       Objects.Hidden,
-  //       "Failed on hidden returning wrong output"
-  //     ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
+      const CreationDate = Objects.CreationDateTime?.split("T")[0];
+      const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
 
-  //     const CreationDate = Objects.CreationDateTime?.split("T")[0];
-  //     const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
-  //     const dateToText = date.toISOString().split("T")[0];
+      expect(ModificationDate, "Failed on wrong modification date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+      expect(CreationDate, "Failed on wrong creation date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+    });
+    it("Sync Data - Schema",async ()=> {
+    expect(Schema.AddonUUID,"Failed on UUID returning wrong output").to.be.a("string").that.is.equal("122c0e9d-c240-4865-b446-f37ece866c22");
+    expect(Schema.Name,"Failed on Schema returning wrong output").to.be.a("string").that.is.equal(tableName);
+    expect(Schema.SyncData.IndexedField,"Failed on indexed field returning wrong value").to.be.a("string").that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD)
+    });
+    it("Sync Data - Get from CPISide",async ()=> {
+      expect(dataFromCPISide.success,"Failed on request failing").to.be.a("boolean").that.is.true;
+      expect(dataFromCPISide.object.testField1, "Failed on Field1 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField1);
+    expect(dataFromCPISide.object.Key, "Failed on Key returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField1);
+    expect(dataFromCPISide.object.testField2, "Failed on Field2 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField2);
+    expect(dataFromCPISide.object.testField3, "Failed on Field3 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField3);
+    expect(dataFromCPISide.object.testField4, "Failed on Field4 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField4);
+    expect(dataFromCPISide.object.testField5, "Failed on Field5 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField5);
+    expect(dataFromCPISide.object.testField6, "Failed on Field6 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField6);
+    expect(dataFromCPISide.object.testField7, "Failed on Field7 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField7);
+    expect(dataFromCPISide.object.testField8, "Failed on Field8 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField8);
+    expect(dataFromCPISide.object.testField9, "Failed on Field9 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField9);
+    expect(dataFromCPISide.object.testField10, "Failed on Field10 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField10);
+    expect(
+      dataFromCPISide.object.Hidden,
+      "Failed on hidden returning wrong output"
+    ).to.be.a("boolean").that.is.false;
 
-  //     expect(ModificationDate, "Failed on wrong modification date")
-  //       .to.be.a("string")
-  //       .that.is.equal(dateToText);
-  //     expect(CreationDate, "Failed on wrong creation date")
-  //       .to.be.a("string")
-  //       .that.is.equal(dateToText);
-  //   });
-  //   it("Sync Data - Schema",async ()=> {
-  //   expect(Schema.AddonUUID,"Failed on UUID returning wrong output").to.be.a("string").that.is.equal("122c0e9d-c240-4865-b446-f37ece866c22");
-  //   expect(Schema.Name,"Failed on Schema returning wrong output").to.be.a("string").that.is.equal(tableName);
-  //   expect(Schema.SyncData.IndexedField,"Failed on indexed field returning wrong value").to.be.a("string").that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD)
-  //   })
-  // });
+    const CreationDate = dataFromCPISide.object.CreationDateTime?.split("T")[0];
+    const ModificationDate = dataFromCPISide.object.ModificationDateTime?.split("T")[0];
+    const dateToText = date.toISOString().split("T")[0];
+
+    expect(ModificationDate, "Failed on wrong modification date")
+      .to.be.a("string")
+      .that.is.equal(dateToText);
+    expect(CreationDate, "Failed on wrong creation date")
+      .to.be.a("string")
+      .that.is.equal(dateToText);
+    });
+  });
 
   console.log(`SyncWithCPISideTest::Finished Mocha tests`);
 
   const testResults = await run();
   return testResults;
+}
+
+export async function SyncWithIndexedField(client: Client,request: Request) {
+  console.log(`SyncWithIndexedField::Test Started`);
+  const service = new MyService(client);
+  const syncService = new SyncService(client);
+  const tableName = "SyncTable2"; //change if you setup a new table
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  const { describe, it, expect, run } = Tester();
+  console.log(`SyncWithCPISideTest::Gotten services,initiating requests`);
+  const syncOptions = {
+    Key: "SyncVariables",
+    SYNC_DATA_SIZE_LIMITATION: 4,
+    SYNC_TIME_LIMITATION: 10,
+    USER_DEFINED_COLLECTIONS: tableName,
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "testField2", 
+  };
+  const settings = await syncService.setSyncOptions(syncOptions);
+  const date = new Date();
+  await service.sleep(10000);
+
+  const document = await syncService.generateIndexedDocument(11);
+  const documentWithoutIndex = await syncService.generateDocument(11);
+  const upsert = await syncService.upsertDocument(tableName, document); //collection hard-coded for now since it can't be removed
+  const upsertWithOutIndex = await syncService.upsertDocument(tableName,documentWithoutIndex);
+  await service.sleep(2000);
+  const sync = await syncService.pullData({
+    ModificationDateTime: date.toISOString(),
+  });
+  await service.sleep(20000); //sleep for audit log being written
+  const auditLog = await syncService.getAuditLogResultObjectIfValid(
+    sync.ExecutionURI,
+    50
+  );
+  
+  const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
+  console.log(resultObject);
+  const testData = resultObject.ResourcesData[0];
+
+  const Objects = testData.Objects[0];
+  const noneIndexedObjects = testData.Objects[1];
+
+  const Schema = testData.Schema;
+
+  await service.initSync(accessToken,webAPIBaseURL);
+  await service.getSyncStatus(accessToken,webAPIBaseURL,30);
+
+  const index = document.testField2;
+  console.log(index);
+
+  await service.sleep(10000);
+  const dataFromCPISide = await syncService.getListFromCPISide(webAPIBaseURL,accessToken,tableName,index);
+  console.log(dataFromCPISide);
+
+  Objects.Hidden = true;
+  noneIndexedObjects.Hidden = true;
+  const upsertToHidden = await syncService.upsertDocument(tableName, Objects);
+  const upsertNoneIndexToHidden = await syncService.upsertDocument(tableName,noneIndexedObjects);
+
+  console.log(`SyncWithIndexedField::Gotten all data objects,Starting Mocha tests`);
+
+  describe("Sync with Get from CPISide automation test", async () => {
+    it("Settings Post Test", async () => {
+      expect(
+        settings.Hidden,
+        "Failed on settings hidden returning wrong output"
+      ).to.be.a("boolean").that.is.false;
+      expect(settings.Key, "Failed on settings Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(syncOptions.Key);
+      expect(
+        settings.SYNC_DATA_SIZE_LIMITATION,
+        "Sync data size limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_DATA_SIZE_LIMITATION);
+      expect(
+        settings.SYNC_TIME_LIMITATION,
+        "Sync data time limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_TIME_LIMITATION);
+
+      expect(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD,"Failed on wrong index field returning").to.be.a("string").that.is.equal(syncOptions.USER_DEFINED_COLLECTIONS_INDEX_FIELD);
+      
+      const ModificationDate = settings.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
+      expect(ModificationDate, "Sync modificationdate returned wrong output")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+    });
+    it("Sync Data - UDC Document insertion test", async () => {
+      expect(Objects.testField1, "Failed on Field1 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField1);
+      expect(Objects.Key, "Failed on Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField1);
+      expect(Objects.testField2, "Failed on Field2 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField2);
+      expect(Objects.testField3, "Failed on Field3 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField3);
+      expect(Objects.testField4, "Failed on Field4 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField4);
+      expect(Objects.testField5, "Failed on Field5 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField5);
+      expect(Objects.testField6, "Failed on Field6 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField6);
+      expect(Objects.testField7, "Failed on Field7 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField7);
+      expect(Objects.testField8, "Failed on Field8 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField8);
+      expect(Objects.testField9, "Failed on Field9 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField9);
+      expect(Objects.testField10, "Failed on Field10 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField10);
+      expect(
+        Objects.Hidden,
+        "Failed on hidden returning wrong output"
+      ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
+
+      const CreationDate = Objects.CreationDateTime?.split("T")[0];
+      const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
+
+      expect(ModificationDate, "Failed on wrong modification date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+      expect(CreationDate, "Failed on wrong creation date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+
+
+        expect(noneIndexedObjects.testField1, "Failed on Field1 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(documentWithoutIndex.testField1);
+      expect(noneIndexedObjects.Key, "Failed on Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(documentWithoutIndex.testField1);
+      expect(noneIndexedObjects.testField2, "Failed on Field2 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(documentWithoutIndex.testField2);
+      expect(noneIndexedObjects.testField3, "Failed on Field3 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(documentWithoutIndex.testField3);
+      expect(noneIndexedObjects.testField4, "Failed on Field4 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(documentWithoutIndex.testField4);
+      expect(noneIndexedObjects.testField5, "Failed on Field5 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(documentWithoutIndex.testField5);
+      expect(noneIndexedObjects.testField6, "Failed on Field6 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(documentWithoutIndex.testField6);
+      expect(noneIndexedObjects.testField7, "Failed on Field7 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(documentWithoutIndex.testField7);
+      expect(noneIndexedObjects.testField8, "Failed on Field8 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(documentWithoutIndex.testField8);
+      expect(noneIndexedObjects.testField9, "Failed on Field9 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(documentWithoutIndex.testField9);
+      expect(noneIndexedObjects.testField10, "Failed on Field10 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(documentWithoutIndex.testField10);
+      expect(
+        noneIndexedObjects.Hidden,
+        "Failed on hidden returning wrong output"
+      ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
+
+      const CreationDate2 = noneIndexedObjects.CreationDateTime?.split("T")[0];
+      const ModificationDate2 = noneIndexedObjects.ModificationDateTime?.split("T")[0];
+
+      expect(ModificationDate2, "Failed on wrong modification date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+      expect(CreationDate2, "Failed on wrong creation date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+    });
+    it("Sync Data - Schema",async ()=> {
+    expect(Schema.AddonUUID,"Failed on UUID returning wrong output").to.be.a("string").that.is.equal("122c0e9d-c240-4865-b446-f37ece866c22");
+    expect(Schema.Name,"Failed on Schema returning wrong output").to.be.a("string").that.is.equal(tableName);
+    expect(Schema.SyncData.IndexedField,"Failed on indexed field returning wrong value").to.be.a("string").that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD)
+    });
+    it("Sync Data - GetList from CPISide",async ()=> {
+      expect(dataFromCPISide.objects,"Failed on returning more than one object").to.be.a("array").that.has.lengthOf(1);
+      expect(dataFromCPISide.success,"Failed on request failing").to.be.a("boolean").that.is.true;
+      expect(dataFromCPISide.objects[0].testField1, "Failed on Field1 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField1);
+    expect(dataFromCPISide.objects[0].Key, "Failed on Key returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField1);
+    expect(dataFromCPISide.objects[0].testField2, "Failed on Field2 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField2);
+    expect(dataFromCPISide.objects[0].testField3, "Failed on Field3 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField3);
+    expect(dataFromCPISide.objects[0].testField4, "Failed on Field4 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField4);
+    expect(dataFromCPISide.objects[0].testField5, "Failed on Field5 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField5);
+    expect(dataFromCPISide.objects[0].testField6, "Failed on Field6 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField6);
+    expect(dataFromCPISide.objects[0].testField7, "Failed on Field7 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField7);
+    expect(dataFromCPISide.objects[0].testField8, "Failed on Field8 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField8);
+    expect(dataFromCPISide.objects[0].testField9, "Failed on Field9 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField9);
+    expect(dataFromCPISide.objects[0].testField10, "Failed on Field10 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(document.testField10);
+    expect(
+      dataFromCPISide.objects[0].Hidden,
+      "Failed on hidden returning wrong output"
+    ).to.be.a("boolean").that.is.false;
+
+    const CreationDate = dataFromCPISide.objects[0].CreationDateTime?.split("T")[0];
+    const ModificationDate = dataFromCPISide.objects[0].ModificationDateTime?.split("T")[0];
+    const dateToText = date.toISOString().split("T")[0];
+
+    expect(ModificationDate, "Failed on wrong modification date")
+      .to.be.a("string")
+      .that.is.equal(dateToText);
+    expect(CreationDate, "Failed on wrong creation date")
+      .to.be.a("string")
+      .that.is.equal(dateToText);
+    });
+  });
+
+  console.log(`SyncWithIndexedField::Finished Mocha tests`);
+
+  const testResults = await run();
+  return testResults;
+  
 }

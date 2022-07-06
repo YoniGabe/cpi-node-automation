@@ -10,7 +10,6 @@ import {
 } from "@pepperi-addons/papi-sdk";
 //api design:
 //https://apidesign.pepperi.com/sync/pull-data
-interface Sync {}
 
 export interface SyncSettings {
   Key: string;
@@ -223,26 +222,30 @@ class SyncService {
     return document as AddonData;
   }
 
+  async generateIndexedDocument(numberOfFields: number) {
+    const document = {};
+    for (let i = 1; i < numberOfFields; i++) {
+      if (i == 2) {
+        document[`testField${i}`] = `Indexed${Math.floor(
+          Math.random() * 1000000
+        )}`;
+      } else {
+        document[`testField${i}`] = `testData${i}`;
+      }
+    }
+    return document as AddonData;
+  }
+
   async dropUDCTable(tableName: string) {} // not implemented yet on UDC
 
   async getDataFromCPISide(
     webAPIBaseURL: string,
     accessToken: string,
     tableName: string,
-    index?: string
+    key: string
   ) {
-    let body = {};
-    if (index) {
-      body = {
-        tableName: tableName,
-        index: index,
-      };
-    } else {
-      body = { tableName: tableName };
-    }
-
+    let body = { Key: key, tableName: tableName };
     let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/addon-cpi/getDataFromSync`;
-    console.log(URL);
     const res = await (
       await fetch(URL, {
         method: "POST",
@@ -253,7 +256,30 @@ class SyncService {
         },
       })
     ).json();
-     //"application/json", replace once DI-18306 is fixed -->change "text/plain" once fixed
+    //"application/json", replace once DI-18306 is fixed -->change "text/plain" once fixed
+
+    return res;
+  }
+
+  async getListFromCPISide(
+    webAPIBaseURL: string,
+    accessToken: string,
+    tableName: string,
+    index: string
+  ) {
+    let body = { Index: index, tableName: tableName };
+    let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/addon-cpi/getListFromSync`;
+    const res = await (
+      await fetch(URL, {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: {
+          PepperiSessionToken: accessToken,
+          "Content-Type": "text/plain",
+        },
+      })
+    ).json();
+    //"application/json", replace once DI-18306 is fixed -->change "text/plain" once fixed
 
     return res;
   }

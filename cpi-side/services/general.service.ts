@@ -10,6 +10,11 @@ export interface UDCGetListParams {
   index?: string;
 }
 
+export interface UDCGetParams {
+  table: string;
+  key: string;
+}
+
 export default class GeneralService {
   constructor() {}
 

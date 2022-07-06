@@ -1,7 +1,7 @@
 import "@pepperi-addons/cpi-node";
 import Tester from "./tester";
 import { Item, TransactionLine, Transaction } from "@pepperi-addons/cpi-node";
-import { NavigationOptions,UDCGetListParams } from "./services/general.service";
+import { NavigationOptions,UDCGetParams,UDCGetListParams } from "./services/general.service";
 import DataService, {
   OCEvents,
   addonUUID,
@@ -54,8 +54,6 @@ let eventTimingObj = {
 //https://pepperi-addons.github.io/cpi-node/index.html#load
 export async function load(configuration: any) {
   console.log("cpi side works!");
-  const x = "why this is happening";
-  console.log(x);
   console.log("Setting up test variables");
   const dataService = new DataService();
 
@@ -2188,18 +2186,26 @@ router.get("/runScript", async (req, res, next) => {
   res.json(scriptRun);
 });
 //=========================get Synced data from udc - if the data is here the sync test should be good==========================================
-// router.get("/getDataFromSync", async (req,res,next) => {
-// const tableName = req.body.tableName;
-// const index = req.body.index;
-// let filterObj = {} as UDCGetListParams;
-// if(index) {
-//   filterObj = {
-//   table: tableName,
-//   index: index
-// }} else {
-//  filterObj = {
-//   table: tableName,
-//  }}
-// const response = await pepperi.api.userDefinedCollections.getList(filterObj);
-// res.json(response);
-// });
+router.use("/getDataFromSync", async (req,res,next) => {
+const tableName = req.body.tableName;
+const key = req.body.Key;
+let filterObj = {
+  table: tableName,
+  key: key
+} as UDCGetParams;
+
+const response = await pepperi.api.userDefinedCollections.get(filterObj);
+res.json(response);
+});
+
+router.use("/getListFromSync" ,async(req,res,next) => {
+  const tableName = req.body.tableName;
+  const index = req.body.Index;
+  let filterObj = {
+    table: tableName,
+    index: index
+  } as UDCGetListParams;
+  
+  const response = await pepperi.api.userDefinedCollections.getList(filterObj);
+  res.json(response);
+});

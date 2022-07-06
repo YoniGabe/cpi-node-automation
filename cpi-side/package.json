@@ -13,7 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@pepperi-addons/cpi-node": "^0.4.15",
+    "@pepperi-addons/cpi-node": "^0.4.16",
     "chai": "4.3.4",
     "mocha": "7.2.0",
     "mochawesome": "7.0.1",
