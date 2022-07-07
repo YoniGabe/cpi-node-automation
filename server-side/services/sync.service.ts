@@ -283,6 +283,36 @@ class SyncService {
 
     return res;
   }
+
+  async getADALFromCPISide(
+    webAPIBaseURL: string,
+    accessToken: string,
+    tableName: string,
+    key: string
+  ) {
+    let body = { Key: key, tableName: tableName };
+    let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/addon-cpi/getDataFromADAL`;
+    const res = await (
+      await fetch(URL, {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: {
+          PepperiSessionToken: accessToken,
+          "Content-Type": "text/plain",
+        },
+      })
+    ).json();
+    //"application/json", replace once DI-18306 is fixed -->change "text/plain" once fixed
+
+    return res;
+  }
+
+  async generateADALObj() {
+    const object = await this.generateDocument(11);
+    object.Key = object.testField1;
+
+    return object;
+  }
 }
 
 export default SyncService;

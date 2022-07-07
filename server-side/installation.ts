@@ -22,6 +22,11 @@ exports.install = async (client: Client, request: Request) => {
         Name: "NotificationsLogger",
         Type: "meta_data",
       });
+    const syncScheme = await service.papiClient.addons.data.schemes.post({
+      Name: "syncTable",
+      Type: "data",
+    });
+
     const testKey1 = await service.papiClient.addons.data
       .uuid(client.AddonUUID)
       .table("Load_Test")

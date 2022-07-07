@@ -2186,6 +2186,7 @@ router.get("/runScript", async (req, res, next) => {
   res.json(scriptRun);
 });
 //=========================get Synced data from udc - if the data is here the sync test should be good==========================================
+//Sync endpoint to GET specific document from UDC
 router.use("/getDataFromSync", async (req,res,next) => {
 const tableName = req.body.tableName;
 const key = req.body.Key;
@@ -2193,11 +2194,11 @@ let filterObj = {
   table: tableName,
   key: key
 } as UDCGetParams;
-
+debugger;
 const response = await pepperi.api.userDefinedCollections.get(filterObj);
 res.json(response);
 });
-
+//Sync endpoint to GetList with indexed field
 router.use("/getListFromSync" ,async(req,res,next) => {
   const tableName = req.body.tableName;
   const index = req.body.Index;
@@ -2208,4 +2209,17 @@ router.use("/getListFromSync" ,async(req,res,next) => {
   
   const response = await pepperi.api.userDefinedCollections.getList(filterObj);
   res.json(response);
+});
+//Sync endpoint to GET data from adal after sync
+router.use("/getDataFromADAL", async(req,res,next)=> {
+ const tableName = req.body.tableName;
+ const key = req.body.Key;
+
+ const adalGet = await pepperi.api.adal.get({
+  addon: addonUUID,
+  key: key,
+  table: tableName
+ });
+
+ res.json(adalGet);
 });

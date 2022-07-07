@@ -836,33 +836,6 @@ export async function interceptorsTimeoutTester(
   return testResults;
 }
 //========================Scripts============================================
-export async function scriptsListTester(client: Client, request: Request) {
-  const scriptsService = new ScriptService(client);
-  const service = new MyService(client);
-  // let webAPIBaseURL = await service.getWebAPIBaseURL();
-  // let accessToken = await service.getAccessToken(webAPIBaseURL);
-  // const test = await service.getCrap();
-  // console.log(test);
-  let FindOptions = {
-    //     where?: string;
-    //     order_by?: string;
-    //     page?: number;
-    //     page_size?: number;
-    //     include_nested?: boolean;
-    //     full_mode?: boolean;
-    //     include_deleted?: boolean;
-    //     is_distinct?: boolean;
-    page: 2,
-    page_size: 4,
-    include_deleted: true,
-  }; // need to figure what we're going to use,just for tests
-  const response: Script[] = await scriptsService.getScriptsWithFindOptions(
-    FindOptions
-  );
-
-  return response;
-}
-
 export async function scriptClientAPITester(client: Client, request: Request) {
   console.log("scriptClientAPITester::Test started");
   const scriptsService = new ScriptService(client);
@@ -1937,67 +1910,7 @@ export async function clientActionsTester(client: Client, request: Request) {
   //   actions: arrActions,
   // };
 }
-//in the works
-export async function negativeClientActionsTester(
-  client: Client,
-  request: Request
-) {
-  console.log("negativeClientActionsTester::Test started");
-  //services setup and perconditions setup
-  const service = new MyService(client);
-  const clientActionsService = new ClientActionsService(client);
-  const { describe, it, expect, run } = Tester();
-  let webAPIBaseURL = await service.getWebAPIBaseURL();
-  let accessToken = await service.getAccessToken(webAPIBaseURL);
-  //run in case sync is running before tests
-  // await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
-  // //activate test flag on Load function
-  // await service.setTestFlag(false, false, 0, false, true);
-  // //sync again to trigger the test interceptors
-  // const initSync1 = await service.initSync(accessToken, webAPIBaseURL);
-  // //wait till sync is over
-  // await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
-  await service.sleep(5000);
-  const interceptorsNamesArr = [
-    "TSAAlert", //,
-    // "TSACaptureGeo",
-    // "TSAScanBarcode",
-    // "TSAHUD",
-  ];
-  //setting up global map for client actions test data
-  global["negative"] = new Map<string, any>();
-  console.log(
-    "negativeClientActionsTester::Triggering buttonPressed event to get client actions"
-  );
-  //looping on each field to trigger cpi-side related events -> these will trigger the corresponding client actions
-  for (const button of interceptorsNamesArr) {
-    console.log(`negativeClientActionsTester::Started triggering ${button}`);
-    const options = {
-      EventKey: "TSAButtonPressed",
-      EventData: JSON.stringify({
-        FieldID: button,
-      }),
-    };
-    //calling recursive function - event loop to run all client actions in existant for the current interceptor
-    const clientAction = await clientActionsService.EmitNegativeClientEvent(
-      webAPIBaseURL,
-      accessToken,
-      options
-    );
-    console.log(`negativeClientActionsTester::Finished triggering ${button}`);
-  }
 
-  //getting actions back from global map after client actions responses (event loop finished)
-  const actions = global["negative"] as Map<string, any>; //key - client action UUID,value - data
-  //const arrActions: any[] = [];
-
-  for (const [key, value] of actions) {
-    const Object = JSON.parse(value);
-    const parsedActionData: ClientAction = JSON.parse(Object.Value);
-    const Type = parsedActionData.Type;
-  }
-}
-//formalized
 export async function withinHudClientActionsTester(
   client: Client,
   request: Request
@@ -2466,7 +2379,7 @@ export async function withinHudClientActionsTester(
   //   actions: arrActions,
   // };
 }
-//in the works
+
 export async function clientActionsInterceptorsTester(
   client: Client,
   request: Request
@@ -4087,27 +4000,26 @@ export async function bulkNotificationsLogger(
 
   return "success";
 }
-
+//cleanse ADAL table if needed
 export async function cleanseADAL(client: Client, request: Request) {
   const service = new MyService(client);
   const resultArr: any[] = [];
   const date = new Date().toISOString();
-  const res = await service.getFromADALByDate("NotificationsLogger", date);
+  const res = await service.getFromADALByDate("syncTable", date);
 
   for (const obj of res) {
     obj.Hidden = true;
-    const res = await service.upsertToADAL("NotificationsLogger", obj);
+    const res = await service.upsertToADAL("syncTable", obj);
     resultArr.push(res);
   }
   return resultArr;
 }
-
 //======================================Sync========================================
 export async function SyncWithFile(client: Client, request: Request) {
   console.log(`SyncWithFile::Test Started`);
   const service = new MyService(client);
   const syncService = new SyncService(client);
-  const tableName = "SyncTable2"; //change if you setup a new table
+  const tableName = "SyncTable3"; //change if you setup a new table
   const { describe, it, expect, run } = Tester();
   console.log(`SyncWithFile::Gotten services,initiating requests`);
   const syncOptions = {
@@ -4244,7 +4156,7 @@ export async function SyncWithAuditLog(client: Client, request: Request) {
   console.log(`SyncWithAuditLog::Test Started`);
   const service = new MyService(client);
   const syncService = new SyncService(client);
-  const tableName = "SyncTable2"; //change if you setup a new table
+  const tableName = "SyncTable3"; //change if you setup a new table
   const { describe, it, expect, run } = Tester();
   console.log(`SyncWithAuditLog::Gotten services,initiating requests`);
   const syncOptions = {
@@ -4379,7 +4291,7 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
   console.log(`SyncWithCPISideTest::Test Started`);
   const service = new MyService(client);
   const syncService = new SyncService(client);
-  const tableName = "SyncTable2"; //change if you setup a new table
+  const tableName = "SyncTable3"; //change if you setup a new table
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   const { describe, it, expect, run } = Tester();
@@ -4417,9 +4329,10 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
   await service.initSync(accessToken,webAPIBaseURL);
   await service.getSyncStatus(accessToken,webAPIBaseURL,30);
   const key = document.testField1;
-
-  await service.sleep(5000);
+  console.log(key);
+  await service.sleep(10000);
   const dataFromCPISide = await syncService.getDataFromCPISide(webAPIBaseURL,accessToken,tableName,key);
+  console.log(dataFromCPISide);
 
   
   Objects.Hidden = true;
@@ -4573,7 +4486,7 @@ export async function SyncWithIndexedField(client: Client,request: Request) {
   console.log(`SyncWithIndexedField::Test Started`);
   const service = new MyService(client);
   const syncService = new SyncService(client);
-  const tableName = "SyncTable2"; //change if you setup a new table
+  const tableName = "SyncTable3"; //change if you setup a new table
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   const { describe, it, expect, run } = Tester();
@@ -4822,4 +4735,204 @@ export async function SyncWithIndexedField(client: Client,request: Request) {
   const testResults = await run();
   return testResults;
   
+}
+
+export async function SyncDataFromADAL(client: Client,request: Request) {
+  console.log(`SyncDataFromADAL::Test Started`);
+  const service = new MyService(client);
+  const syncService = new SyncService(client);
+  const tableName = "syncTable"; //change if you setup a new table
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  const { describe, it, expect, run } = Tester();
+  console.log(`SyncDataFromADAL::Gotten services,initiating requests`);
+  const syncOptions = {
+    Key: "SyncVariables",
+    SYNC_DATA_SIZE_LIMITATION: 4,
+    SYNC_TIME_LIMITATION: 10,
+    USER_DEFINED_COLLECTIONS: tableName,
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "", 
+  };
+
+  const settings = await syncService.setSyncOptions(syncOptions);
+  const date = new Date();
+  await service.sleep(10000);
+
+  const object = await syncService.generateADALObj();
+
+  const upsert = await service.upsertToADAL(tableName,object);
+
+  await service.sleep(2000);
+  const sync = await syncService.pullData({
+    ModificationDateTime: date.toISOString(),
+  });
+  await service.sleep(20000); //sleep for audit log being written
+  const auditLog = await syncService.getAuditLogResultObjectIfValid(
+    sync.ExecutionURI,
+    50
+  );
+  
+  const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
+  console.log(resultObject);
+  const testData = resultObject.ResourcesData[0];
+
+  const Objects = testData.Objects[0];
+
+  const Schema = testData.Schema;
+  const key = object?.Key as string;
+  await service.initSync(accessToken,webAPIBaseURL);
+  await service.getSyncStatus(accessToken,webAPIBaseURL,30);
+
+  await service.sleep(10000);
+  const dataFromCPISide = await syncService.getADALFromCPISide(webAPIBaseURL,accessToken,tableName,key);
+  console.log(dataFromCPISide);
+
+  Objects.Hidden = true;
+  const upsertToHidden = await service.upsertToADAL(tableName,Objects);
+
+    console.log(`SyncDataFromADAL::Gotten all data objects,Starting Mocha tests`);
+
+  describe("Sync with Get from ADAL on CPISide automation test", async () => {
+    it("Settings Post Test", async () => {
+      expect(
+        settings.Hidden,
+        "Failed on settings hidden returning wrong output"
+      ).to.be.a("boolean").that.is.false;
+      expect(settings.Key, "Failed on settings Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(syncOptions.Key);
+      expect(
+        settings.SYNC_DATA_SIZE_LIMITATION,
+        "Sync data size limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_DATA_SIZE_LIMITATION);
+      expect(
+        settings.SYNC_TIME_LIMITATION,
+        "Sync data time limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_TIME_LIMITATION);
+
+      expect(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD,"Failed on wrong index field returning").to.be.a("string").that.is.equal(syncOptions.USER_DEFINED_COLLECTIONS_INDEX_FIELD);
+      
+      const ModificationDate = settings.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
+      expect(ModificationDate, "Sync modificationdate returned wrong output")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+    });
+    it("Sync Data - UDC Document insertion test", async () => {
+      expect(Objects.testField1, "Failed on Field1 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(object.testField1);
+      expect(Objects.Key, "Failed on Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(object.testField1);
+      expect(Objects.testField2, "Failed on Field2 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(object.testField2);
+      expect(Objects.testField3, "Failed on Field3 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(object.testField3);
+      expect(Objects.testField4, "Failed on Field4 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(object.testField4);
+      expect(Objects.testField5, "Failed on Field5 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(object.testField5);
+      expect(Objects.testField6, "Failed on Field6 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(object.testField6);
+      expect(Objects.testField7, "Failed on Field7 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(object.testField7);
+      expect(Objects.testField8, "Failed on Field8 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(object.testField8);
+      expect(Objects.testField9, "Failed on Field9 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(object.testField9);
+      expect(Objects.testField10, "Failed on Field10 returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(object.testField10);
+      expect(
+        Objects.Hidden,
+        "Failed on hidden returning wrong output"
+      ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
+
+      const CreationDate = Objects.CreationDateTime?.split("T")[0];
+      const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
+
+      expect(ModificationDate, "Failed on wrong modification date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+      expect(CreationDate, "Failed on wrong creation date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+    });
+    it("Sync Data - Schema",async ()=> {
+    expect(Schema.AddonUUID,"Failed on UUID returning wrong output").to.be.a("string").that.is.equal("2b39d63e-0982-4ada-8cbb-737b03b9ee58");
+    expect(Schema.Name,"Failed on Schema returning wrong output").to.be.a("string").that.is.equal(tableName);
+    expect(Schema.SyncData.IndexedField,"Failed on indexed field returning wrong value").to.be.a("string").that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD)
+    });
+    it("Sync Data - Get ADAL key from CPISide",async ()=> {
+      expect(dataFromCPISide.object,"Failed on returning wrong object type").to.be.a("object").that.is.not.empty.and.undefined;
+      expect(dataFromCPISide.success,"Failed on request failing").to.be.a("boolean").that.is.true;
+      expect(dataFromCPISide.object.testField1, "Failed on Field1 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(object.testField1);
+    expect(dataFromCPISide.object.Key, "Failed on Key returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(object.testField1);
+    expect(dataFromCPISide.object.testField2, "Failed on Field2 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(object.testField2);
+    expect(dataFromCPISide.object.testField3, "Failed on Field3 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(object.testField3);
+    expect(dataFromCPISide.object.testField4, "Failed on Field4 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(object.testField4);
+    expect(dataFromCPISide.object.testField5, "Failed on Field5 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(object.testField5);
+    expect(dataFromCPISide.object.testField6, "Failed on Field6 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(object.testField6);
+    expect(dataFromCPISide.object.testField7, "Failed on Field7 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(object.testField7);
+    expect(dataFromCPISide.object.testField8, "Failed on Field8 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(object.testField8);
+    expect(dataFromCPISide.object.testField9, "Failed on Field9 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(object.testField9);
+    expect(dataFromCPISide.object.testField10, "Failed on Field10 returning wrong output")
+      .to.be.a("string")
+      .that.is.equal(object.testField10);
+    expect(
+      dataFromCPISide.object.Hidden,
+      "Failed on hidden returning wrong output"
+    ).to.be.a("boolean").that.is.false;
+
+    const CreationDate = dataFromCPISide.object.CreationDateTime?.split("T")[0];
+    const ModificationDate = dataFromCPISide.object.ModificationDateTime?.split("T")[0];
+    const dateToText = date.toISOString().split("T")[0];
+
+    expect(ModificationDate, "Failed on wrong modification date")
+      .to.be.a("string")
+      .that.is.equal(dateToText);
+    expect(CreationDate, "Failed on wrong creation date")
+      .to.be.a("string")
+      .that.is.equal(dateToText);
+    });
+  });
+
+  console.log(`SyncDataFromADAL::Finished Mocha tests`);
+
+  const testResults = await run();
+  return testResults;
 }
