@@ -2223,3 +2223,11 @@ router.use("/getDataFromADAL", async(req,res,next)=> {
 
  res.json(adalGet);
 });
+
+router.use("/getListFromADAL",async(req,res,next)=> {
+  const tableName = req.body.tableName;
+
+  const list = await pepperi.api.adal.getList({table: tableName,addon: addonUUID});
+
+  res.json(list);
+});

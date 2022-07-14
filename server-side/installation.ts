@@ -1,5 +1,6 @@
 import { Client, Request } from "@pepperi-addons/debug-server";
 import MyService from "./services/my.service";
+import syncService from "./services/sync.service";
 //upserting scehmes and ADAL triggers
 exports.install = async (client: Client, request: Request) => {
   const service = new MyService(client);
@@ -26,6 +27,11 @@ exports.install = async (client: Client, request: Request) => {
       Name: "syncTable",
       Type: "data",
     });
+
+    const base64Scheme = await service.papiClient.addons.data.schemes.post({
+      Name: "base64",
+      Type: "data"
+    })
 
     const testKey1 = await service.papiClient.addons.data
       .uuid(client.AddonUUID)
@@ -122,6 +128,20 @@ exports.install = async (client: Client, request: Request) => {
   };
 };
 exports.uninstall = async (client: Client, request: Request) => {
+  const service = new syncService(client);
+  let error = "none";
+  try {
+  await service.purgeADALTable("base64");
+  await service.purgeADALTable("syncTable");
+  await service.purgeADALTable("NotificationsLogger");
+  } catch(e) {
+    console.log("cpi-node-automation::failed to install due to " + e);
+    e instanceof Error
+      ? (error = `Error : ${e.message} ||| Stack: ${e.stack}`)
+      : null;
+  }
+
+
   return { success: true, resultObject: {} };
 };
 exports.upgrade = async (client: Client, request: Request) => {

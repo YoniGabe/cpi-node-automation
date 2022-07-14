@@ -7,8 +7,8 @@ export interface Notification {
   ModificationDateTime?: string;
   Read?: boolean;
   CreationDateTime?: string;
-  Body: string;
-  Title: string;
+  Body?: string;
+  Title?: string;
   Hidden?: boolean;
   CreatorUUID?: string;
   UserUUID?: string;
@@ -28,7 +28,7 @@ export interface negativeNotification {
   Body?: any;
   UserUUID?: any;
   Read?: any;
-  Email?: any;
+  UserEmail?: any;
 }
 //user device interface for positive and regular tests
 export interface userDevice {
@@ -78,18 +78,9 @@ class NotificationService {
   }
 
   //https://apidesign.pepperi.com/notifications/notifications
-  //marks a notifications as read
-  async markAsRead(body: any): Promise<Notification[]> {
-    const res = await this.papiClient.post(
-      `/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/update_notifications_read_status`,
-      body
-    );
-    //   `/notifications/update_notifications_read_status`
-    return res;
-  }
   //posts notifications (not in bulk)
   async postNotifications(body: Notification): Promise<Notification> {
-    const res = await this.papiClient.post(`/notifications`, body);
+    const res = await this.papiClient.post(`/push_notifications`, body);
     return res;
   }
   //posts notifications in bulk
@@ -102,12 +93,12 @@ class NotificationService {
   }
   //post for negative test
   async postNotificationsNegative(body: any): Promise<any> {
-    const res = await this.papiClient.post(`/notifications`, body);
+    const res = await this.papiClient.post(`/push_notifications`, body);
     return res;
   }
   //gets all notifications
   async getAllNotifications(): Promise<Notification[]> {
-    const res = await this.papiClient.get(`/notifications`);
+    const res = await this.papiClient.get(`/push_notifications`);
     return res;
   }
   //get notification with filter
@@ -126,7 +117,7 @@ class NotificationService {
   }
  //gets notifications by key
   async getNotificationByKey(key: string): Promise<Notification> {
-    const res = await this.papiClient.get(`/notifications?where=Key='${key}'`);
+    const res = await this.papiClient.get(`/push_notifications?where=Key='${key}'`);
     return res;
   }
   //generates random notifications
@@ -180,7 +171,7 @@ class NotificationService {
       "this_is_nice",
     ];
     return {
-      Email: email,
+      UserEmail: email,
       Title: titleArr[titleIndex],
       Body: bodyArr[bodyIndex],
     } as Notification;
@@ -262,11 +253,11 @@ class NotificationService {
         }
         break;
       case "wrong-email":
-        negativeNotification.Email = userEmail?.split(".co")[0];
+        negativeNotification.UserEmail = userEmail?.split(".co")[0];
         delete negativeNotification.UserUUID;
         break;
       case "uuid-email":
-        negativeNotification.Email = userEmail;
+        negativeNotification.UserEmail = userEmail;
         break;
     }
 

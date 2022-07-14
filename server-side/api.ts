@@ -1,7 +1,7 @@
 import MyService from "./services/my.service";
 import { Client, Request } from "@pepperi-addons/debug-server";
 import Tester from "./tester";
-import { AddonData } from "@pepperi-addons/papi-sdk";
+import { AddonData, InstalledAddon } from "@pepperi-addons/papi-sdk";
 import ScriptService, { Script } from "./services/scripts.service";
 import ClientActionsService, {
   ClientAction,
@@ -11,6 +11,8 @@ import NotificationService, {
   Notification,
 } from "./services/notifications.service";
 import SyncService from "./services/sync.service";
+import fs from "fs";
+import path from "path";
 //note each test does two things on its start:
 //1.gets webAPI AKA CPAS token
 //2.gets webAPI AKA CPAS base url (changes between each env)
@@ -18,6 +20,8 @@ import SyncService from "./services/sync.service";
 //==============================cpi-node======================================
 /** Load function test endpoint */
 export async function InitiateLoad(client: Client, request: Request) {
+  //this test triggers the sync twice,every time the sync triggers the Load
+  //function on cpi-side triggers, writes into udt on both runs and then checks sequence
   const service = new MyService(client);
   const isLocal = false;
   let webAPIBaseURL = await service.getWebAPIBaseURL();
@@ -108,7 +112,6 @@ export async function InitiateLoad(client: Client, request: Request) {
 export async function AddonAPITester(client: Client, request: Request) {
   const service = new MyService(client);
   const isLocal = false;
-  const varSecretKey = request.body.varKey;
   // object to hold addon uuid and phased status -> for versions output
   const addonsKVP = [
     { uuid: "bb6ee826-1c6b-4a11-9758-40a46acb69c5", phased: false }, // cpi-node
@@ -126,40 +129,27 @@ export async function AddonAPITester(client: Client, request: Request) {
     webAPIBaseURL = "http://localhost:8093";
   }
 
-  const gottenVersions: {
-    addonName: string | undefined;
-    latestVersion: any;
-    installedVersion: string | undefined;
-  }[] = [];
+  const gottenVersions: InstalledAddon[] = [];
 
-  addonsKVP.forEach(async (value) => {
-    const addonData = await service.checkAddonVersion(
-      varSecretKey,
-      value.uuid,
-      value.phased
-    );
-    gottenVersions.push(addonData);
-  });
+  for (const addon of addonsKVP) {
+    const addonData = await service.checkInstalledVersions(addon.uuid);
+    gottenVersions.push(addonData[0]);
+  }
+  console.log(gottenVersions);
 
   const routerTester = await service.routerTester(webAPIBaseURL, accessToken);
 
   describe("AddonAPI and version automation test", async () => {
-    gottenVersions.forEach(async (addonData) => {
+    for (const addonData of gottenVersions) {
       // need to refactor to regular for
-      const addonName = addonData.addonName;
-      const installedVersion = addonData.installedVersion;
-      const latestVersion = addonData.latestVersion;
+      const addonName = addonData.Addon.Name;
+      const installedVersion = addonData.Version;
+      const UUID = addonData.UUID;
 
-      it(`${addonName} | Version: ${installedVersion} | Latest Version: ${latestVersion}`, async () => {
+      it(`${addonName} | Version: ${installedVersion} | UUID: ${UUID} `, async () => {
         expect(
           installedVersion,
           `Failed on current version input being empty or not as expected for ${addonName}`
-        )
-          .to.be.a("string")
-          .that.lengthOf.above(0).is.not.undefined.and.is.not.empty;
-        expect(
-          latestVersion,
-          `Failed on latest version input being empty or not as expected for ${addonName}`
         )
           .to.be.a("string")
           .that.lengthOf.above(0).is.not.undefined.and.is.not.empty;
@@ -170,7 +160,7 @@ export async function AddonAPITester(client: Client, request: Request) {
           .to.be.a("number")
           .that.is.equal(6);
       });
-    });
+    }
 
     it("AddonAPI Parsed test results", async () => {
       expect(
@@ -2707,7 +2697,6 @@ export async function notificationsPositive(client: Client, request: Request) {
   const notificationPost = await notificationService.postNotifications(
     notificationObj
   );
-  console.log(notificationPost);
   //can test the post object against the original object;
   const notificationKey = notificationPost.Key as string;
 
@@ -2729,10 +2718,11 @@ export async function notificationsPositive(client: Client, request: Request) {
     notificationKeyInADAL
   );
   //Mark as read
-  const markAsRead = await notificationService.markAsRead({
-    Keys: [notificationKey],
+  const markAsReadObj = {
     Read: true,
-  });
+    Key: notificationKey,
+  };
+  const markRead = await notificationService.postNotifications(markAsReadObj);
 
   const notificationGetAfterRead =
     await notificationService.getNotificationByKey(notificationKey);
@@ -2755,11 +2745,9 @@ export async function notificationsPositive(client: Client, request: Request) {
   //notifications with email instead of userUUID - does not test push
   const notificationObjWithEmail =
     await notificationService.generateRandomNotificationWithEmail();
-
   const notificationPostWithEmail = await notificationService.postNotifications(
     notificationObjWithEmail
   );
-
   //can test the post object against the original object;
   const notificationKeyWithEmail = notificationPostWithEmail.Key as string;
 
@@ -2767,7 +2755,18 @@ export async function notificationsPositive(client: Client, request: Request) {
     await notificationService.getNotificationByKey(notificationKeyWithEmail);
 
   //notifications removal
-
+  const removalBody = {
+    Key: notificationKey,
+    Hidden: true,
+  };
+  const removalWithEmailBody = {
+    Key: notificationKeyWithEmail,
+    Hidden: true,
+  };
+  const firstRemoval = await notificationService.postNotifications(removalBody);
+  const secondRemoval = await notificationService.postNotifications(
+    removalWithEmailBody
+  );
   //some mocha to test if the Original + POSTED + Gotten objects are the same
   console.log(`notificationsPositive::Starting Mocha tests`);
 
@@ -2907,64 +2906,54 @@ export async function notificationsPositive(client: Client, request: Request) {
     });
 
     it("mark_as_read parsed test results", async () => {
-      expect(markAsRead, "Failed on markAsRead get returning wrong type")
-        .to.be.an("array")
-        .that.is.not.empty.and.undefined.that.has.lengthOf.above(1);
       expect(
-        markAsRead[0],
+        markRead,
         "Failed on markAsRead get returning wrong type"
       ).to.be.an("object").that.is.not.empty.and.undefined;
       expect(
-        markAsRead[0].ModificationDateTime,
+        markRead.ModificationDateTime,
         "Failed on modificationDateTime returning wrong type/value"
       )
         .to.be.a("string")
         .that.has.lengthOf(24);
       expect(
-        markAsRead[0].CreationDateTime,
+        markRead.CreationDateTime,
         "Failed on CreationDateTime returning wrong type/value"
       )
         .to.be.a("string")
         .that.has.lengthOf(24);
       expect(
-        markAsRead[0].Read,
+        markRead.Read,
         "Failed on Read returning false instead of true"
       ).to.be.a("boolean").that.is.true;
-      expect(
-        markAsRead[0].Title,
-        "Failed on Title returning the wrong value/type"
-      )
+      expect(markRead.Title, "Failed on Title returning the wrong value/type")
         .to.be.a("string")
         .that.is.equal(notificationObj.Title);
-      expect(
-        markAsRead[0].Body,
-        "Failed on Body returning the wrong value/type"
-      )
+      expect(markRead.Body, "Failed on Body returning the wrong value/type")
         .to.be.a("string")
         .that.is.equal(notificationObj.Body);
       expect(
-        markAsRead[0].Hidden,
+        markRead.Hidden,
         "Failed on Hidden returning true instead of false"
       ).to.be.a("boolean").that.is.false;
       expect(
-        markAsRead[0].CreatorUUID,
+        markRead.CreatorUUID,
         "Failed on CreatorUUID returning the wrong value/type"
       )
         .to.be.a("string")
         .that.is.equal(notificationObj.UserUUID);
       expect(
-        markAsRead[0].UserUUID,
+        markRead.UserUUID,
         "Failed on UserUUID returning the wrong value/type"
       )
         .to.be.a("string")
         .that.is.equal(notificationObj.UserUUID);
-      expect(markAsRead[0].Key, "Failed on Key returning the wrong value/type")
+      expect(markRead.Key, "Failed on Key returning the wrong value/type")
         .to.be.a("string")
         .that.has.lengthOf(36);
 
       const ExpirationDate = new Date();
-      const testExpirationDate =
-        markAsRead[0].ExpirationDateTime?.split("T")[0];
+      const testExpirationDate = markRead.ExpirationDateTime?.split("T")[0];
       ExpirationDate.setDate(ExpirationDate.getDate() + 30);
       const ExpirationDateToText = ExpirationDate.toISOString().split("T")[0];
 
@@ -3460,6 +3449,7 @@ export async function bulkNotificationTester(client: Client, request: Request) {
   const notificationPost = await notificationService.postNotifications(
     notificationObj
   );
+  console.log(notificationPost);
 
   await service.sleep(360000);
 
@@ -3467,6 +3457,15 @@ export async function bulkNotificationTester(client: Client, request: Request) {
     device.Hidden = true;
     const userDevicePost = await notificationService.postUserDevice(device);
   }
+
+  const notificationRemovalObj = {
+    Key: notificationPost.Key,
+    Hidden: true,
+  };
+
+  const notificationRemovalPost = await notificationService.postNotifications(
+    notificationRemovalObj
+  );
 
   const dateTime = new Date().toISOString();
   const notificationFromADAL = await service.getFromADALByDate(
@@ -3502,7 +3501,7 @@ export async function bulkNotificationTester(client: Client, request: Request) {
   const testResults = await run();
   return testResults;
 }
-
+//the below doesn't work due to DI-20789 - Posting bulk notifications returns exception
 export async function multiNotificationsAndUsersTester(
   client: Client,
   request: Request
@@ -3519,7 +3518,6 @@ export async function multiNotificationsAndUsersTester(
     const userDevicePost = await notificationService.postUserDevice(device);
     userDeviceArr.push(userDevicePost);
   }
-  console.log(userDeviceArr);
   const notificationsKeys: string[] = [];
 
   const bulkNotificationsObj =
@@ -3551,6 +3549,14 @@ export async function multiNotificationsAndUsersTester(
   for (const device of userDeviceObjArr) {
     device.Hidden = true;
     const userDevicePost = await notificationService.postUserDevice(device);
+  }
+
+  for (const key of notificationsKeys) {
+    const body = {
+      Key: key,
+      Hidden: true,
+    };
+    const removal = await notificationService.postNotifications(body);
   }
 
   for (const notification of notificationFromADAL) {
@@ -3703,7 +3709,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Title is not of a type(s) string","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/push_notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Title is not of a type(s) string","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
       }
@@ -3723,7 +3729,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Title does not meet maximum length of 40","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/push_notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Title does not meet maximum length of 40","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
       }
@@ -3743,7 +3749,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Body is not of a type(s) string","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/push_notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Body is not of a type(s) string","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
       }
@@ -3763,7 +3769,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Excactly one of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/push_notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Exactly one of the following properties is required: UserUUID,UserEmail","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
       }
@@ -3783,7 +3789,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: UserUUID is not of a type(s) string\\nExcactly one of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/push_notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: UserUUID is not of a type(s) string\\nExactly one of the following properties is required: UserUUID,UserEmail","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
       }
@@ -3803,7 +3809,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Title is not of a type(s) string\\nBody is not of a type(s) string\\nUserUUID is not of a type(s) string\\nExcactly one of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/push_notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Title is not of a type(s) string\\nBody is not of a type(s) string\\nUserUUID is not of a type(s) string\\nExactly one of the following properties is required: UserUUID,UserEmail","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
       }
@@ -3826,7 +3832,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Body does not meet maximum length of 200","detail":{"errorcode":"BadRequest"}}}'
+                'https://papi.staging.pepperi.com/V1.0/push_notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Body does not meet maximum length of 200","detail":{"errorcode":"BadRequest"}}}'
               )
           : null;
       }
@@ -3850,9 +3856,7 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                `https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: User with Email: ${
-                  userEmail.split(".co")[0]
-                } does not exist","detail":{"errorcode":"BadRequest"}}}`
+                `https://papi.staging.pepperi.com/V1.0/push_notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: User with Email: notifications@pepperitest does not exist","detail":{"errorcode":"BadRequest"}}}`
               )
           : null;
       }
@@ -3868,7 +3872,6 @@ export async function notificationsNegative(client: Client, request: Request) {
             notificationObj12
           );
       } catch (e) {
-        console.log(e);
         e instanceof Error
           ? expect(
               e.message,
@@ -3876,67 +3879,11 @@ export async function notificationsNegative(client: Client, request: Request) {
             )
               .to.be.a("string")
               .that.is.equal(
-                `https://papi.staging.pepperi.com/V1.0/notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Excactly one of the following properties is requierd: UserUUID,Email","detail":{"errorcode":"BadRequest"}}}`
+                `https://papi.staging.pepperi.com/V1.0/push_notifications failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Exactly one of the following properties is required: UserUUID,UserEmail","detail":{"errorcode":"BadRequest"}}}`
               )
           : null;
       }
       console.log("notificationsPositive::finished notifications tests");
-    });
-    it("mark_as_read negative tests", async () => {
-      console.log("notificationsPositive::started mark_as_read tests");
-      const markAsReadNoKey = await notificationService.markAsRead({
-        Keys: ["value-that-does-not-exist"],
-        Read: true,
-      });
-      expect(
-        markAsReadNoKey,
-        "Failed on mark_as_read with no key returning wrong output"
-      )
-        .to.be.an("array")
-        .with.lengthOf(0);
-      try {
-        const markAsReadWithNumber = await notificationService.markAsRead({
-          Keys: [Math.random() * 100],
-          Read: false,
-        });
-      } catch (e) {
-        e instanceof Error
-          ? expect(
-              e.message,
-              "Failed on mark_as_read with number instead of key returning wrong output"
-            )
-              .to.be.an("string")
-              .to.be.equal(
-                'https://papi.staging.pepperi.com/V1.0/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/update_notifications_read_status failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: Keys[0] is not of a type(s) string","detail":{"errorcode":"BadRequest"}}}'
-              )
-          : null;
-      }
-
-      try {
-        const notificationForOtherUser =
-          await notificationService.generateRandomNotification("Rep1");
-        const postNotification = await notificationService.postNotifications(
-          notificationForOtherUser
-        );
-
-        const markAsReadForOtherUser = await notificationService.markAsRead({
-          Keys: [postNotification.Key],
-          Read: true,
-        });
-      } catch (e) {
-        e instanceof Error
-          ? expect(
-              e.message,
-              "Failed on mark_as_read for another user not returning exception"
-            )
-              .to.be.a("string")
-              .that.is.equal(
-                'https://papi.staging.pepperi.com/V1.0/addons/api/95025423-9096-4a4f-a8cd-d0a17548e42e/api/update_notifications_read_status failed with status: 403 - Forbidden error: {"fault":{"faultstring":"Failed due to exception: The UserUUID is different from the notification UserUUID","detail":{"errorcode":"Forbidden"}}}'
-              )
-          : null;
-      }
-
-      console.log("notificationsPositive::finished mark_as_read tests");
     });
     //Need to talk to Chasky regarding the below
     it("userDevice negative tests", async () => {
@@ -4000,16 +3947,56 @@ export async function bulkNotificationsLogger(
 
   return "success";
 }
+// blat DI-20790 - Soft Limit not working - Notifications
+export async function softLimitTest(client: Client, request: Request) {
+  console.log(`softLimitTest::Test Started`);
+  const service = new MyService(client);
+  const notificationService = new NotificationService(client);
+  const { describe, it, expect, run } = Tester();
+  const notificationsKeysArr: string[] = [];
+  const notificationObj =
+    await notificationService.generateRandomNotification();
+
+  for (let i = 0; i < 35; i++) {
+    const notificationPost = await notificationService.postNotifications(
+      notificationObj
+    );
+    notificationsKeysArr.push(notificationPost.Key as string);
+    console.log(i);
+  }
+  console.log(notificationsKeysArr);
+
+  // try {
+  //   const notificationPost = await notificationService.postNotifications(
+  //     notificationObj
+  //   );
+  // } catch(e) {
+  //   console.log(e);
+  // }
+
+  // for (const key in notificationsKeysArr) {
+  //   const body = {
+  //     Key: key,
+  //     Hidden: true
+  //   }
+  //   const notificationPost = await notificationService.postNotifications(
+  //     body
+  //   );
+  // }
+
+  return;
+}
 //cleanse ADAL table if needed
 export async function cleanseADAL(client: Client, request: Request) {
   const service = new MyService(client);
   const resultArr: any[] = [];
   const date = new Date().toISOString();
-  const res = await service.getFromADALByDate("syncTable", date);
+  //const res = await service.getFromADALByDate("NotificationsLogger", date);
+  const res = await service.getAllFromADAL("NotificationsLogger");
 
   for (const obj of res) {
     obj.Hidden = true;
-    const res = await service.upsertToADAL("syncTable", obj);
+    const res = await service.upsertToADAL("NotificationsLogger", obj);
     resultArr.push(res);
   }
   return resultArr;
@@ -4190,7 +4177,6 @@ export async function SyncWithAuditLog(client: Client, request: Request) {
   const Schema = testData.Schema;
   console.log(Schema);
 
-
   Objects.Hidden = true;
   const upsertToHidden = await syncService.upsertDocument(tableName, Objects);
   console.log(upsertToHidden);
@@ -4258,10 +4244,9 @@ export async function SyncWithAuditLog(client: Client, request: Request) {
       expect(Objects.testField10, "Failed on Field10 returning wrong output")
         .to.be.a("string")
         .that.is.equal(document.testField10);
-      expect(
-        Objects.Hidden,
-        "Failed on hidden returning wrong output"
-      ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
+      expect(Objects.Hidden, "Failed on hidden returning wrong output").to.be.a(
+        "boolean"
+      ).that.is.true; // test is done after object is moved to hidden
 
       const CreationDate = Objects.CreationDateTime?.split("T")[0];
       const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
@@ -4274,11 +4259,20 @@ export async function SyncWithAuditLog(client: Client, request: Request) {
         .to.be.a("string")
         .that.is.equal(dateToText);
     });
-    it("Sync Data - Schema",async ()=> {
-    expect(Schema.AddonUUID,"Failed on UUID returning wrong output").to.be.a("string").that.is.equal("122c0e9d-c240-4865-b446-f37ece866c22");
-    expect(Schema.Name,"Failed on Schema returning wrong output").to.be.a("string").that.is.equal(tableName);
-    expect(Schema.SyncData.IndexedField,"Failed on indexed field returning wrong value").to.be.a("string").that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD)
-    })
+    it("Sync Data - Schema", async () => {
+      expect(Schema.AddonUUID, "Failed on UUID returning wrong output")
+        .to.be.a("string")
+        .that.is.equal("122c0e9d-c240-4865-b446-f37ece866c22");
+      expect(Schema.Name, "Failed on Schema returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(tableName);
+      expect(
+        Schema.SyncData.IndexedField,
+        "Failed on indexed field returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD);
+    });
   });
 
   console.log(`SyncWithAuditLog::Finished Mocha tests`);
@@ -4295,13 +4289,15 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   const { describe, it, expect, run } = Tester();
+  await service.initResync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
   console.log(`SyncWithCPISideTest::Gotten services,initiating requests`);
   const syncOptions = {
     Key: "SyncVariables",
     SYNC_DATA_SIZE_LIMITATION: 4,
     SYNC_TIME_LIMITATION: 10,
     USER_DEFINED_COLLECTIONS: tableName,
-    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "", 
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
   };
   const settings = await syncService.setSyncOptions(syncOptions);
   const date = new Date();
@@ -4318,7 +4314,6 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
     50
   );
 
-
   const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
   const testData = resultObject.ResourcesData[0];
 
@@ -4326,15 +4321,19 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
 
   const Schema = testData.Schema;
 
-  await service.initSync(accessToken,webAPIBaseURL);
-  await service.getSyncStatus(accessToken,webAPIBaseURL,30);
+  await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
   const key = document.testField1;
   console.log(key);
   await service.sleep(10000);
-  const dataFromCPISide = await syncService.getDataFromCPISide(webAPIBaseURL,accessToken,tableName,key);
+  const dataFromCPISide = await syncService.getDataFromCPISide(
+    webAPIBaseURL,
+    accessToken,
+    tableName,
+    key
+  );
   console.log(dataFromCPISide);
 
-  
   Objects.Hidden = true;
   const upsertToHidden = await syncService.upsertDocument(tableName, Objects);
 
@@ -4402,10 +4401,9 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
       expect(Objects.testField10, "Failed on Field10 returning wrong output")
         .to.be.a("string")
         .that.is.equal(document.testField10);
-      expect(
-        Objects.Hidden,
-        "Failed on hidden returning wrong output"
-      ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
+      expect(Objects.Hidden, "Failed on hidden returning wrong output").to.be.a(
+        "boolean"
+      ).that.is.true; // test is done after object is moved to hidden
 
       const CreationDate = Objects.CreationDateTime?.split("T")[0];
       const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
@@ -4418,61 +4416,104 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
         .to.be.a("string")
         .that.is.equal(dateToText);
     });
-    it("Sync Data - Schema",async ()=> {
-    expect(Schema.AddonUUID,"Failed on UUID returning wrong output").to.be.a("string").that.is.equal("122c0e9d-c240-4865-b446-f37ece866c22");
-    expect(Schema.Name,"Failed on Schema returning wrong output").to.be.a("string").that.is.equal(tableName);
-    expect(Schema.SyncData.IndexedField,"Failed on indexed field returning wrong value").to.be.a("string").that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD)
+    it("Sync Data - Schema", async () => {
+      expect(Schema.AddonUUID, "Failed on UUID returning wrong output")
+        .to.be.a("string")
+        .that.is.equal("122c0e9d-c240-4865-b446-f37ece866c22");
+      expect(Schema.Name, "Failed on Schema returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(tableName);
+      expect(
+        Schema.SyncData.IndexedField,
+        "Failed on indexed field returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD);
     });
-    it("Sync Data - Get from CPISide",async ()=> {
-      expect(dataFromCPISide.success,"Failed on request failing").to.be.a("boolean").that.is.true;
-      expect(dataFromCPISide.object.testField1, "Failed on Field1 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField1);
-    expect(dataFromCPISide.object.Key, "Failed on Key returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField1);
-    expect(dataFromCPISide.object.testField2, "Failed on Field2 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField2);
-    expect(dataFromCPISide.object.testField3, "Failed on Field3 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField3);
-    expect(dataFromCPISide.object.testField4, "Failed on Field4 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField4);
-    expect(dataFromCPISide.object.testField5, "Failed on Field5 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField5);
-    expect(dataFromCPISide.object.testField6, "Failed on Field6 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField6);
-    expect(dataFromCPISide.object.testField7, "Failed on Field7 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField7);
-    expect(dataFromCPISide.object.testField8, "Failed on Field8 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField8);
-    expect(dataFromCPISide.object.testField9, "Failed on Field9 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField9);
-    expect(dataFromCPISide.object.testField10, "Failed on Field10 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField10);
-    expect(
-      dataFromCPISide.object.Hidden,
-      "Failed on hidden returning wrong output"
-    ).to.be.a("boolean").that.is.false;
+    it("Sync Data - Get from CPISide", async () => {
+      expect(dataFromCPISide.success, "Failed on request failing").to.be.a(
+        "boolean"
+      ).that.is.true;
+      expect(
+        dataFromCPISide.object.testField1,
+        "Failed on Field1 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField1);
+      expect(dataFromCPISide.object.Key, "Failed on Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(document.testField1);
+      expect(
+        dataFromCPISide.object.testField2,
+        "Failed on Field2 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField2);
+      expect(
+        dataFromCPISide.object.testField3,
+        "Failed on Field3 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField3);
+      expect(
+        dataFromCPISide.object.testField4,
+        "Failed on Field4 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField4);
+      expect(
+        dataFromCPISide.object.testField5,
+        "Failed on Field5 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField5);
+      expect(
+        dataFromCPISide.object.testField6,
+        "Failed on Field6 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField6);
+      expect(
+        dataFromCPISide.object.testField7,
+        "Failed on Field7 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField7);
+      expect(
+        dataFromCPISide.object.testField8,
+        "Failed on Field8 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField8);
+      expect(
+        dataFromCPISide.object.testField9,
+        "Failed on Field9 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField9);
+      expect(
+        dataFromCPISide.object.testField10,
+        "Failed on Field10 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField10);
+      expect(
+        dataFromCPISide.object.Hidden,
+        "Failed on hidden returning wrong output"
+      ).to.be.a("boolean").that.is.false;
 
-    const CreationDate = dataFromCPISide.object.CreationDateTime?.split("T")[0];
-    const ModificationDate = dataFromCPISide.object.ModificationDateTime?.split("T")[0];
-    const dateToText = date.toISOString().split("T")[0];
+      const CreationDate =
+        dataFromCPISide.object.CreationDateTime?.split("T")[0];
+      const ModificationDate =
+        dataFromCPISide.object.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
 
-    expect(ModificationDate, "Failed on wrong modification date")
-      .to.be.a("string")
-      .that.is.equal(dateToText);
-    expect(CreationDate, "Failed on wrong creation date")
-      .to.be.a("string")
-      .that.is.equal(dateToText);
+      expect(ModificationDate, "Failed on wrong modification date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+      expect(CreationDate, "Failed on wrong creation date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
     });
   });
 
@@ -4482,13 +4523,15 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
   return testResults;
 }
 
-export async function SyncWithIndexedField(client: Client,request: Request) {
+export async function SyncWithIndexedField(client: Client, request: Request) {
   console.log(`SyncWithIndexedField::Test Started`);
   const service = new MyService(client);
   const syncService = new SyncService(client);
   const tableName = "SyncTable3"; //change if you setup a new table
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
+  await service.initResync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
   const { describe, it, expect, run } = Tester();
   console.log(`SyncWithCPISideTest::Gotten services,initiating requests`);
   const syncOptions = {
@@ -4496,7 +4539,7 @@ export async function SyncWithIndexedField(client: Client,request: Request) {
     SYNC_DATA_SIZE_LIMITATION: 4,
     SYNC_TIME_LIMITATION: 10,
     USER_DEFINED_COLLECTIONS: tableName,
-    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "testField2", 
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "testField2",
   };
   const settings = await syncService.setSyncOptions(syncOptions);
   const date = new Date();
@@ -4505,7 +4548,10 @@ export async function SyncWithIndexedField(client: Client,request: Request) {
   const document = await syncService.generateIndexedDocument(11);
   const documentWithoutIndex = await syncService.generateDocument(11);
   const upsert = await syncService.upsertDocument(tableName, document); //collection hard-coded for now since it can't be removed
-  const upsertWithOutIndex = await syncService.upsertDocument(tableName,documentWithoutIndex);
+  const upsertWithOutIndex = await syncService.upsertDocument(
+    tableName,
+    documentWithoutIndex
+  );
   await service.sleep(2000);
   const sync = await syncService.pullData({
     ModificationDateTime: date.toISOString(),
@@ -4515,7 +4561,7 @@ export async function SyncWithIndexedField(client: Client,request: Request) {
     sync.ExecutionURI,
     50
   );
-  
+
   const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
   console.log(resultObject);
   const testData = resultObject.ResourcesData[0];
@@ -4525,22 +4571,32 @@ export async function SyncWithIndexedField(client: Client,request: Request) {
 
   const Schema = testData.Schema;
 
-  await service.initSync(accessToken,webAPIBaseURL);
-  await service.getSyncStatus(accessToken,webAPIBaseURL,30);
+  await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
 
   const index = document.testField2;
   console.log(index);
 
   await service.sleep(10000);
-  const dataFromCPISide = await syncService.getListFromCPISide(webAPIBaseURL,accessToken,tableName,index);
+  const dataFromCPISide = await syncService.getListFromCPISide(
+    webAPIBaseURL,
+    accessToken,
+    tableName,
+    index
+  );
   console.log(dataFromCPISide);
 
   Objects.Hidden = true;
   noneIndexedObjects.Hidden = true;
   const upsertToHidden = await syncService.upsertDocument(tableName, Objects);
-  const upsertNoneIndexToHidden = await syncService.upsertDocument(tableName,noneIndexedObjects);
+  const upsertNoneIndexToHidden = await syncService.upsertDocument(
+    tableName,
+    noneIndexedObjects
+  );
 
-  console.log(`SyncWithIndexedField::Gotten all data objects,Starting Mocha tests`);
+  console.log(
+    `SyncWithIndexedField::Gotten all data objects,Starting Mocha tests`
+  );
 
   describe("Sync with Get from CPISide automation test", async () => {
     it("Settings Post Test", async () => {
@@ -4564,8 +4620,13 @@ export async function SyncWithIndexedField(client: Client,request: Request) {
         .to.be.a("number")
         .that.is.equal(syncOptions.SYNC_TIME_LIMITATION);
 
-      expect(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD,"Failed on wrong index field returning").to.be.a("string").that.is.equal(syncOptions.USER_DEFINED_COLLECTIONS_INDEX_FIELD);
-      
+      expect(
+        settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD,
+        "Failed on wrong index field returning"
+      )
+        .to.be.a("string")
+        .that.is.equal(syncOptions.USER_DEFINED_COLLECTIONS_INDEX_FIELD);
+
       const ModificationDate = settings.ModificationDateTime?.split("T")[0];
       const dateToText = date.toISOString().split("T")[0];
       expect(ModificationDate, "Sync modificationdate returned wrong output")
@@ -4606,10 +4667,9 @@ export async function SyncWithIndexedField(client: Client,request: Request) {
       expect(Objects.testField10, "Failed on Field10 returning wrong output")
         .to.be.a("string")
         .that.is.equal(document.testField10);
-      expect(
-        Objects.Hidden,
-        "Failed on hidden returning wrong output"
-      ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
+      expect(Objects.Hidden, "Failed on hidden returning wrong output").to.be.a(
+        "boolean"
+      ).that.is.true; // test is done after object is moved to hidden
 
       const CreationDate = Objects.CreationDateTime?.split("T")[0];
       const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
@@ -4622,38 +4682,67 @@ export async function SyncWithIndexedField(client: Client,request: Request) {
         .to.be.a("string")
         .that.is.equal(dateToText);
 
-
-        expect(noneIndexedObjects.testField1, "Failed on Field1 returning wrong output")
+      expect(
+        noneIndexedObjects.testField1,
+        "Failed on Field1 returning wrong output"
+      )
         .to.be.a("string")
         .that.is.equal(documentWithoutIndex.testField1);
       expect(noneIndexedObjects.Key, "Failed on Key returning wrong output")
         .to.be.a("string")
         .that.is.equal(documentWithoutIndex.testField1);
-      expect(noneIndexedObjects.testField2, "Failed on Field2 returning wrong output")
+      expect(
+        noneIndexedObjects.testField2,
+        "Failed on Field2 returning wrong output"
+      )
         .to.be.a("string")
         .that.is.equal(documentWithoutIndex.testField2);
-      expect(noneIndexedObjects.testField3, "Failed on Field3 returning wrong output")
+      expect(
+        noneIndexedObjects.testField3,
+        "Failed on Field3 returning wrong output"
+      )
         .to.be.a("string")
         .that.is.equal(documentWithoutIndex.testField3);
-      expect(noneIndexedObjects.testField4, "Failed on Field4 returning wrong output")
+      expect(
+        noneIndexedObjects.testField4,
+        "Failed on Field4 returning wrong output"
+      )
         .to.be.a("string")
         .that.is.equal(documentWithoutIndex.testField4);
-      expect(noneIndexedObjects.testField5, "Failed on Field5 returning wrong output")
+      expect(
+        noneIndexedObjects.testField5,
+        "Failed on Field5 returning wrong output"
+      )
         .to.be.a("string")
         .that.is.equal(documentWithoutIndex.testField5);
-      expect(noneIndexedObjects.testField6, "Failed on Field6 returning wrong output")
+      expect(
+        noneIndexedObjects.testField6,
+        "Failed on Field6 returning wrong output"
+      )
         .to.be.a("string")
         .that.is.equal(documentWithoutIndex.testField6);
-      expect(noneIndexedObjects.testField7, "Failed on Field7 returning wrong output")
+      expect(
+        noneIndexedObjects.testField7,
+        "Failed on Field7 returning wrong output"
+      )
         .to.be.a("string")
         .that.is.equal(documentWithoutIndex.testField7);
-      expect(noneIndexedObjects.testField8, "Failed on Field8 returning wrong output")
+      expect(
+        noneIndexedObjects.testField8,
+        "Failed on Field8 returning wrong output"
+      )
         .to.be.a("string")
         .that.is.equal(documentWithoutIndex.testField8);
-      expect(noneIndexedObjects.testField9, "Failed on Field9 returning wrong output")
+      expect(
+        noneIndexedObjects.testField9,
+        "Failed on Field9 returning wrong output"
+      )
         .to.be.a("string")
         .that.is.equal(documentWithoutIndex.testField9);
-      expect(noneIndexedObjects.testField10, "Failed on Field10 returning wrong output")
+      expect(
+        noneIndexedObjects.testField10,
+        "Failed on Field10 returning wrong output"
+      )
         .to.be.a("string")
         .that.is.equal(documentWithoutIndex.testField10);
       expect(
@@ -4662,7 +4751,8 @@ export async function SyncWithIndexedField(client: Client,request: Request) {
       ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
 
       const CreationDate2 = noneIndexedObjects.CreationDateTime?.split("T")[0];
-      const ModificationDate2 = noneIndexedObjects.ModificationDateTime?.split("T")[0];
+      const ModificationDate2 =
+        noneIndexedObjects.ModificationDateTime?.split("T")[0];
 
       expect(ModificationDate2, "Failed on wrong modification date")
         .to.be.a("string")
@@ -4671,62 +4761,113 @@ export async function SyncWithIndexedField(client: Client,request: Request) {
         .to.be.a("string")
         .that.is.equal(dateToText);
     });
-    it("Sync Data - Schema",async ()=> {
-    expect(Schema.AddonUUID,"Failed on UUID returning wrong output").to.be.a("string").that.is.equal("122c0e9d-c240-4865-b446-f37ece866c22");
-    expect(Schema.Name,"Failed on Schema returning wrong output").to.be.a("string").that.is.equal(tableName);
-    expect(Schema.SyncData.IndexedField,"Failed on indexed field returning wrong value").to.be.a("string").that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD)
+    it("Sync Data - Schema", async () => {
+      expect(Schema.AddonUUID, "Failed on UUID returning wrong output")
+        .to.be.a("string")
+        .that.is.equal("122c0e9d-c240-4865-b446-f37ece866c22");
+      expect(Schema.Name, "Failed on Schema returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(tableName);
+      expect(
+        Schema.SyncData.IndexedField,
+        "Failed on indexed field returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD);
     });
-    it("Sync Data - GetList from CPISide",async ()=> {
-      expect(dataFromCPISide.objects,"Failed on returning more than one object").to.be.a("array").that.has.lengthOf(1);
-      expect(dataFromCPISide.success,"Failed on request failing").to.be.a("boolean").that.is.true;
-      expect(dataFromCPISide.objects[0].testField1, "Failed on Field1 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField1);
-    expect(dataFromCPISide.objects[0].Key, "Failed on Key returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField1);
-    expect(dataFromCPISide.objects[0].testField2, "Failed on Field2 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField2);
-    expect(dataFromCPISide.objects[0].testField3, "Failed on Field3 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField3);
-    expect(dataFromCPISide.objects[0].testField4, "Failed on Field4 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField4);
-    expect(dataFromCPISide.objects[0].testField5, "Failed on Field5 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField5);
-    expect(dataFromCPISide.objects[0].testField6, "Failed on Field6 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField6);
-    expect(dataFromCPISide.objects[0].testField7, "Failed on Field7 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField7);
-    expect(dataFromCPISide.objects[0].testField8, "Failed on Field8 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField8);
-    expect(dataFromCPISide.objects[0].testField9, "Failed on Field9 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField9);
-    expect(dataFromCPISide.objects[0].testField10, "Failed on Field10 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(document.testField10);
-    expect(
-      dataFromCPISide.objects[0].Hidden,
-      "Failed on hidden returning wrong output"
-    ).to.be.a("boolean").that.is.false;
+    it("Sync Data - GetList from CPISide", async () => {
+      expect(
+        dataFromCPISide.objects,
+        "Failed on returning more than one object"
+      )
+        .to.be.a("array")
+        .that.has.lengthOf(1);
+      expect(dataFromCPISide.success, "Failed on request failing").to.be.a(
+        "boolean"
+      ).that.is.true;
+      expect(
+        dataFromCPISide.objects[0].testField1,
+        "Failed on Field1 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField1);
+      expect(
+        dataFromCPISide.objects[0].Key,
+        "Failed on Key returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField1);
+      expect(
+        dataFromCPISide.objects[0].testField2,
+        "Failed on Field2 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField2);
+      expect(
+        dataFromCPISide.objects[0].testField3,
+        "Failed on Field3 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField3);
+      expect(
+        dataFromCPISide.objects[0].testField4,
+        "Failed on Field4 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField4);
+      expect(
+        dataFromCPISide.objects[0].testField5,
+        "Failed on Field5 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField5);
+      expect(
+        dataFromCPISide.objects[0].testField6,
+        "Failed on Field6 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField6);
+      expect(
+        dataFromCPISide.objects[0].testField7,
+        "Failed on Field7 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField7);
+      expect(
+        dataFromCPISide.objects[0].testField8,
+        "Failed on Field8 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField8);
+      expect(
+        dataFromCPISide.objects[0].testField9,
+        "Failed on Field9 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField9);
+      expect(
+        dataFromCPISide.objects[0].testField10,
+        "Failed on Field10 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(document.testField10);
+      expect(
+        dataFromCPISide.objects[0].Hidden,
+        "Failed on hidden returning wrong output"
+      ).to.be.a("boolean").that.is.false;
 
-    const CreationDate = dataFromCPISide.objects[0].CreationDateTime?.split("T")[0];
-    const ModificationDate = dataFromCPISide.objects[0].ModificationDateTime?.split("T")[0];
-    const dateToText = date.toISOString().split("T")[0];
+      const CreationDate =
+        dataFromCPISide.objects[0].CreationDateTime?.split("T")[0];
+      const ModificationDate =
+        dataFromCPISide.objects[0].ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
 
-    expect(ModificationDate, "Failed on wrong modification date")
-      .to.be.a("string")
-      .that.is.equal(dateToText);
-    expect(CreationDate, "Failed on wrong creation date")
-      .to.be.a("string")
-      .that.is.equal(dateToText);
+      expect(ModificationDate, "Failed on wrong modification date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+      expect(CreationDate, "Failed on wrong creation date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
     });
   });
 
@@ -4734,10 +4875,9 @@ export async function SyncWithIndexedField(client: Client,request: Request) {
 
   const testResults = await run();
   return testResults;
-  
 }
 
-export async function SyncDataFromADAL(client: Client,request: Request) {
+export async function SyncDataFromADAL(client: Client, request: Request) {
   console.log(`SyncDataFromADAL::Test Started`);
   const service = new MyService(client);
   const syncService = new SyncService(client);
@@ -4745,13 +4885,15 @@ export async function SyncDataFromADAL(client: Client,request: Request) {
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   const { describe, it, expect, run } = Tester();
+  await service.initResync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
   console.log(`SyncDataFromADAL::Gotten services,initiating requests`);
   const syncOptions = {
     Key: "SyncVariables",
     SYNC_DATA_SIZE_LIMITATION: 4,
     SYNC_TIME_LIMITATION: 10,
     USER_DEFINED_COLLECTIONS: tableName,
-    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "", 
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
   };
 
   const settings = await syncService.setSyncOptions(syncOptions);
@@ -4760,7 +4902,7 @@ export async function SyncDataFromADAL(client: Client,request: Request) {
 
   const object = await syncService.generateADALObj();
 
-  const upsert = await service.upsertToADAL(tableName,object);
+  const upsert = await service.upsertToADAL(tableName, object);
 
   await service.sleep(2000);
   const sync = await syncService.pullData({
@@ -4771,7 +4913,7 @@ export async function SyncDataFromADAL(client: Client,request: Request) {
     sync.ExecutionURI,
     50
   );
-  
+
   const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
   console.log(resultObject);
   const testData = resultObject.ResourcesData[0];
@@ -4780,17 +4922,22 @@ export async function SyncDataFromADAL(client: Client,request: Request) {
 
   const Schema = testData.Schema;
   const key = object?.Key as string;
-  await service.initSync(accessToken,webAPIBaseURL);
-  await service.getSyncStatus(accessToken,webAPIBaseURL,30);
+  await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
 
   await service.sleep(10000);
-  const dataFromCPISide = await syncService.getADALFromCPISide(webAPIBaseURL,accessToken,tableName,key);
+  const dataFromCPISide = await syncService.getADALFromCPISide(
+    webAPIBaseURL,
+    accessToken,
+    tableName,
+    key
+  );
   console.log(dataFromCPISide);
 
   Objects.Hidden = true;
-  const upsertToHidden = await service.upsertToADAL(tableName,Objects);
+  const upsertToHidden = await service.upsertToADAL(tableName, Objects);
 
-    console.log(`SyncDataFromADAL::Gotten all data objects,Starting Mocha tests`);
+  console.log(`SyncDataFromADAL::Gotten all data objects,Starting Mocha tests`);
 
   describe("Sync with Get from ADAL on CPISide automation test", async () => {
     it("Settings Post Test", async () => {
@@ -4814,8 +4961,13 @@ export async function SyncDataFromADAL(client: Client,request: Request) {
         .to.be.a("number")
         .that.is.equal(syncOptions.SYNC_TIME_LIMITATION);
 
-      expect(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD,"Failed on wrong index field returning").to.be.a("string").that.is.equal(syncOptions.USER_DEFINED_COLLECTIONS_INDEX_FIELD);
-      
+      expect(
+        settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD,
+        "Failed on wrong index field returning"
+      )
+        .to.be.a("string")
+        .that.is.equal(syncOptions.USER_DEFINED_COLLECTIONS_INDEX_FIELD);
+
       const ModificationDate = settings.ModificationDateTime?.split("T")[0];
       const dateToText = date.toISOString().split("T")[0];
       expect(ModificationDate, "Sync modificationdate returned wrong output")
@@ -4856,10 +5008,9 @@ export async function SyncDataFromADAL(client: Client,request: Request) {
       expect(Objects.testField10, "Failed on Field10 returning wrong output")
         .to.be.a("string")
         .that.is.equal(object.testField10);
-      expect(
-        Objects.Hidden,
-        "Failed on hidden returning wrong output"
-      ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
+      expect(Objects.Hidden, "Failed on hidden returning wrong output").to.be.a(
+        "boolean"
+      ).that.is.true; // test is done after object is moved to hidden
 
       const CreationDate = Objects.CreationDateTime?.split("T")[0];
       const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
@@ -4872,62 +5023,108 @@ export async function SyncDataFromADAL(client: Client,request: Request) {
         .to.be.a("string")
         .that.is.equal(dateToText);
     });
-    it("Sync Data - Schema",async ()=> {
-    expect(Schema.AddonUUID,"Failed on UUID returning wrong output").to.be.a("string").that.is.equal("2b39d63e-0982-4ada-8cbb-737b03b9ee58");
-    expect(Schema.Name,"Failed on Schema returning wrong output").to.be.a("string").that.is.equal(tableName);
-    expect(Schema.SyncData.IndexedField,"Failed on indexed field returning wrong value").to.be.a("string").that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD)
+    it("Sync Data - Schema", async () => {
+      expect(Schema.AddonUUID, "Failed on UUID returning wrong output")
+        .to.be.a("string")
+        .that.is.equal("2b39d63e-0982-4ada-8cbb-737b03b9ee58");
+      expect(Schema.Name, "Failed on Schema returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(tableName);
+      expect(
+        Schema.SyncData.IndexedField,
+        "Failed on indexed field returning wrong value"
+      )
+        .to.be.a("string")
+        .that.is.equal(settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD);
     });
-    it("Sync Data - Get ADAL key from CPISide",async ()=> {
-      expect(dataFromCPISide.object,"Failed on returning wrong object type").to.be.a("object").that.is.not.empty.and.undefined;
-      expect(dataFromCPISide.success,"Failed on request failing").to.be.a("boolean").that.is.true;
-      expect(dataFromCPISide.object.testField1, "Failed on Field1 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(object.testField1);
-    expect(dataFromCPISide.object.Key, "Failed on Key returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(object.testField1);
-    expect(dataFromCPISide.object.testField2, "Failed on Field2 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(object.testField2);
-    expect(dataFromCPISide.object.testField3, "Failed on Field3 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(object.testField3);
-    expect(dataFromCPISide.object.testField4, "Failed on Field4 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(object.testField4);
-    expect(dataFromCPISide.object.testField5, "Failed on Field5 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(object.testField5);
-    expect(dataFromCPISide.object.testField6, "Failed on Field6 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(object.testField6);
-    expect(dataFromCPISide.object.testField7, "Failed on Field7 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(object.testField7);
-    expect(dataFromCPISide.object.testField8, "Failed on Field8 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(object.testField8);
-    expect(dataFromCPISide.object.testField9, "Failed on Field9 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(object.testField9);
-    expect(dataFromCPISide.object.testField10, "Failed on Field10 returning wrong output")
-      .to.be.a("string")
-      .that.is.equal(object.testField10);
-    expect(
-      dataFromCPISide.object.Hidden,
-      "Failed on hidden returning wrong output"
-    ).to.be.a("boolean").that.is.false;
+    it("Sync Data - Get ADAL key from CPISide", async () => {
+      expect(
+        dataFromCPISide.object,
+        "Failed on returning wrong object type"
+      ).to.be.a("object").that.is.not.empty.and.undefined;
+      expect(dataFromCPISide.success, "Failed on request failing").to.be.a(
+        "boolean"
+      ).that.is.true;
+      expect(
+        dataFromCPISide.object.testField1,
+        "Failed on Field1 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(object.testField1);
+      expect(dataFromCPISide.object.Key, "Failed on Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(object.testField1);
+      expect(
+        dataFromCPISide.object.testField2,
+        "Failed on Field2 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(object.testField2);
+      expect(
+        dataFromCPISide.object.testField3,
+        "Failed on Field3 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(object.testField3);
+      expect(
+        dataFromCPISide.object.testField4,
+        "Failed on Field4 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(object.testField4);
+      expect(
+        dataFromCPISide.object.testField5,
+        "Failed on Field5 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(object.testField5);
+      expect(
+        dataFromCPISide.object.testField6,
+        "Failed on Field6 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(object.testField6);
+      expect(
+        dataFromCPISide.object.testField7,
+        "Failed on Field7 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(object.testField7);
+      expect(
+        dataFromCPISide.object.testField8,
+        "Failed on Field8 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(object.testField8);
+      expect(
+        dataFromCPISide.object.testField9,
+        "Failed on Field9 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(object.testField9);
+      expect(
+        dataFromCPISide.object.testField10,
+        "Failed on Field10 returning wrong output"
+      )
+        .to.be.a("string")
+        .that.is.equal(object.testField10);
+      expect(
+        dataFromCPISide.object.Hidden,
+        "Failed on hidden returning wrong output"
+      ).to.be.a("boolean").that.is.false;
 
-    const CreationDate = dataFromCPISide.object.CreationDateTime?.split("T")[0];
-    const ModificationDate = dataFromCPISide.object.ModificationDateTime?.split("T")[0];
-    const dateToText = date.toISOString().split("T")[0];
+      const CreationDate =
+        dataFromCPISide.object.CreationDateTime?.split("T")[0];
+      const ModificationDate =
+        dataFromCPISide.object.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
 
-    expect(ModificationDate, "Failed on wrong modification date")
-      .to.be.a("string")
-      .that.is.equal(dateToText);
-    expect(CreationDate, "Failed on wrong creation date")
-      .to.be.a("string")
-      .that.is.equal(dateToText);
+      expect(ModificationDate, "Failed on wrong modification date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+      expect(CreationDate, "Failed on wrong creation date")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
     });
   });
 
@@ -4935,4 +5132,410 @@ export async function SyncDataFromADAL(client: Client,request: Request) {
 
   const testResults = await run();
   return testResults;
+}
+
+export async function SyncLargeDataNegative(client: Client, request: Request) {
+  console.log(`SyncLargeDataNegative::Test Started`);
+  const service = new MyService(client);
+  const syncService = new SyncService(client);
+  const tableName = "syncTable"; //change if you setup a new table
+  let size: number = 0;
+  const { describe, it, expect, run } = Tester();
+  console.log(`SyncLargeDataNegative::Gotten services,initiating requests`);
+
+  const syncOptions = {
+    Key: "SyncVariables",
+    SYNC_DATA_SIZE_LIMITATION: 1,
+    SYNC_TIME_LIMITATION: 10,
+    USER_DEFINED_COLLECTIONS: tableName,
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
+  };
+
+  const settings = await syncService.setSyncOptions(syncOptions);
+  const date = new Date();
+  await service.sleep(10000);
+  //getting file dummy data for large sync (coverted image to base64 that sits on ADAL);
+  const getBase64FromADAL = await service.getFromADAL("base64","base64String");
+
+  const base64 = getBase64FromADAL[0].Base64;
+
+  const objectsArr: {
+    Key: string;
+    field1: string;
+    field2: string;
+    field3: string;
+    base64: string;
+    field4: number;
+    Hidden?: boolean;
+  }[] = [];
+
+  for (let i = 0; i < 40; i++) {
+    //looping around 50 times to get an object above 4MB
+    objectsArr.push({
+      Key: "key" + Math.floor(Math.random() * 10000000000000),
+      field1: "random",
+      field2: "data",
+      field3: "yey",
+      field4: Math.floor(Math.random() * 1000),
+      base64: base64,
+    });
+  }
+  //objects array size rough measuring
+  for (const object of objectsArr) {
+    size += await syncService.roughSizeOfObject(object); // size/2048 = how many MB's are on the data array
+  }
+
+  let index = 0;
+  for (const object of objectsArr) {
+    index++;
+    console.log(`now sending the ${index} request`);
+    await service.upsertToADAL("syncTable", object);
+  }
+
+  await service.sleep(5000);
+  const sync = await syncService.pullData({
+    ModificationDateTime: date.toISOString(),
+  });
+  await service.sleep(30000); //sleep for audit log being written
+  const auditLog = await syncService.getAuditLogResultObjectIfValid(
+    sync.ExecutionURI,
+    50
+  );
+  console.log(auditLog);
+
+  const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
+  console.log(resultObject);
+
+  const purge = await syncService.purgeADALTable("syncTable");
+  await service.sleep(5000);
+  const scheme = await syncService.createADALScheme("syncTable", "data");
+
+  console.log(`SyncLargeDataNegative::Finished Logic,starting Mocha tests`);
+
+  describe("Sync Large Data Negative on CPISide automation test", async () => {
+    it("Settings Post Test", async () => {
+      expect(
+        settings.Hidden,
+        "Failed on settings hidden returning wrong output"
+      ).to.be.a("boolean").that.is.false;
+      expect(settings.Key, "Failed on settings Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(syncOptions.Key);
+      expect(
+        settings.SYNC_DATA_SIZE_LIMITATION,
+        "Sync data size limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_DATA_SIZE_LIMITATION);
+      expect(
+        settings.SYNC_TIME_LIMITATION,
+        "Sync data time limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_TIME_LIMITATION);
+
+      expect(
+        settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD,
+        "Failed on wrong index field returning"
+      )
+        .to.be.a("string")
+        .that.is.equal(syncOptions.USER_DEFINED_COLLECTIONS_INDEX_FIELD);
+
+      const ModificationDate = settings.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
+      expect(ModificationDate, "Sync modificationdate returned wrong output")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+    });
+
+    it("Sync response after inserting data above the soft limit test", async () => {
+      expect(resultObject.success, "Failed on success returning wrong value")
+        .to.be.a("string")
+        .that.is.equal("Exception");
+      expect(resultObject.errorCode, "Failed on returning wrong response code")
+        .to.be.a("number")
+        .that.is.equal(400);
+      expect(
+        resultObject.resultObject,
+        "Failed on result object not returning null"
+      ).to.be.null;
+      expect(resultObject.errorMessage, "Failed on wrong error message")
+        .to.be.a("string")
+        .that.is.equal(
+          `Failed due to exception: The data size is too big. The maximum data size is ${syncOptions.SYNC_DATA_SIZE_LIMITATION} MB.`
+        );
+      expect(size / 2048, "failed on object size returning wrong value")
+        .to.be.a("number")
+        .that.is.above(0)
+        .and.below(10000);
+    });
+  });
+
+  console.log(`SyncLargeDataNegative::Finished Mocha tests`);
+
+  const testResults = await run();
+  return testResults;
+}
+
+export async function SyncLargeDataPositive(client: Client, request: Request) {
+  console.log(`SyncLargeDataPositive::Test Started`);
+  const service = new MyService(client);
+  const syncService = new SyncService(client);
+  const tableName = "syncTable"; //change if you setup a new table on ADAL
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  let size: number = 0;
+  const { describe, it, expect, run } = Tester();
+  //resync to cleanse the old data from cpi-side -> till we figure out how it should work
+  await service.initResync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
+
+  console.log(`SyncLargeDataPositive::Gotten services,initiating requests`);
+
+  const syncOptions = {
+    Key: "SyncVariables",
+    SYNC_DATA_SIZE_LIMITATION: 5,
+    SYNC_TIME_LIMITATION: 10,
+    USER_DEFINED_COLLECTIONS: "", // relevant only for UDC tests tableName,
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
+  };
+
+  const settings = await syncService.setSyncOptions(syncOptions);
+  console.log(settings);
+  const date = new Date();
+  await service.sleep(10000);
+  //getting file dummy data for large sync (coverts image to base64);
+  const getBase64FromADAL = await service.getFromADAL("base64","base64String");
+
+  const base64 = getBase64FromADAL[0].Base64;
+
+  const objectsArr: {
+    Key: string;
+    field1: string;
+    field2: string;
+    field3: string;
+    base64: string;
+    field4: number;
+    Hidden?: boolean;
+  }[] = [];
+
+  for (let i = 0; i < 40; i++) {
+    //looping around 50 times to get an object above 4MB
+    objectsArr.push({
+      Key: "key" + Math.floor(Math.random() * 10000000000000),
+      field1: "random",
+      field2: "data",
+      field3: "yey",
+      field4: Math.floor(Math.random() * 1000),
+      base64: base64,
+    });
+  }
+  //objects array size rough measuring
+  for (const object of objectsArr) {
+    size += await syncService.roughSizeOfObject(object);
+  }
+  console.log(size / 2048);
+  let index = 0;
+  for (const object of objectsArr) {
+    index++;
+    console.log(`now sending the ${index} request`);
+    await service.upsertToADAL("syncTable", object);
+  }
+
+  await service.sleep(5000);
+  const sync = await syncService.pullData({
+    ModificationDateTime: date.toISOString(),
+  });
+  await service.sleep(30000); //sleep for audit log being written
+  const auditLog = await syncService.getAuditLogResultObjectIfValid(
+    sync.ExecutionURI,
+    50
+  );
+
+  const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
+
+  const syncFile = await syncService.getSyncFromAuditLog(
+    resultObject.ResourcesURL
+  );
+
+  const testData = syncFile.ResourcesData[0].Objects;
+  const testObjectsArrFromAuditLog = [
+    testData[0],
+    testData[5],
+    testData[10],
+    testData[20],
+    testData[25],
+    testData[30],
+    testData[39],
+  ];
+  console.log("data from audit log");
+  console.log(testData);
+
+  await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
+
+  await service.sleep(30000);
+  const dataFromCPISide = await syncService.getADALListFromCPISide(
+    webAPIBaseURL,
+    accessToken,
+    tableName
+  );
+  const testObjectsArrFromCPISide = [
+    dataFromCPISide.objects[0],
+    dataFromCPISide.objects[5],
+    dataFromCPISide.objects[10],
+    dataFromCPISide.objects[20],
+    dataFromCPISide.objects[25],
+    dataFromCPISide.objects[30],
+    dataFromCPISide.objects[39],
+  ];
+  console.log(dataFromCPISide);
+
+  const purge = await syncService.purgeADALTable("syncTable");
+  await service.sleep(5000);
+  const scheme = await syncService.createADALScheme("syncTable", "data");
+
+  console.log(`SyncLargeDataPositive::Finished Logic,starting Mocha tests`);
+
+  describe("Sync with Get from ADAL Positive on CPISide automation test", async () => {
+    it("Settings Post Test", async () => {
+      expect(
+        settings.Hidden,
+        "Failed on settings hidden returning wrong output"
+      ).to.be.a("boolean").that.is.false;
+      expect(settings.Key, "Failed on settings Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(syncOptions.Key);
+      expect(
+        settings.SYNC_DATA_SIZE_LIMITATION,
+        "Sync data size limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_DATA_SIZE_LIMITATION);
+      expect(
+        settings.SYNC_TIME_LIMITATION,
+        "Sync data time limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_TIME_LIMITATION);
+
+      expect(
+        settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD,
+        "Failed on wrong index field returning"
+      )
+        .to.be.a("string")
+        .that.is.equal(syncOptions.USER_DEFINED_COLLECTIONS_INDEX_FIELD);
+
+      const ModificationDate = settings.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
+      expect(ModificationDate, "Sync modificationdate returned wrong output")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+    });
+
+    it("Sync pull response from file after inserting data above 4MB test", async () => {
+      expect(testData, "Failed on array returning wrong value/length")
+        .to.be.an("array")
+        .that.has.lengthOf(40);
+      for (const object of testObjectsArrFromAuditLog) {
+        const ModificationDate = object.ModificationDateTime?.split("T")[0];
+        const dateToText = date.toISOString().split("T")[0];
+        expect(ModificationDate, "Sync modificationDate returned wrong output")
+          .to.be.a("string")
+          .that.is.equal(dateToText);
+
+        const CreationDate = object.CreationDateTime?.split("T")[0];
+        expect(CreationDate, "Sync CreationDate returned wrong output")
+          .to.be.a("string")
+          .that.is.equal(dateToText);
+
+        expect(object.Key, "Failed on key returning wrong")
+          .to.be.a("string")
+          .that.includes("key");
+        expect(object.field1, "Failed on field1 returning wrong value")
+          .to.be.a("string")
+          .that.is.equal("random");
+        expect(object.field2, "Failed on field2 returning wrong value")
+          .to.be.a("string")
+          .that.is.equal("data");
+        expect(object.field3, "Failed on field3 returning wrong value")
+          .to.be.a("string")
+          .that.is.equal("yey");
+        expect(object.field4, "Failed on field4 returning wrong value")
+          .to.be.a("number")
+          .that.is.above(0);
+        expect(object.base64, "Failed on base64 returning wrong value")
+          .to.be.a("string")
+          .that.is.equal(base64);
+      }
+    });
+
+    it("Sync data from CPISide", async () => {
+      expect(
+        dataFromCPISide.success,
+        "Failed on success flag returning wrong value"
+      ).to.be.a("boolean").that.is.true;
+      expect(
+        dataFromCPISide.objects,
+        "Failed on array returning wrong length/size/format"
+      )
+        .to.be.an("array")
+        .that.has.lengthOf(40);
+      for (const object of testObjectsArrFromCPISide) {
+        const ModificationDate = object.ModificationDateTime?.split("T")[0];
+        const dateToText = date.toISOString().split("T")[0];
+        expect(ModificationDate, "Sync modificationDate returned wrong output")
+          .to.be.a("string")
+          .that.is.equal(dateToText);
+
+        const CreationDate = object.CreationDateTime?.split("T")[0];
+        expect(CreationDate, "Sync CreationDate returned wrong output")
+          .to.be.a("string")
+          .that.is.equal(dateToText);
+
+        expect(object.Key, "Failed on key returning wrong")
+          .to.be.a("string")
+          .that.includes("key");
+        expect(object.field1, "Failed on field1 returning wrong value")
+          .to.be.a("string")
+          .that.is.equal("random");
+        expect(object.field2, "Failed on field2 returning wrong value")
+          .to.be.a("string")
+          .that.is.equal("data");
+        expect(object.field3, "Failed on field3 returning wrong value")
+          .to.be.a("string")
+          .that.is.equal("yey");
+        expect(object.field4, "Failed on field4 returning wrong value")
+          .to.be.a("number")
+          .that.is.above(0);
+        expect(object.base64, "Failed on base64 returning wrong value")
+          .to.be.a("string")
+          .that.is.equal(base64);
+      }
+    });
+  });
+
+  console.log(`SyncLargeDataPositive::Finished Mocha tests`);
+
+  const testResults = await run();
+  return testResults;
+}
+//run this after install if you need to setup a new environment for sync automation
+//run locally or it won't find the file
+export async function insertBase64ToADALAfterInstall(client:Client,request: Request) {
+  const service = new MyService(client);
+ 
+  let srcPath = path.join(__dirname,"../../test-data/scene-Iron-Man.png")
+  const file = fs.readFileSync(srcPath);
+  const base64 = file.toString("base64");
+
+  const body = {
+    Key:"base64String",
+    Base64: base64
+  }
+
+  const upsert = await service.upsertToADAL("base64",body);
+  console.log(upsert);
+  return;
+
 }

@@ -301,6 +301,21 @@ class MyService {
     ).json();
     return navigateToHomescreen;
   }
+
+  async initResync(accessToken: string, webAPIBaseURL: string) {
+    //webapi.sandbox.pepperi.com/16.60.82/webapi/Service1.svc/v1/HomePage
+    const URL = `${webAPIBaseURL}/Service1.svc/v1/Resync`;
+    const resync = await (
+      await fetch(URL, {
+        method: "POST",
+        headers: {
+          PepperiSessionToken: accessToken,
+          "Content-Type": "application/json",
+        },
+      })
+    ).json();
+    return resync;
+  }
   //init routers test from server side -> CPI side
   async routerTester(webapiURL: string, accessToken: string) {
     //URL: https://webapi.sandbox.pepperi.com/16.60.62/webapi
@@ -534,10 +549,19 @@ class MyService {
       .uuid(this.client.AddonUUID)
       .table(tableName)
       .find({
-        where: `CreationDateTime<'${date}'`,
+        where: `ModificationDateTime<'${date}'`,
       });
 
     return get;
+  }
+
+  async getAllFromADAL(tableName: string) {
+    const get = await this.papiClient.addons.data
+    .uuid(this.client.AddonUUID)
+    .table(tableName)
+    .find({});
+
+  return get;
   }
   //performs a get to this addon cpi-side to get JWT
   async getJWTFromCPISide(webAPIBaseURL: string, accessToken: string) {
@@ -577,42 +601,9 @@ class MyService {
     return getAcc;
   }
 
-  async checkAddonVersion(
-    varSecretKey: string,
-    addonUUIDToCheck: string,
-    phased?: boolean
-  ) {
-    const addonUUID = addonUUIDToCheck;
-
-    let apiRegion: string = await this.getAPIRegion();
-
-    const addon = await this.papiClient.addons.installedAddons
-      .addonUUID(addonUUID)
-      .get();
-
-    const installedVersion = addon.Version;
-    const name = addon.Addon.Name;
-
-    let URL = `https://${apiRegion}.pepperi.com/v1.0/var/addons/versions?where=AddonUUID='${addonUUID}'&order_by=CreationDateTime DESC&page_size=1`;
-    phased === true
-      ? (URL = `https://${apiRegion}.pepperi.com/v1.0/var/addons/versions?where=AddonUUID='${addonUUID}' AND Phased='${phased.toString()}'&order_by=CreationDateTime DESC&page_size=1`)
-      : null;
-    //need to add another filter to the URL so it will bring back ONLY the latest version
-    const latestVersion = await (
-      await fetch(URL, {
-        method: "GET",
-        headers: {
-          Authorization: `${varSecretKey}`,
-          "Content-Type": "application/json",
-        },
-      })
-    ).json();
-
-    return {
-      addonName: name,
-      latestVersion: latestVersion[0].Version,
-      installedVersion: installedVersion,
-    };
+  async checkInstalledVersions(addonUUID: string): Promise<InstalledAddon[]> {
+    const addon = await this.papiClient.addons.installedAddons.find({where:`AddonUUID='${addonUUID}'`});
+    return addon;
   }
   //api region for api calls
   async getAPIRegion(): Promise<string> {
