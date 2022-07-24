@@ -166,20 +166,20 @@ class SyncService {
   ): Promise<Collection> {
     let fields = {} as any;
     let fieldsForListView = [] as GridDataViewField[];
-    for (let i = 0; i < numberOfFields; i++) {
+    for (let i = 1; i < numberOfFields; i++) {
       fields[`testField${i}`] = {
         Description: `descriptionForTestField${i}`,
-        Mandatory: false,
+        Mandatory: i == 1 ? true : false,
         Type: "String",
         OptionalValues: [],
         Items: { Type: "String" },
       } as CollectionField;
-
+      
       fieldsForListView[i] = {
         FieldID: `testField${i}`,
         Type: "TextBox",
         Title: `testField${i}`,
-        Mandatory: false,
+        Mandatory: i == 1 ? true : false,
         ReadOnly: true,
       } as GridDataViewField;
     }
@@ -310,7 +310,7 @@ class SyncService {
   async getADALListFromCPISide(
     webAPIBaseURL: string,
     accessToken: string,
-    tableName: string,
+    tableName: string
   ) {
     let body = { tableName: tableName };
     let URL = `${webAPIBaseURL}/Service1.svc/v1/Addon/Api/2b39d63e-0982-4ada-8cbb-737b03b9ee58/addon-cpi/getListFromADAL`;
@@ -337,11 +337,16 @@ class SyncService {
   }
 
   async purgeADALTable(tableName: string) {
-    const purge = await this.papiClient.post(`/addons/data/schemes/${tableName}/purge`);
+    const purge = await this.papiClient.post(
+      `/addons/data/schemes/${tableName}/purge`
+    );
     return purge;
   }
 
-  async createADALScheme(tableName: string,type: "data" | "meta_data" | "cpi_meta_data") {
+  async createADALScheme(
+    tableName: string,
+    type: "data" | "meta_data" | "cpi_meta_data"
+  ) {
     const syncScheme = await this.papiClient.addons.data.schemes.post({
       Name: tableName,
       Type: type,
@@ -351,38 +356,63 @@ class SyncService {
   }
 
   async roughSizeOfObject(object) {
-
-    var objectList:any[] = [];
-    var stack = [ object ];
+    var objectList: any[] = [];
+    var stack = [object];
     var bytes = 0;
 
-    while ( stack.length ) {
-        var value = stack.pop();
+    while (stack.length) {
+      var value = stack.pop();
 
-        if ( typeof value === 'boolean' ) {
-            bytes += 4;
-        }
-        else if ( typeof value === 'string' ) {
-            bytes += value.length * 2;
-        }
-        else if ( typeof value === 'number' ) {
-            bytes += 8;
-        }
-        else if
-        (
-            typeof value === 'object'
-            && objectList.indexOf( value ) === -1
-        )
-        {
-            objectList.push( value );
+      if (typeof value === "boolean") {
+        bytes += 4;
+      } else if (typeof value === "string") {
+        bytes += value.length * 2;
+      } else if (typeof value === "number") {
+        bytes += 8;
+      } else if (
+        typeof value === "object" &&
+        objectList.indexOf(value) === -1
+      ) {
+        objectList.push(value);
 
-            for( var i in value ) {
-                stack.push( value[ i ] );
-            }
+        for (var i in value) {
+          stack.push(value[i]);
         }
+      }
     }
     return bytes;
-} 
+  }
+
+  async getUDCScheme() {
+    const scheme = await this.papiClient.userDefinedCollections.schemes.find({
+      where: `Hidden=false`,
+    });
+    return scheme;
+  }
+
+  async validateResourceData(ResourcesData: any[],resourceName: string) {
+   let testObjects:any[] = [];
+
+   for(const data of ResourcesData) {
+    if(data.Schema.Name === resourceName) {
+      testObjects = data.Objects;
+    }
+   }
+
+   return testObjects;
+  }
+
+  async validateResourceScheme(ResourcesData: any[],resourceName: string) {
+    let testScheme:any = {};
+
+    for(const data of ResourcesData) {
+     if(data.Schema.Name === resourceName) {
+       testScheme = data.Schema;
+     }
+    }
+
+    return testScheme;
+  }
 }
 
 export default SyncService;

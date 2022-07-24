@@ -3947,7 +3947,7 @@ export async function bulkNotificationsLogger(
 
   return "success";
 }
-// blat DI-20790 - Soft Limit not working - Notifications
+//needs to be done after they finish working on the limitationt for notifications
 export async function softLimitTest(client: Client, request: Request) {
   console.log(`softLimitTest::Test Started`);
   const service = new MyService(client);
@@ -3992,11 +3992,11 @@ export async function cleanseADAL(client: Client, request: Request) {
   const resultArr: any[] = [];
   const date = new Date().toISOString();
   //const res = await service.getFromADALByDate("NotificationsLogger", date);
-  const res = await service.getAllFromADAL("NotificationsLogger");
+  const res = await service.getAllFromADAL("syncTable");
 
   for (const obj of res) {
     obj.Hidden = true;
-    const res = await service.upsertToADAL("NotificationsLogger", obj);
+    const res = await service.upsertToADAL("syncTable", obj);
     resultArr.push(res);
   }
   return resultArr;
@@ -4006,7 +4006,8 @@ export async function SyncWithFile(client: Client, request: Request) {
   console.log(`SyncWithFile::Test Started`);
   const service = new MyService(client);
   const syncService = new SyncService(client);
-  const tableName = "SyncTable3"; //change if you setup a new table
+  const scheme = await syncService.getUDCScheme();
+  const tableName = scheme[0].Name;
   const { describe, it, expect, run } = Tester();
   console.log(`SyncWithFile::Gotten services,initiating requests`);
   const syncOptions = {
@@ -4108,7 +4109,7 @@ export async function SyncWithFile(client: Client, request: Request) {
         "Failed on hidden returning wrong output"
       ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
 
-      const CreationDate = testData.CreationDateTime?.split("T")[0];
+      const CreationDate = testData.CreationDateTime;
       const ModificationDate = testData.ModificationDateTime?.split("T")[0];
       const dateToText = date.toISOString().split("T")[0];
 
@@ -4117,7 +4118,7 @@ export async function SyncWithFile(client: Client, request: Request) {
         .that.is.equal(dateToText);
       expect(CreationDate, "Failed on wrong creation date")
         .to.be.a("string")
-        .that.is.equal(dateToText);
+        .that.has.lengthOf(24).and.includes("Z").and.includes("T");
     });
     it("Sync Pull endpoint response", async () => {
       expect(
@@ -4143,7 +4144,8 @@ export async function SyncWithAuditLog(client: Client, request: Request) {
   console.log(`SyncWithAuditLog::Test Started`);
   const service = new MyService(client);
   const syncService = new SyncService(client);
-  const tableName = "SyncTable3"; //change if you setup a new table
+  const scheme = await syncService.getUDCScheme();
+  const tableName = scheme[0].Name;
   const { describe, it, expect, run } = Tester();
   console.log(`SyncWithAuditLog::Gotten services,initiating requests`);
   const syncOptions = {
@@ -4162,6 +4164,7 @@ export async function SyncWithAuditLog(client: Client, request: Request) {
   const sync = await syncService.pullData({
     ModificationDateTime: date.toISOString(),
   });
+
   await service.sleep(20000); //sleep for audit log being written
   const auditLog = await syncService.getAuditLogResultObjectIfValid(
     sync.ExecutionURI,
@@ -4170,16 +4173,16 @@ export async function SyncWithAuditLog(client: Client, request: Request) {
   console.log(auditLog);
 
   const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
-  const testData = resultObject.ResourcesData[0];
+  const testData = await syncService.validateResourceData(resultObject.ResourcesData,tableName);
+  const schemeData = await syncService.validateResourceScheme(resultObject.ResourcesData,tableName);
+  const allData = resultObject.ResourcesData;
+  console.log(allData);
+  const Objects = testData[0];
+  const Schema = schemeData;
 
-  const Objects = testData.Objects[0];
-  console.log(Objects);
-  const Schema = testData.Schema;
-  console.log(Schema);
 
   Objects.Hidden = true;
   const upsertToHidden = await syncService.upsertDocument(tableName, Objects);
-  console.log(upsertToHidden);
   console.log(`SyncWithAuditLog::Gotten all data objects,Starting Mocha tests`);
 
   describe("Sync with Audit Log automation test", async () => {
@@ -4211,6 +4214,8 @@ export async function SyncWithAuditLog(client: Client, request: Request) {
         .that.is.equal(dateToText);
     });
     it("Sync Data - UDC Document insertion test", async () => {
+     expect(allData,"Failed on sync returning more than one object - DI-20917").to.be.a("array").that.has.lengthOf(1);
+     //uncomment when DI-20917 is resolved
       expect(Objects.testField1, "Failed on Field1 returning wrong output")
         .to.be.a("string")
         .that.is.equal(document.testField1);
@@ -4248,16 +4253,16 @@ export async function SyncWithAuditLog(client: Client, request: Request) {
         "boolean"
       ).that.is.true; // test is done after object is moved to hidden
 
-      const CreationDate = Objects.CreationDateTime?.split("T")[0];
+      const CreationDate = Objects.CreationDateTime;
       const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
       const dateToText = date.toISOString().split("T")[0];
 
       expect(ModificationDate, "Failed on wrong modification date")
         .to.be.a("string")
         .that.is.equal(dateToText);
-      expect(CreationDate, "Failed on wrong creation date")
+        expect(CreationDate, "Failed on wrong creation date")
         .to.be.a("string")
-        .that.is.equal(dateToText);
+        .that.has.lengthOf(24).and.includes("Z").and.includes("T");
     });
     it("Sync Data - Schema", async () => {
       expect(Schema.AddonUUID, "Failed on UUID returning wrong output")
@@ -4285,7 +4290,8 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
   console.log(`SyncWithCPISideTest::Test Started`);
   const service = new MyService(client);
   const syncService = new SyncService(client);
-  const tableName = "SyncTable3"; //change if you setup a new table
+  const scheme = await syncService.getUDCScheme();
+  const tableName = scheme[0].Name;
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   const { describe, it, expect, run } = Tester();
@@ -4313,19 +4319,20 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
     sync.ExecutionURI,
     50
   );
+  console.log(auditLog);
 
   const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
-  const testData = resultObject.ResourcesData[0];
-
-  const Objects = testData.Objects[0];
-
-  const Schema = testData.Schema;
+  const testData = await syncService.validateResourceData(resultObject.ResourcesData,tableName);
+  const schemeData = await syncService.validateResourceScheme(resultObject.ResourcesData,tableName);
+  const allData = resultObject.ResourcesData;
+  const Objects = testData[0];
+  const Schema = schemeData;
 
   await service.initSync(accessToken, webAPIBaseURL);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
   const key = document.testField1;
   console.log(key);
-  await service.sleep(10000);
+  await service.sleep(20000);
   const dataFromCPISide = await syncService.getDataFromCPISide(
     webAPIBaseURL,
     accessToken,
@@ -4405,16 +4412,16 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
         "boolean"
       ).that.is.true; // test is done after object is moved to hidden
 
-      const CreationDate = Objects.CreationDateTime?.split("T")[0];
+      const CreationDate = Objects.CreationDateTime;
       const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
       const dateToText = date.toISOString().split("T")[0];
 
       expect(ModificationDate, "Failed on wrong modification date")
         .to.be.a("string")
         .that.is.equal(dateToText);
-      expect(CreationDate, "Failed on wrong creation date")
+        expect(CreationDate, "Failed on wrong creation date")
         .to.be.a("string")
-        .that.is.equal(dateToText);
+        .that.has.lengthOf(24).and.includes("Z").and.includes("T");
     });
     it("Sync Data - Schema", async () => {
       expect(Schema.AddonUUID, "Failed on UUID returning wrong output")
@@ -4503,7 +4510,7 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
       ).to.be.a("boolean").that.is.false;
 
       const CreationDate =
-        dataFromCPISide.object.CreationDateTime?.split("T")[0];
+        dataFromCPISide.object.CreationDateTime;
       const ModificationDate =
         dataFromCPISide.object.ModificationDateTime?.split("T")[0];
       const dateToText = date.toISOString().split("T")[0];
@@ -4511,9 +4518,9 @@ export async function SyncWithCPISideTest(client: Client, request: Request) {
       expect(ModificationDate, "Failed on wrong modification date")
         .to.be.a("string")
         .that.is.equal(dateToText);
-      expect(CreationDate, "Failed on wrong creation date")
+        expect(CreationDate, "Failed on wrong creation date")
         .to.be.a("string")
-        .that.is.equal(dateToText);
+        .that.has.lengthOf(24).and.includes("Z").and.includes("T");
     });
   });
 
@@ -4527,13 +4534,14 @@ export async function SyncWithIndexedField(client: Client, request: Request) {
   console.log(`SyncWithIndexedField::Test Started`);
   const service = new MyService(client);
   const syncService = new SyncService(client);
-  const tableName = "SyncTable3"; //change if you setup a new table
+  const scheme = await syncService.getUDCScheme();
+  const tableName = scheme[0].Name;
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   await service.initResync(accessToken, webAPIBaseURL);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
   const { describe, it, expect, run } = Tester();
-  console.log(`SyncWithCPISideTest::Gotten services,initiating requests`);
+  console.log(`SyncWithIndexedField::Gotten services,initiating requests`);
   const syncOptions = {
     Key: "SyncVariables",
     SYNC_DATA_SIZE_LIMITATION: 4,
@@ -4552,7 +4560,7 @@ export async function SyncWithIndexedField(client: Client, request: Request) {
     tableName,
     documentWithoutIndex
   );
-  await service.sleep(2000);
+  await service.sleep(5000);
   const sync = await syncService.pullData({
     ModificationDateTime: date.toISOString(),
   });
@@ -4563,28 +4571,35 @@ export async function SyncWithIndexedField(client: Client, request: Request) {
   );
 
   const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
-  console.log(resultObject);
-  const testData = resultObject.ResourcesData[0];
+  //console.log(resultObject);
+  const resData = resultObject.ResourcesData;
 
-  const Objects = testData.Objects[0];
-  const noneIndexedObjects = testData.Objects[1];
+  const testScheme = await syncService.validateResourceScheme(resData,tableName);
 
-  const Schema = testData.Schema;
+  const testData = await syncService.validateResourceData(resData,tableName);
+
+
+  const Objects = testData[0];
+
+  const noneIndexedObjects = testData[1];
+
+
+  const Schema = testScheme;
 
   await service.initSync(accessToken, webAPIBaseURL);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
 
   const index = document.testField2;
-  console.log(index);
 
-  await service.sleep(10000);
+
+  await service.sleep(15000);
   const dataFromCPISide = await syncService.getListFromCPISide(
     webAPIBaseURL,
     accessToken,
     tableName,
     index
   );
-  console.log(dataFromCPISide);
+
 
   Objects.Hidden = true;
   noneIndexedObjects.Hidden = true;
@@ -4598,7 +4613,7 @@ export async function SyncWithIndexedField(client: Client, request: Request) {
     `SyncWithIndexedField::Gotten all data objects,Starting Mocha tests`
   );
 
-  describe("Sync with Get from CPISide automation test", async () => {
+  describe("SyncWithIndexedField from CPISide automation test", async () => {
     it("Settings Post Test", async () => {
       expect(
         settings.Hidden,
@@ -4671,16 +4686,16 @@ export async function SyncWithIndexedField(client: Client, request: Request) {
         "boolean"
       ).that.is.true; // test is done after object is moved to hidden
 
-      const CreationDate = Objects.CreationDateTime?.split("T")[0];
+      const CreationDate = Objects.CreationDateTime;
       const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
       const dateToText = date.toISOString().split("T")[0];
 
       expect(ModificationDate, "Failed on wrong modification date")
         .to.be.a("string")
         .that.is.equal(dateToText);
-      expect(CreationDate, "Failed on wrong creation date")
+        expect(CreationDate, "Failed on wrong creation date")
         .to.be.a("string")
-        .that.is.equal(dateToText);
+        .that.has.lengthOf(24).and.includes("Z").and.includes("T");
 
       expect(
         noneIndexedObjects.testField1,
@@ -4857,7 +4872,7 @@ export async function SyncWithIndexedField(client: Client, request: Request) {
       ).to.be.a("boolean").that.is.false;
 
       const CreationDate =
-        dataFromCPISide.objects[0].CreationDateTime?.split("T")[0];
+        dataFromCPISide.objects[0].CreationDateTime;
       const ModificationDate =
         dataFromCPISide.objects[0].ModificationDateTime?.split("T")[0];
       const dateToText = date.toISOString().split("T")[0];
@@ -4865,9 +4880,9 @@ export async function SyncWithIndexedField(client: Client, request: Request) {
       expect(ModificationDate, "Failed on wrong modification date")
         .to.be.a("string")
         .that.is.equal(dateToText);
-      expect(CreationDate, "Failed on wrong creation date")
+        expect(CreationDate, "Failed on wrong creation date")
         .to.be.a("string")
-        .that.is.equal(dateToText);
+        .that.has.lengthOf(24).and.includes("Z").and.includes("T");
     });
   });
 
@@ -4886,13 +4901,13 @@ export async function SyncDataFromADAL(client: Client, request: Request) {
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   const { describe, it, expect, run } = Tester();
   await service.initResync(accessToken, webAPIBaseURL);
-  await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 40);
   console.log(`SyncDataFromADAL::Gotten services,initiating requests`);
   const syncOptions = {
     Key: "SyncVariables",
     SYNC_DATA_SIZE_LIMITATION: 4,
     SYNC_TIME_LIMITATION: 10,
-    USER_DEFINED_COLLECTIONS: tableName,
+    USER_DEFINED_COLLECTIONS: "",
     USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
   };
 
@@ -4915,17 +4930,18 @@ export async function SyncDataFromADAL(client: Client, request: Request) {
   );
 
   const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
-  console.log(resultObject);
-  const testData = resultObject.ResourcesData[0];
+  const testData = await syncService.validateResourceData(resultObject.ResourcesData,tableName);
+  const schemeData = await syncService.validateResourceScheme(resultObject.ResourcesData,tableName);
+  const allData = resultObject.ResourcesData;
+  console.log(allData);
+  const Objects = testData[0];
+  const Schema = schemeData;
 
-  const Objects = testData.Objects[0];
-
-  const Schema = testData.Schema;
   const key = object?.Key as string;
   await service.initSync(accessToken, webAPIBaseURL);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
 
-  await service.sleep(10000);
+  await service.sleep(15000);
   const dataFromCPISide = await syncService.getADALFromCPISide(
     webAPIBaseURL,
     accessToken,
@@ -4975,6 +4991,7 @@ export async function SyncDataFromADAL(client: Client, request: Request) {
         .that.is.equal(dateToText);
     });
     it("Sync Data - UDC Document insertion test", async () => {
+      expect(allData,"Failed on sync returning more than one scheme - DI-20917").to.be.an("array").that.has.lengthOf(1);
       expect(Objects.testField1, "Failed on Field1 returning wrong output")
         .to.be.a("string")
         .that.is.equal(object.testField1);
@@ -5012,16 +5029,16 @@ export async function SyncDataFromADAL(client: Client, request: Request) {
         "boolean"
       ).that.is.true; // test is done after object is moved to hidden
 
-      const CreationDate = Objects.CreationDateTime?.split("T")[0];
+      const CreationDate = Objects.CreationDateTime;
       const ModificationDate = Objects.ModificationDateTime?.split("T")[0];
       const dateToText = date.toISOString().split("T")[0];
 
       expect(ModificationDate, "Failed on wrong modification date")
         .to.be.a("string")
         .that.is.equal(dateToText);
-      expect(CreationDate, "Failed on wrong creation date")
+        expect(CreationDate, "Failed on wrong creation date")
         .to.be.a("string")
-        .that.is.equal(dateToText);
+        .that.has.lengthOf(24).and.includes("Z").and.includes("T");
     });
     it("Sync Data - Schema", async () => {
       expect(Schema.AddonUUID, "Failed on UUID returning wrong output")
@@ -5114,7 +5131,7 @@ export async function SyncDataFromADAL(client: Client, request: Request) {
       ).to.be.a("boolean").that.is.false;
 
       const CreationDate =
-        dataFromCPISide.object.CreationDateTime?.split("T")[0];
+        dataFromCPISide.object.CreationDateTime;
       const ModificationDate =
         dataFromCPISide.object.ModificationDateTime?.split("T")[0];
       const dateToText = date.toISOString().split("T")[0];
@@ -5122,9 +5139,9 @@ export async function SyncDataFromADAL(client: Client, request: Request) {
       expect(ModificationDate, "Failed on wrong modification date")
         .to.be.a("string")
         .that.is.equal(dateToText);
-      expect(CreationDate, "Failed on wrong creation date")
+        expect(CreationDate, "Failed on wrong creation date")
         .to.be.a("string")
-        .that.is.equal(dateToText);
+        .that.has.lengthOf(24).and.includes("Z").and.includes("T");
     });
   });
 
@@ -5147,7 +5164,7 @@ export async function SyncLargeDataNegative(client: Client, request: Request) {
     Key: "SyncVariables",
     SYNC_DATA_SIZE_LIMITATION: 1,
     SYNC_TIME_LIMITATION: 10,
-    USER_DEFINED_COLLECTIONS: tableName,
+    USER_DEFINED_COLLECTIONS: "",
     USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
   };
 
@@ -5189,7 +5206,7 @@ export async function SyncLargeDataNegative(client: Client, request: Request) {
   for (const object of objectsArr) {
     index++;
     console.log(`now sending the ${index} request`);
-    await service.upsertToADAL("syncTable", object);
+    await service.upsertToADAL(tableName, object);
   }
 
   await service.sleep(5000);
@@ -5206,9 +5223,9 @@ export async function SyncLargeDataNegative(client: Client, request: Request) {
   const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
   console.log(resultObject);
 
-  const purge = await syncService.purgeADALTable("syncTable");
+  const purge = await syncService.purgeADALTable(tableName);
   await service.sleep(5000);
-  const scheme = await syncService.createADALScheme("syncTable", "data");
+  const scheme = await syncService.createADALScheme(tableName, "data");
 
   console.log(`SyncLargeDataNegative::Finished Logic,starting Mocha tests`);
 
@@ -5339,10 +5356,10 @@ export async function SyncLargeDataPositive(client: Client, request: Request) {
   for (const object of objectsArr) {
     index++;
     console.log(`now sending the ${index} request`);
-    await service.upsertToADAL("syncTable", object);
+    await service.upsertToADAL(tableName, object);
   }
 
-  await service.sleep(5000);
+  await service.sleep(15000);
   const sync = await syncService.pullData({
     ModificationDateTime: date.toISOString(),
   });
@@ -5352,13 +5369,18 @@ export async function SyncLargeDataPositive(client: Client, request: Request) {
     50
   );
 
-  const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
 
+  const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
+  console.log(resultObject);
   const syncFile = await syncService.getSyncFromAuditLog(
     resultObject.ResourcesURL
   );
 
-  const testData = syncFile.ResourcesData[0].Objects;
+  
+  const allData = syncFile.ResourcesData;
+
+  const testData = await syncService.validateResourceData(syncFile.ResourcesData,tableName);
+
   const testObjectsArrFromAuditLog = [
     testData[0],
     testData[5],
@@ -5369,7 +5391,7 @@ export async function SyncLargeDataPositive(client: Client, request: Request) {
     testData[39],
   ];
   console.log("data from audit log");
-  console.log(testData);
+
 
   await service.initSync(accessToken, webAPIBaseURL);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
@@ -5389,11 +5411,10 @@ export async function SyncLargeDataPositive(client: Client, request: Request) {
     dataFromCPISide.objects[30],
     dataFromCPISide.objects[39],
   ];
-  console.log(dataFromCPISide);
 
-  const purge = await syncService.purgeADALTable("syncTable");
+  const purge = await syncService.purgeADALTable(tableName);
   await service.sleep(5000);
-  const scheme = await syncService.createADALScheme("syncTable", "data");
+  const scheme = await syncService.createADALScheme(tableName, "data");
 
   console.log(`SyncLargeDataPositive::Finished Logic,starting Mocha tests`);
 
@@ -5434,6 +5455,8 @@ export async function SyncLargeDataPositive(client: Client, request: Request) {
     });
 
     it("Sync pull response from file after inserting data above 4MB test", async () => {
+      expect(allData,"Failed on sync returning more than one scheme - DI-20917").to.be.an("array").that.has.lengthOf(1);
+      //uncomment once DI-20917 is resolved
       expect(testData, "Failed on array returning wrong value/length")
         .to.be.an("array")
         .that.has.lengthOf(40);
@@ -5444,10 +5467,10 @@ export async function SyncLargeDataPositive(client: Client, request: Request) {
           .to.be.a("string")
           .that.is.equal(dateToText);
 
-        const CreationDate = object.CreationDateTime?.split("T")[0];
-        expect(CreationDate, "Sync CreationDate returned wrong output")
-          .to.be.a("string")
-          .that.is.equal(dateToText);
+        const CreationDate = object.CreationDateTime;
+        expect(CreationDate, "Failed on wrong creation date")
+        .to.be.a("string")
+        .that.has.lengthOf(24).and.includes("Z").and.includes("T");
 
         expect(object.Key, "Failed on key returning wrong")
           .to.be.a("string")
@@ -5488,10 +5511,10 @@ export async function SyncLargeDataPositive(client: Client, request: Request) {
           .to.be.a("string")
           .that.is.equal(dateToText);
 
-        const CreationDate = object.CreationDateTime?.split("T")[0];
-        expect(CreationDate, "Sync CreationDate returned wrong output")
-          .to.be.a("string")
-          .that.is.equal(dateToText);
+        const CreationDate = object.CreationDateTime;
+        expect(CreationDate, "Failed on wrong creation date")
+        .to.be.a("string")
+        .that.has.lengthOf(24).and.includes("Z").and.includes("T");
 
         expect(object.Key, "Failed on key returning wrong")
           .to.be.a("string")
@@ -5520,8 +5543,173 @@ export async function SyncLargeDataPositive(client: Client, request: Request) {
   const testResults = await run();
   return testResults;
 }
+//will finish after we will be able to lower the sync time limitation to 0.1
+export async function syncSoftLimitsNegative(client: Client,request: Request) {
+  console.log(`syncSoftLimitsNegative::Test Started`);
+  const service = new MyService(client);
+  const syncService = new SyncService(client);
+  const tableName = "syncTable"; //change if you setup a new table on ADAL
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  let size: number = 0;
+  const { describe, it, expect, run } = Tester();
+  //resync to cleanse the old data from cpi-side -> till we figure out how it should work
+  await service.initResync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 50);
+  console.log(`syncSoftLimitsNegative::Gotten services,initiating requests`);
+
+  const syncOptions = {
+    Key: "SyncVariables",
+    SYNC_DATA_SIZE_LIMITATION: 15,
+    SYNC_TIME_LIMITATION: 0.01,
+    USER_DEFINED_COLLECTIONS: "",
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
+  };
+
+  const settings = await syncService.setSyncOptions(syncOptions);
+  const date = new Date();
+  await service.sleep(10000);
+  //getting file dummy data for large sync (coverted image to base64 that sits on ADAL);
+  const getBase64FromADAL = await service.getFromADAL("base64","base64String");
+
+  const base64 = getBase64FromADAL[0].Base64;
+
+  const objectsArr: {
+    Key: string;
+    field1: string;
+    field2: string;
+    field3: string;
+    base64: string;
+    field4: number;
+    Hidden?: boolean;
+  }[] = [];
+
+  for (let i = 0; i < 35; i++) {
+    //looping around 50 times to get an object above 4MB
+    objectsArr.push({
+      Key: "key" + Math.floor(Math.random() * 10000000000000),
+      field1: "random",
+      field2: "data",
+      field3: "yey",
+      field4: Math.floor(Math.random() * 1000),
+      base64: base64,
+    });
+  }
+  //objects array size rough measuring
+  for (const object of objectsArr) {
+    size += await syncService.roughSizeOfObject(object); // size/2048 = how many MB's are on the data array
+  }
+  console.log(size);
+  let index = 0;
+  for (const object of objectsArr) {
+    index++;
+    console.log(`now sending the ${index} request`);
+    await service.upsertToADAL(tableName, object);
+  }
+
+  await service.sleep(30000);
+  const sync = await syncService.pullData({
+    ModificationDateTime: date.toISOString(),
+  });
+  await service.sleep(45000); //sleep for audit log being written
+  const auditLog = await syncService.getAuditLogResultObjectIfValid(
+    sync.ExecutionURI,
+    60
+  );
+  console.log(auditLog);
+
+  const resultObject = JSON.parse(auditLog.AuditInfo.ResultObject);
+  console.log(resultObject);
+
+  const purge = await syncService.purgeADALTable(tableName);
+  await service.sleep(5000);
+  const scheme = await syncService.createADALScheme(tableName, "data");
+
+
+  await service.initResync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 50);
+  console.log(`syncSoftLimitsNegative::resetting sync duration to default and resyncing`);
+
+  const syncOptionsToDefault = {
+    Key: "SyncVariables",
+    SYNC_DATA_SIZE_LIMITATION: 15,
+    SYNC_TIME_LIMITATION: 10,
+    USER_DEFINED_COLLECTIONS: "",
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
+  };
+
+  const settingsSetToDefault = await syncService.setSyncOptions(syncOptionsToDefault);
+
+  await service.sleep(7000);
+  await service.initResync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 50); 
+
+  console.log(`syncSoftLimitsNegative::Finished Logic,starting Mocha tests`);
+
+  describe("Sync Soft Limits Negative automation test", async () => {
+    it("Settings Post Test", async () => {
+      expect(
+        settings.Hidden,
+        "Failed on settings hidden returning wrong output"
+      ).to.be.a("boolean").that.is.false;
+      expect(settings.Key, "Failed on settings Key returning wrong output")
+        .to.be.a("string")
+        .that.is.equal(syncOptions.Key);
+      expect(
+        settings.SYNC_DATA_SIZE_LIMITATION,
+        "Sync data size limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_DATA_SIZE_LIMITATION);
+      expect(
+        settings.SYNC_TIME_LIMITATION,
+        "Sync data time limit returned wrong value"
+      )
+        .to.be.a("number")
+        .that.is.equal(syncOptions.SYNC_TIME_LIMITATION);
+
+      expect(
+        settings.USER_DEFINED_COLLECTIONS_INDEX_FIELD,
+        "Failed on wrong index field returning"
+      )
+        .to.be.a("string")
+        .that.is.equal(syncOptions.USER_DEFINED_COLLECTIONS_INDEX_FIELD);
+
+      const ModificationDate = settings.ModificationDateTime?.split("T")[0];
+      const dateToText = date.toISOString().split("T")[0];
+      expect(ModificationDate, "Sync modificationdate returned wrong output")
+        .to.be.a("string")
+        .that.is.equal(dateToText);
+    });
+
+    it("Sync response after inserting data above the time soft limit test", async () => {
+      expect(resultObject.success, "Failed on success returning wrong value")
+        .to.be.a("string")
+        .that.is.equal("Exception");
+      expect(
+        resultObject.resultObject,
+        "Failed on result object not returning null"
+      ).to.be.null;
+      expect(resultObject.errorMessage, "Failed on wrong error message")
+        .to.be.a("string")
+        .that.is.equal(
+          `Failed due to exception: getADALTablesSyncData timed out after 600 ms`
+        );
+      expect(size / 2048, "failed on object size returning wrong value")
+        .to.be.a("number")
+        .that.is.above(0)
+        .and.below(10000);
+    });
+  });
+
+  console.log(`syncSoftLimitsNegative::Finished Mocha tests`);
+
+  const testResults = await run();
+  return testResults;
+}
 //run this after install if you need to setup a new environment for sync automation
 //run locally or it won't find the file
+//this inserts to adal to a specific scheme on adal for the big sync tests
 export async function insertBase64ToADALAfterInstall(client:Client,request: Request) {
   const service = new MyService(client);
  
@@ -5539,3 +5727,4 @@ export async function insertBase64ToADALAfterInstall(client:Client,request: Requ
   return;
 
 }
+

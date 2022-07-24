@@ -2181,7 +2181,7 @@ router.get("/runScript", async (req, res, next) => {
   console.log("Inside runScript endpoint on automation addon");
   const scriptKey = req.body.Key;
   const scriptData = req.body.Data;
-
+  
   const scriptRun = await runScript(scriptKey, scriptData);
   res.json(scriptRun);
 });
@@ -2194,7 +2194,6 @@ let filterObj = {
   table: tableName,
   key: key
 } as UDCGetParams;
-debugger;
 const response = await pepperi.api.userDefinedCollections.get(filterObj);
 res.json(response);
 });
@@ -2206,7 +2205,6 @@ router.use("/getListFromSync" ,async(req,res,next) => {
     table: tableName,
     index: index
   } as UDCGetListParams;
-  
   const response = await pepperi.api.userDefinedCollections.getList(filterObj);
   res.json(response);
 });
