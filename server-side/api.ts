@@ -890,7 +890,9 @@ export async function SyncInterceptorsTest(client: Client, request: Request) {
 
     })
     it("Sync stopped event data test cases", async () => {
+      
       if(udtData[1].Values.length == 33) { //stage - passes
+        console.log("inside stage block");
       expect(udtData[1].Values[0],"failed on sync status returning wrong output").that.includes(`"SyncStatus":`);
       expect(udtData[1].Values[1],"failed on job response returning wrong output").that.includes(`"JobInfoResponse":{"SyncUUID":`);
       expect(udtData[1].Values[2],"failed on creation date time response returning wrong output").that.includes(`"CreationDateTime":`);
@@ -923,6 +925,7 @@ export async function SyncInterceptorsTest(client: Client, request: Request) {
       expect(udtData[1].Values[31],"failed on number of objects returning wrong output").that.includes(`"NumberOfObjectsReceived":"`);
       expect(udtData[1].Values[32],"failed on error message returning wrong output").that.includes(`"ErrorMessage":""}`);
       } else if (udtData[1].Values.length == 32) { //eu - problematic when run on server,object is not exactly the same
+        console.log("inside eu block");
         expect(udtData[1].Values[0],"failed on sync status returning wrong output").that.includes(`"SyncStatus":`);
         expect(udtData[1].Values[1],"failed on job response returning wrong output").that.includes(`"JobInfoResponse":{"SyncUUID":`);
         expect(udtData[1].Values[2],"failed on creation date time response returning wrong output").that.includes(`"CreationDateTime":`);
@@ -935,26 +938,27 @@ export async function SyncInterceptorsTest(client: Client, request: Request) {
         //expect(udtData[1].Values[10],"failed on data fully updated response returning wrong output").that.includes(`"DataFullyUpdated":true}`); DI-20945 - DataFullyUpdated attribute missing on EU
         //expect(udtData[1].Values[11],"failed on Data Updates response returning wrong output").that.includes(`"DataUpdates":{"URL":"https://syncgetdata`).and.that.includes(".pepperi.com/");
         //expect(udtData[1].Values[12],"failed on free text from client response returning wrong output").that.includes(`"FreeTextFromClient":null`);
-        expect(udtData[1].Values[13],"failed on error response returning wrong output").that.includes(`"Error":null`);
-        expect(udtData[1].Values[14],"failed on client info returning wrong output").that.includes(`"ClientInfo":{"LastSyncDateTime":`);
-        expect(udtData[1].Values[16],"failed on device internal id returning wrong output").that.includes(`"DeviceExternalID":"`);
-        expect(udtData[1].Values[15],"failed on formattedLastSyncTime returning wrong output").that.includes(`"FormattedLastSyncDateTime":"`);
-        expect(udtData[1].Values[17],"failed on clientdbUUID returning wrong output").that.includes(`"ClientDBUUID":"`);
-        expect(udtData[1].Values[19],"failed on timezone diff returning wrong output").that.includes(`"TimeZoneDiff":0`);
-        expect(udtData[1].Values[20],"failed on locale returning wrong output").that.includes(`"Locale":"en-US"`);
-        expect(udtData[1].Values[21],"failed on branded app returning wrong output").that.includes(`"BrandedAppID":""`);
-        expect(udtData[1].Values[22],"failed on user full name returning wrong output").that.includes(`"UserFullName":""`);
-        expect(udtData[1].Values[23],"failed on software version returning wrong output").that.includes(`"SoftwareVersion":"`);
-        expect(udtData[1].Values[24],"failed on source type returning wrong output").that.includes(`"SourceType":"10"`);
-        expect(udtData[1].Values[25],"failed on device model returning wrong output").that.includes(`"DeviceModel":""`);
-        expect(udtData[1].Values[26],"failed on device name returning wrong output").that.includes(`"DeviceName":""`);
-        expect(udtData[1].Values[27],"failed on device screen size returning wrong output").that.includes(`"DeviceScreenSize":""`);
-        expect(udtData[1].Values[28],"failed on system name returning wrong output").that.includes(`"SystemName":""`);
-        expect(udtData[1].Values[29],"failed on system version returning wrong output").that.includes(`"SystemVersion":""}}`);
-        expect(udtData[1].Values[30],"failed on progress returning wrong output").that.includes(`"Progress":"100"`);
-        expect(udtData[1].Values[31],"failed on number of objects returning wrong output").that.includes(`"NumberOfObjectsReceived":"`);
-        expect(udtData[1].Values[32],"failed on error message returning wrong output").that.includes(`"ErrorMessage":""}`);
+        expect(udtData[1].Values[12],"failed on error response returning wrong output").that.includes(`"Error":null`);
+        expect(udtData[1].Values[13],"failed on client info returning wrong output").that.includes(`"ClientInfo":{"LastSyncDateTime":`);
+        expect(udtData[1].Values[15],"failed on device internal id returning wrong output").that.includes(`"DeviceExternalID":"`);
+        expect(udtData[1].Values[14],"failed on formattedLastSyncTime returning wrong output").that.includes(`"FormattedLastSyncDateTime":"`);
+        expect(udtData[1].Values[16],"failed on clientdbUUID returning wrong output").that.includes(`"ClientDBUUID":"`);
+        expect(udtData[1].Values[18],"failed on timezone diff returning wrong output").that.includes(`"TimeZoneDiff":0`);
+        expect(udtData[1].Values[19],"failed on locale returning wrong output").that.includes(`"Locale":"en-US"`);
+        expect(udtData[1].Values[20],"failed on branded app returning wrong output").that.includes(`"BrandedAppID":""`);
+        expect(udtData[1].Values[21],"failed on user full name returning wrong output").that.includes(`"UserFullName":""`);
+        expect(udtData[1].Values[22],"failed on software version returning wrong output").that.includes(`"SoftwareVersion":"`);
+        expect(udtData[1].Values[23],"failed on source type returning wrong output").that.includes(`"SourceType":"10"`);
+        expect(udtData[1].Values[24],"failed on device model returning wrong output").that.includes(`"DeviceModel":""`);
+        expect(udtData[1].Values[25],"failed on device name returning wrong output").that.includes(`"DeviceName":""`);
+        expect(udtData[1].Values[26],"failed on device screen size returning wrong output").that.includes(`"DeviceScreenSize":""`);
+        expect(udtData[1].Values[27],"failed on system name returning wrong output").that.includes(`"SystemName":""`);
+        expect(udtData[1].Values[28],"failed on system version returning wrong output").that.includes(`"SystemVersion":""}}`);
+        expect(udtData[1].Values[29],"failed on progress returning wrong output").that.includes(`"Progress":"100"`);
+        expect(udtData[1].Values[30],"failed on number of objects returning wrong output").that.includes(`"NumberOfObjectsReceived":"`);
+        expect(udtData[1].Values[31],"failed on error message returning wrong output").that.includes(`"ErrorMessage":""}`);
       } else { //prod - passes
+        console.log("inside prod block");
         expect(udtData[1].Values[0],"failed on sync status returning wrong output").that.includes(`"SyncStatus":`);
         expect(udtData[1].Values[0],"failed on job response returning wrong output").that.includes(`"JobInfoResponse":{"SyncUUID":`);
         expect(udtData[1].Values[0],"failed on creation date time response returning wrong output").that.includes(`"CreationDateTime":`);
