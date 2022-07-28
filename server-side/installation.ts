@@ -12,6 +12,7 @@ exports.install = async (client: Client, request: Request) => {
     "LoadUDT",
     "InterceptorsUDT",
     "interceptorsTiming",
+    "SyncInterceptors"
   ];
   try {
     const triggersScheme = await service.papiClient.addons.data.schemes.post({

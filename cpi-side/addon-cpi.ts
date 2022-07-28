@@ -82,6 +82,7 @@ export async function load(configuration: any) {
     adalData.clientActionsWithinHudTestActive;
   const InterceptorsTimeoutTestActive = adalData.InterceptorsTimeoutTestActive;
   const InterceptorActionsTest = adalData.InterceptorActionsTest;
+  const SyncInteceptorsActive = adalData.SyncInteceptorsActive
   console.log("LoadTester::loadTestActive: " + loadTestActive);
   console.log("LoadTester::counter: " + loadTestCounter);
   console.log(
@@ -101,6 +102,10 @@ export async function load(configuration: any) {
   console.log(
     "interceptorsTimeoutTester::InterceptorsTimeoutTestActive: " +
       InterceptorsTimeoutTestActive
+  );
+  console.log(
+    "SyncInteceptorsTest::SyncInteceptorsActive: " +
+    SyncInteceptorsActive
   );
   //feature flagging -> meaning these load and work in the background only when the relevant flag is available on ADAL (triggerd by test)
   if (InterceptorActionsTest === true) {
@@ -1289,6 +1294,50 @@ export async function load(configuration: any) {
       }
     );
   }
+  if (SyncInteceptorsActive=== true) {
+     pepperi.events.intercept("SyncStarted",{},async(data,next,main) => {
+      
+      const date = new Date();
+      console.log(
+        "SyncEventsTester:: Sync Started write to UDT by the TimeStamp: " +
+          date.toISOString()
+      );
+      try {
+        await pepperi.api.userDefinedTables.upsert({
+          table: "SyncInterceptors",
+          mainKey: `SyncStarted${date.toISOString()}`,
+          secondaryKey: "SyncStarted",
+          value: date.toISOString(),
+        });
+      } catch (err) {
+        console.log("SyncEventsTester::issue detected on UDT insert.");
+        console.log(err);
+      }
+
+
+     });
+
+     pepperi.events.intercept("SyncTerminated",{},async(data,next,main) => {
+      const parsedData = JSON.stringify(data);
+      const date = new Date();
+      console.log(
+        "SyncEventsTester:: Sync terminated : write to UDT by the TimeStamp: " +
+          date.toISOString()
+      );
+      try {
+        await pepperi.api.userDefinedTables.upsert({
+          table: "SyncInterceptors",
+          mainKey: `SyncStopped${date.toISOString()}`,
+          secondaryKey: "SyncStopped",
+          value: parsedData,
+        });
+      } catch (err) {
+        console.log("SyncEventsTester::issue detected on UDT insert.");
+        console.log(err);
+      }
+
+    });
+  }
 }
 
 export const router = Router();
@@ -2221,7 +2270,7 @@ router.use("/getDataFromADAL", async(req,res,next)=> {
 
  res.json(adalGet);
 });
-
+//Sync endpoint to GET list data from ADAL
 router.use("/getListFromADAL",async(req,res,next)=> {
   const tableName = req.body.tableName;
 

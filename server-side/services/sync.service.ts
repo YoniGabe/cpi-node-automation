@@ -61,13 +61,6 @@ class SyncService {
     return res;
   }
 
-  async pullDataToGetURL(syncObject: any) {
-    //const url = `/addons/data/pull?return_url=true` -> need to change once mapping is done on prod as well
-    const url = `/addons/api/5122dc6d-745b-4f46-bb8e-bd25225d350a/api/pull?return_url=true`;
-    const res = await this.papiClient.post(url, syncObject);
-    return res;
-  }
-
   async getSyncFromAuditLog(url: string) {
     let syncDataFromFile = await (
       await fetch(url, {

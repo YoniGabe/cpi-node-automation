@@ -392,14 +392,14 @@ export async function PerformenceTester(client: Client, request: Request) {
         "Test timespan took longer then the best run + average margin and version"
       )
         .to.be.a("number")
-        .that.is.below(bestDuration * 1.2);
+        .that.is.below(bestDuration * 1.3);
 
       expect(
         currentRes,
         "Test timespan took longer then the last run + average margin"
       )
         .to.be.a("number")
-        .that.is.below(lastRun * 1.1);
+        .that.is.below(lastRun * 1.2);
     });
   });
 
@@ -822,6 +822,173 @@ export async function interceptorsTimeoutTester(
     }
   });
   console.log("InterceptorsTimeoutTestActive:: Test finished");
+  const testResults = await run();
+  return testResults;
+}
+
+export async function SyncInterceptorsTest(client: Client, request: Request) {
+  const service = new MyService(client);
+  const isLocal = false;
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  const { describe, it, expect, run } = Tester();
+
+  if (isLocal) {
+    accessToken = "c8cff29a-56f6-4489-a21a-79534785fb85"; //fill in from CPINode debugger
+    webAPIBaseURL = "http://localhost:8093";
+  }
+  //run in case sync is running before tests
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 20);
+  //set test flag to On
+  const flagOn = await service.setTestFlag({
+    SyncInteceptorsActive : true
+  }); 
+  await service.sleep(5000);
+  const firstSync = await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 20);
+  await service.sleep(10000);
+  const secondSync = await service.initSync(accessToken, webAPIBaseURL); // this triggers the sync interceptors
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 20);
+  //set test flag to Off
+  const flagOff = await service.setTestFlag({
+    SyncInteceptorsActive : false
+  }); // deactivates test
+  const thirdSync = await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(15000);
+  //need to add mocha and UDT get
+  const udtData = await service.getUDTValues("SyncInterceptors", 2, "DESC");
+  console.log(udtData);
+  const data = await service.parseJSONObject(udtData[1].Values);
+
+  // remove UDT lines after test
+  const ModificationDate = (new Date().toISOString()).split("T")[0];
+  for (const line of udtData) {
+    try {
+      const res = await service.updateUDTValues(
+        line.MapDataExternalID,
+        line.MainKey,
+        line.SecondaryKey,
+        true
+      );
+      console.log(
+        `SyncInterceptorsTest::Updated UDTLineID ${line.InternalID},with the following hidden status: ${res.Hidden} `
+      );
+    } catch (err) {
+      console.log(`SyncInterceptorsTest::UDT Removal error: ${err}`);
+    }
+  }
+
+  //mocha test
+  describe("Sync interceptors events automation test", async () => {
+    it("Sync started and stooped events test cases",async() => {
+      expect(udtData,"Failed on udt returning wrong number of objects").to.be.an("array").that.has.lengthOf(2);
+      expect(udtData[0].SecondaryKey,"Failed on wrong interceptor firing").to.be.a("string").that.is.equal("SyncStarted");
+      expect(udtData[0].MainKey.split("T")[0],"Failed on wrong date returning").to.be.a("string").that.is.equal(`SyncStarted${ModificationDate}`);
+      expect(udtData[1].SecondaryKey,"Failed on wrong interceptor firing").to.be.a("string").that.is.equal("SyncStopped");
+      expect(udtData[1].MainKey.split("T")[0],"Failed on wrong date returning").to.be.a("string").that.is.equal(`SyncStopped${ModificationDate}`);
+
+    })
+    it("Sync stopped event data test cases", async () => {
+      if(udtData[1].Values.length == 33) { //stage - passes
+      expect(udtData[1].Values[0],"failed on sync status returning wrong output").that.includes(`"SyncStatus":`);
+      expect(udtData[1].Values[1],"failed on job response returning wrong output").that.includes(`"JobInfoResponse":{"SyncUUID":`);
+      expect(udtData[1].Values[2],"failed on creation date time response returning wrong output").that.includes(`"CreationDateTime":`);
+      expect(udtData[1].Values[4],"failed on modification date time response returning wrong output").that.includes(`"ModificationDateTime":`);
+      expect(udtData[1].Values[5],"failed on formatted modification date time response returning wrong output").that.includes(`"FormattedModificationDateTime":"${ModificationDate}`);
+      expect(udtData[1].Values[6],"failed on created user uuid response returning wrong output").that.includes(`"CreatedByUserUUID":"`);
+      expect(udtData[1].Values[7],"failed on status response returning wrong output").that.includes(`"Status":"Done"`);
+      expect(udtData[1].Values[8],"failed on progress response returning wrong output").that.includes(`"ProgressPercentage":100`);
+      expect(udtData[1].Values[9],"failed on sentData response returning wrong output").that.includes(`"SentData"`);
+      expect(udtData[1].Values[10],"failed on data fully updated response returning wrong output").that.includes(`"DataFullyUpdated":true}`);
+      //expect(udtData[1].Values[11],"failed on Data Updates response returning wrong output").that.includes(`"DataUpdates":{"URL":"https://syncgetdata`).and.that.includes(".pepperi.com/");
+      expect(udtData[1].Values[12],"failed on free text from client response returning wrong output").that.includes(`"FreeTextFromClient":null`);
+      expect(udtData[1].Values[13],"failed on error response returning wrong output").that.includes(`"Error":null`);
+      //expect(udtData[1].Values[14],"failed on client info returning wrong output").that.includes(`"ClientInfo":{"LastSyncDateTime":`);
+      expect(udtData[1].Values[16],"failed on device internal id returning wrong output").that.includes(`"DeviceExternalID":"`);
+      expect(udtData[1].Values[15],"failed on formattedLastSyncTime returning wrong output").that.includes(`"FormattedLastSyncDateTime":"`);
+      expect(udtData[1].Values[17],"failed on clientdbUUID returning wrong output").that.includes(`"ClientDBUUID":"`);
+      expect(udtData[1].Values[19],"failed on timezone diff returning wrong output").that.includes(`"TimeZoneDiff":0`);
+      expect(udtData[1].Values[20],"failed on locale returning wrong output").that.includes(`"Locale":"en-US"`);
+      expect(udtData[1].Values[21],"failed on branded app returning wrong output").that.includes(`"BrandedAppID":""`);
+      expect(udtData[1].Values[22],"failed on user full name returning wrong output").that.includes(`"UserFullName":""`);
+      expect(udtData[1].Values[23],"failed on software version returning wrong output").that.includes(`"SoftwareVersion":"`);
+      expect(udtData[1].Values[24],"failed on source type returning wrong output").that.includes(`"SourceType":"10"`);
+      expect(udtData[1].Values[25],"failed on device model returning wrong output").that.includes(`"DeviceModel":""`);
+      expect(udtData[1].Values[26],"failed on device name returning wrong output").that.includes(`"DeviceName":""`);
+      expect(udtData[1].Values[27],"failed on device screen size returning wrong output").that.includes(`"DeviceScreenSize":""`);
+      expect(udtData[1].Values[28],"failed on system name returning wrong output").that.includes(`"SystemName":""`);
+      expect(udtData[1].Values[29],"failed on system version returning wrong output").that.includes(`"SystemVersion":""}}`);
+      expect(udtData[1].Values[30],"failed on progress returning wrong output").that.includes(`"Progress":"100"`);
+      expect(udtData[1].Values[31],"failed on number of objects returning wrong output").that.includes(`"NumberOfObjectsReceived":"`);
+      expect(udtData[1].Values[32],"failed on error message returning wrong output").that.includes(`"ErrorMessage":""}`);
+      } else if (udtData[1].Values.length == 32) { //eu - problematic when run on server,object is not exactly the same
+        expect(udtData[1].Values[0],"failed on sync status returning wrong output").that.includes(`"SyncStatus":`);
+        expect(udtData[1].Values[1],"failed on job response returning wrong output").that.includes(`"JobInfoResponse":{"SyncUUID":`);
+        expect(udtData[1].Values[2],"failed on creation date time response returning wrong output").that.includes(`"CreationDateTime":`);
+        expect(udtData[1].Values[4],"failed on modification date time response returning wrong output").that.includes(`"ModificationDateTime":`);
+        expect(udtData[1].Values[5],"failed on formatted modification date time response returning wrong output").that.includes(`"FormattedModificationDateTime":"${ModificationDate}`);
+        expect(udtData[1].Values[6],"failed on created user uuid response returning wrong output").that.includes(`"CreatedByUserUUID":"`);
+        expect(udtData[1].Values[7],"failed on status response returning wrong output").that.includes(`"Status":"Done"`);
+        expect(udtData[1].Values[8],"failed on progress response returning wrong output").that.includes(`"ProgressPercentage":100`);
+        //expect(udtData[1].Values[9],"failed on sentData response returning wrong output").that.includes(`"SentData"`);
+        //expect(udtData[1].Values[10],"failed on data fully updated response returning wrong output").that.includes(`"DataFullyUpdated":true}`); DI-20945 - DataFullyUpdated attribute missing on EU
+        //expect(udtData[1].Values[11],"failed on Data Updates response returning wrong output").that.includes(`"DataUpdates":{"URL":"https://syncgetdata`).and.that.includes(".pepperi.com/");
+        //expect(udtData[1].Values[12],"failed on free text from client response returning wrong output").that.includes(`"FreeTextFromClient":null`);
+        expect(udtData[1].Values[13],"failed on error response returning wrong output").that.includes(`"Error":null`);
+        expect(udtData[1].Values[14],"failed on client info returning wrong output").that.includes(`"ClientInfo":{"LastSyncDateTime":`);
+        expect(udtData[1].Values[16],"failed on device internal id returning wrong output").that.includes(`"DeviceExternalID":"`);
+        expect(udtData[1].Values[15],"failed on formattedLastSyncTime returning wrong output").that.includes(`"FormattedLastSyncDateTime":"`);
+        expect(udtData[1].Values[17],"failed on clientdbUUID returning wrong output").that.includes(`"ClientDBUUID":"`);
+        expect(udtData[1].Values[19],"failed on timezone diff returning wrong output").that.includes(`"TimeZoneDiff":0`);
+        expect(udtData[1].Values[20],"failed on locale returning wrong output").that.includes(`"Locale":"en-US"`);
+        expect(udtData[1].Values[21],"failed on branded app returning wrong output").that.includes(`"BrandedAppID":""`);
+        expect(udtData[1].Values[22],"failed on user full name returning wrong output").that.includes(`"UserFullName":""`);
+        expect(udtData[1].Values[23],"failed on software version returning wrong output").that.includes(`"SoftwareVersion":"`);
+        expect(udtData[1].Values[24],"failed on source type returning wrong output").that.includes(`"SourceType":"10"`);
+        expect(udtData[1].Values[25],"failed on device model returning wrong output").that.includes(`"DeviceModel":""`);
+        expect(udtData[1].Values[26],"failed on device name returning wrong output").that.includes(`"DeviceName":""`);
+        expect(udtData[1].Values[27],"failed on device screen size returning wrong output").that.includes(`"DeviceScreenSize":""`);
+        expect(udtData[1].Values[28],"failed on system name returning wrong output").that.includes(`"SystemName":""`);
+        expect(udtData[1].Values[29],"failed on system version returning wrong output").that.includes(`"SystemVersion":""}}`);
+        expect(udtData[1].Values[30],"failed on progress returning wrong output").that.includes(`"Progress":"100"`);
+        expect(udtData[1].Values[31],"failed on number of objects returning wrong output").that.includes(`"NumberOfObjectsReceived":"`);
+        expect(udtData[1].Values[32],"failed on error message returning wrong output").that.includes(`"ErrorMessage":""}`);
+      } else { //prod - passes
+        expect(udtData[1].Values[0],"failed on sync status returning wrong output").that.includes(`"SyncStatus":`);
+        expect(udtData[1].Values[0],"failed on job response returning wrong output").that.includes(`"JobInfoResponse":{"SyncUUID":`);
+        expect(udtData[1].Values[0],"failed on creation date time response returning wrong output").that.includes(`"CreationDateTime":`);
+        expect(udtData[1].Values[0],"failed on modification date time response returning wrong output").that.includes(`"ModificationDateTime":`);
+        expect(udtData[1].Values[0],"failed on formatted modification date time response returning wrong output").that.includes(`"FormattedModificationDateTime":"${ModificationDate}`);
+        expect(udtData[1].Values[0],"failed on created user uuid response returning wrong output").that.includes(`"CreatedByUserUUID":"`);
+        expect(udtData[1].Values[0],"failed on status response returning wrong output").that.includes(`"Status":"Done"`);
+        expect(udtData[1].Values[0],"failed on progress response returning wrong output").that.includes(`"ProgressPercentage":100`);
+        //expect(udtData[1].Values[0],"failed on sentData response returning wrong output").that.includes(`"SentData":{"ResponseURL":`).and.that.includes(".pepperi.com/");
+        //expect(udtData[1].Values[0],"failed on data fully updated response returning wrong output").that.includes(`"DataFullyUpdated":true}`);
+        //expect(udtData[1].Values[0],"failed on Data Updates response returning wrong output").that.includes(`"DataUpdates":{"URL":"https://syncgetdata`).and.that.includes(".pepperi.com/");
+        expect(udtData[1].Values[0],"failed on free text from client response returning wrong output").that.includes(`"FreeTextFromClient":null`);
+        expect(udtData[1].Values[0],"failed on error response returning wrong output").that.includes(`"Error":null`);
+        expect(udtData[1].Values[0],"failed on client info returning wrong output").that.includes(`"ClientInfo":{"LastSyncDateTime":`);
+        expect(udtData[1].Values[0],"failed on device internal id returning wrong output").that.includes(`"DeviceExternalID":"`);
+        expect(udtData[1].Values[0],"failed on formattedLastSyncTime returning wrong output").that.includes(`"FormattedLastSyncDateTime":"`);
+        expect(udtData[1].Values[0],"failed on clientdbUUID returning wrong output").that.includes(`"ClientDBUUID":"`);
+        expect(udtData[1].Values[0],"failed on timezone diff returning wrong output").that.includes(`"TimeZoneDiff":0`);
+        expect(udtData[1].Values[0],"failed on locale returning wrong output").that.includes(`"Locale":"en-US"`);
+        expect(udtData[1].Values[0],"failed on branded app returning wrong output").that.includes(`"BrandedAppID":""`);
+        expect(udtData[1].Values[0],"failed on user full name returning wrong output").that.includes(`"UserFullName":""`);
+        expect(udtData[1].Values[0],"failed on software version returning wrong output").that.includes(`"SoftwareVersion":"`);
+        expect(udtData[1].Values[0],"failed on source type returning wrong output").that.includes(`"SourceType":"10"`);
+        expect(udtData[1].Values[0],"failed on device model returning wrong output").that.includes(`"DeviceModel":""`);
+        expect(udtData[1].Values[0],"failed on device name returning wrong output").that.includes(`"DeviceName":""`);
+        expect(udtData[1].Values[0],"failed on device screen size returning wrong output").that.includes(`"DeviceScreenSize":""`);
+        expect(udtData[1].Values[0],"failed on system name returning wrong output").that.includes(`"SystemName":""`);
+        expect(udtData[1].Values[0],"failed on system version returning wrong output").that.includes(`"SystemVersion":""}}`);
+        expect(udtData[1].Values[0],"failed on progress returning wrong output").that.includes(`"Progress":"100"`);
+        expect(udtData[1].Values[0],"failed on number of objects returning wrong output").that.includes(`"NumberOfObjectsReceived":"`);
+        expect(udtData[1].Values[0],"failed on error message returning wrong output").that.includes(`"ErrorMessage":""}`);
+      }
+    });
+  });
   const testResults = await run();
   return testResults;
 }
@@ -4002,144 +4169,6 @@ export async function cleanseADAL(client: Client, request: Request) {
   return resultArr;
 }
 //======================================Sync========================================
-export async function SyncWithFile(client: Client, request: Request) {
-  console.log(`SyncWithFile::Test Started`);
-  const service = new MyService(client);
-  const syncService = new SyncService(client);
-  const scheme = await syncService.getUDCScheme();
-  const tableName = scheme[0].Name;
-  const { describe, it, expect, run } = Tester();
-  console.log(`SyncWithFile::Gotten services,initiating requests`);
-  const syncOptions = {
-    Key: "SyncVariables",
-    SYNC_DATA_SIZE_LIMITATION: 4,
-    SYNC_TIME_LIMITATION: 10,
-    USER_DEFINED_COLLECTIONS: tableName,
-    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
-  };
-  const settings = await syncService.setSyncOptions(syncOptions);
-  const date = new Date();
-  await service.sleep(10000);
-  const document = await syncService.generateDocument(11);
-  const upsert = await syncService.upsertDocument(tableName, document); //collection hard-coded for now since it can't be removed
-  await service.sleep(2000);
-  const sync = await syncService.pullDataToGetURL({
-    ModificationDateTime: date.toISOString(),
-  });
-  await service.sleep(20000);
-  const auditLog = await syncService.getAuditLogResultObjectIfValid(
-    sync.ExecutionURI,
-    50
-  );
-
-  const fileURI = JSON.parse(auditLog.AuditInfo.ResultObject);
-
-  const syncFile = await syncService.getSyncFromAuditLog(fileURI.ResourcesURL);
-
-  const testData = syncFile.ResourcesData[0].Objects[0];
-
-  testData.Hidden = true;
-  const upsertToHidden = await syncService.upsertDocument(tableName, testData);
-  console.log(`SyncWithFile::Gotten all data objects,Starting Mocha tests`);
-
-  describe("Sync with File automation test", async () => {
-    it("Settings Post Test", async () => {
-      expect(
-        settings.Hidden,
-        "Failed on settings hidden returning wrong output"
-      ).to.be.a("boolean").that.is.false;
-      expect(settings.Key, "Failed on settings Key returning wrong output")
-        .to.be.a("string")
-        .that.is.equal(syncOptions.Key);
-      expect(
-        settings.SYNC_DATA_SIZE_LIMITATION,
-        "Sync data size limit returned wrong value"
-      )
-        .to.be.a("number")
-        .that.is.equal(syncOptions.SYNC_DATA_SIZE_LIMITATION);
-      expect(
-        settings.SYNC_TIME_LIMITATION,
-        "Sync data time limit returned wrong value"
-      )
-        .to.be.a("number")
-        .that.is.equal(syncOptions.SYNC_TIME_LIMITATION);
-
-      const ModificationDate = settings.ModificationDateTime?.split("T")[0];
-      const dateToText = date.toISOString().split("T")[0];
-      expect(ModificationDate, "Sync modificationdate returned wrong output")
-        .to.be.a("string")
-        .that.is.equal(dateToText);
-    });
-    it("Sync Data - UDC Document insertion test", async () => {
-      expect(testData.testField1, "Failed on Field1 returning wrong output")
-        .to.be.a("string")
-        .that.is.equal(document.testField1);
-      expect(testData.Key, "Failed on Key returning wrong output")
-        .to.be.a("string")
-        .that.is.equal(document.testField1);
-      expect(testData.testField2, "Failed on Field2 returning wrong output")
-        .to.be.a("string")
-        .that.is.equal(document.testField2);
-      expect(testData.testField3, "Failed on Field3 returning wrong output")
-        .to.be.a("string")
-        .that.is.equal(document.testField3);
-      expect(testData.testField4, "Failed on Field4 returning wrong output")
-        .to.be.a("string")
-        .that.is.equal(document.testField4);
-      expect(testData.testField5, "Failed on Field5 returning wrong output")
-        .to.be.a("string")
-        .that.is.equal(document.testField5);
-      expect(testData.testField6, "Failed on Field6 returning wrong output")
-        .to.be.a("string")
-        .that.is.equal(document.testField6);
-      expect(testData.testField7, "Failed on Field7 returning wrong output")
-        .to.be.a("string")
-        .that.is.equal(document.testField7);
-      expect(testData.testField8, "Failed on Field8 returning wrong output")
-        .to.be.a("string")
-        .that.is.equal(document.testField8);
-      expect(testData.testField9, "Failed on Field9 returning wrong output")
-        .to.be.a("string")
-        .that.is.equal(document.testField9);
-      expect(testData.testField10, "Failed on Field10 returning wrong output")
-        .to.be.a("string")
-        .that.is.equal(document.testField10);
-      expect(
-        testData.Hidden,
-        "Failed on hidden returning wrong output"
-      ).to.be.a("boolean").that.is.true; // test is done after object is moved to hidden
-
-      const CreationDate = testData.CreationDateTime;
-      const ModificationDate = testData.ModificationDateTime?.split("T")[0];
-      const dateToText = date.toISOString().split("T")[0];
-
-      expect(ModificationDate, "Failed on wrong modification date")
-        .to.be.a("string")
-        .that.is.equal(dateToText);
-      expect(CreationDate, "Failed on wrong creation date")
-        .to.be.a("string")
-        .that.has.lengthOf(24).and.includes("Z").and.includes("T");
-    });
-    it("Sync Pull endpoint response", async () => {
-      expect(
-        sync.UpToDate,
-        "Failed on up to date returning wrong output/format"
-      ).to.be.a("boolean").that.is.not.null.and.undefined;
-      expect(sync.ExecutionURI, "Failed on audit log URI returning wrong")
-        .to.be.a("string")
-        .that.has.lengthOf(48);
-      expect(sync.ExecutionURI, "Failed on executionURI returning wrong URL")
-        .to.be.a("string")
-        .that.includes("/audit_logs/");
-    });
-  });
-
-  console.log(`SyncWithFile::Finished Mocha tests`);
-
-  const testResults = await run();
-  return testResults;
-}
-
 export async function SyncWithAuditLog(client: Client, request: Request) {
   console.log(`SyncWithAuditLog::Test Started`);
   const service = new MyService(client);
@@ -5548,7 +5577,7 @@ export async function syncSoftLimitsNegative(client: Client,request: Request) {
   console.log(`syncSoftLimitsNegative::Test Started`);
   const service = new MyService(client);
   const syncService = new SyncService(client);
-  const tableName = "syncTable"; //change if you setup a new table on ADAL
+  const tableName = "syncTable"; //change if you setup a new table on ADAL - Simcha needs to sync in this table,talk to him
   let webAPIBaseURL = await service.getWebAPIBaseURL();
   let accessToken = await service.getAccessToken(webAPIBaseURL);
   let size: number = 0;
@@ -5557,7 +5586,70 @@ export async function syncSoftLimitsNegative(client: Client,request: Request) {
   await service.initResync(accessToken, webAPIBaseURL);
   await service.getSyncStatus(accessToken, webAPIBaseURL, 50);
   console.log(`syncSoftLimitsNegative::Gotten services,initiating requests`);
+  //soft limit time set to 0
+  let timeRes1:any;
+  const negativeSyncOptions1 = {
+    Key: "SyncVariables",
+    SYNC_DATA_SIZE_LIMITATION: 15,
+    SYNC_TIME_LIMITATION: 0,
+    USER_DEFINED_COLLECTIONS: "",
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
+  }
 
+  try {
+    const settings = await syncService.setSyncOptions(negativeSyncOptions1);
+  } catch(e) {
+    timeRes1 = (e instanceof Error) ? e?.message : null
+  }
+
+  //soft limit time set to 11
+  let timeRes2:any;
+  const negativeSyncOptions2 = {
+    Key: "SyncVariables",
+    SYNC_DATA_SIZE_LIMITATION: 15,
+    SYNC_TIME_LIMITATION: 11,
+    USER_DEFINED_COLLECTIONS: "",
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
+  }
+
+  try {
+    const settings = await syncService.setSyncOptions(negativeSyncOptions2);
+  } catch(e) {
+    timeRes2 = (e instanceof Error) ? e?.message : null
+  }
+  //soft limit size set to above 128
+  let sizeRes1:any;
+  const negativeSyncOptions3 = {
+    Key: "SyncVariables",
+    SYNC_DATA_SIZE_LIMITATION: 1025,
+    SYNC_TIME_LIMITATION: 5,
+    USER_DEFINED_COLLECTIONS: "",
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
+  }
+
+  try {
+    const settings = await syncService.setSyncOptions(negativeSyncOptions3);
+  } catch(e) {
+    sizeRes1 = (e instanceof Error) ? e?.message : null
+  }
+  //sof limit size set to 0
+  let sizeRes2:any;
+  const negativeSyncOptions4 = {
+    Key: "SyncVariables",
+    SYNC_DATA_SIZE_LIMITATION: 0,
+    SYNC_TIME_LIMITATION: 5,
+    USER_DEFINED_COLLECTIONS: "",
+    USER_DEFINED_COLLECTIONS_INDEX_FIELD: "",
+  }
+
+  try {
+    const settings = await syncService.setSyncOptions(negativeSyncOptions3);
+  } catch(e) {
+    sizeRes2 = (e instanceof Error) ? e?.message : null
+  }
+
+
+  //time soft limit starts here
   const syncOptions = {
     Key: "SyncVariables",
     SYNC_DATA_SIZE_LIMITATION: 15,
@@ -5625,9 +5717,6 @@ export async function syncSoftLimitsNegative(client: Client,request: Request) {
   await service.sleep(5000);
   const scheme = await syncService.createADALScheme(tableName, "data");
 
-
-  await service.initResync(accessToken, webAPIBaseURL);
-  await service.getSyncStatus(accessToken, webAPIBaseURL, 50);
   console.log(`syncSoftLimitsNegative::resetting sync duration to default and resyncing`);
 
   const syncOptionsToDefault = {
@@ -5700,6 +5789,13 @@ export async function syncSoftLimitsNegative(client: Client,request: Request) {
         .that.is.above(0)
         .and.below(10000);
     });
+
+    it("Sync settings endpoint negative response test", async () => {
+       expect(timeRes1,"Failed on negative time 1 response returning wrong value/format").to.be.a("string").that.includes(`pepperi.com/V1.0/addons/api/5122dc6d-745b-4f46-bb8e-bd25225d350a/api/sync_variables failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: SYNC_TIME_LIMITATION should be in the range (0.01 - 10).","detail":{"errorcode":"BadRequest"}}}`);
+       expect(timeRes2,"Failed on negative time 2 response returning wrong value/format").to.be.a("string").that.includes(`pepperi.com/V1.0/addons/api/5122dc6d-745b-4f46-bb8e-bd25225d350a/api/sync_variables failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: SYNC_TIME_LIMITATION should be in the range (0.01 - 10).","detail":{"errorcode":"BadRequest"}}}`);
+       expect(sizeRes1,"Failed on negative size 1 response returning wrong value/format").to.be.a("string").that.includes(`pepperi.com/V1.0/addons/api/5122dc6d-745b-4f46-bb8e-bd25225d350a/api/sync_variables failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: SYNC_DATA_SIZE_LIMITATION should be in the range (1 - 1024).","detail":{"errorcode":"BadRequest"}}}`);
+       expect(sizeRes2,"Failed on negative size 2 response returning wrong value/format").to.be.a("string").that.includes(`pepperi.com/V1.0/addons/api/5122dc6d-745b-4f46-bb8e-bd25225d350a/api/sync_variables failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: SYNC_DATA_SIZE_LIMITATION should be in the range (1 - 1024).","detail":{"errorcode":"BadRequest"}}}`);
+    })
   });
 
   console.log(`syncSoftLimitsNegative::Finished Mocha tests`);

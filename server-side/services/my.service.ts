@@ -18,6 +18,7 @@ export interface testFlagOptions {
   clientActionsNegativeTestActive?: boolean;
   InterceptorActionsTest?: boolean;
   InterceptorsTimeoutTestActive?: boolean;
+  SyncInteceptorsActive?: boolean
 }
 
 export const thisAddonUUID = "2b39d63e-0982-4ada-8cbb-737b03b9ee58";
@@ -444,6 +445,7 @@ class MyService {
       InterceptorsTimeoutTestActive: options.InterceptorsTimeoutTestActive
         ? options.InterceptorsTimeoutTestActive
         : false,
+        SyncInteceptorsActive: options.SyncInteceptorsActive ? options.SyncInteceptorsActive : false,
     };
 
     const upsert = await this.upsertToADAL("Load_Test", body);
@@ -636,6 +638,15 @@ class MyService {
       where: "Type='DorS CPINode Sales Order'",
     });
     return atd[0];
+  }
+
+  async parseJSONObject(object: string[]) {
+    let parsedObject:any = {};
+    let string = "";
+    for (const prop of object) {
+      string += prop;
+    }
+    console.log(string);
   }
 }
 
