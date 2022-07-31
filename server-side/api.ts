@@ -4118,45 +4118,6 @@ export async function bulkNotificationsLogger(
 
   return "success";
 }
-//needs to be done after they finish working on the limitationt for notifications
-export async function softLimitTest(client: Client, request: Request) {
-  console.log(`softLimitTest::Test Started`);
-  const service = new MyService(client);
-  const notificationService = new NotificationService(client);
-  const { describe, it, expect, run } = Tester();
-  const notificationsKeysArr: string[] = [];
-  const notificationObj =
-    await notificationService.generateRandomNotification();
-
-  for (let i = 0; i < 35; i++) {
-    const notificationPost = await notificationService.postNotifications(
-      notificationObj
-    );
-    notificationsKeysArr.push(notificationPost.Key as string);
-    console.log(i);
-  }
-  console.log(notificationsKeysArr);
-
-  // try {
-  //   const notificationPost = await notificationService.postNotifications(
-  //     notificationObj
-  //   );
-  // } catch(e) {
-  //   console.log(e);
-  // }
-
-  // for (const key in notificationsKeysArr) {
-  //   const body = {
-  //     Key: key,
-  //     Hidden: true
-  //   }
-  //   const notificationPost = await notificationService.postNotifications(
-  //     body
-  //   );
-  // }
-
-  return;
-}
 //cleanse ADAL table if needed
 export async function cleanseADAL(client: Client, request: Request) {
   const service = new MyService(client);
@@ -5023,7 +4984,7 @@ export async function SyncDataFromADAL(client: Client, request: Request) {
         .to.be.a("string")
         .that.is.equal(dateToText);
     });
-    it("Sync Data - UDC Document insertion test", async () => {
+    it("Sync Data - ADAL Document insertion test", async () => {
       expect(allData,"Failed on sync returning more than one scheme - DI-20917").to.be.an("array").that.has.lengthOf(1);
       expect(Objects.testField1, "Failed on Field1 returning wrong output")
         .to.be.a("string")
@@ -5799,7 +5760,7 @@ export async function syncSoftLimitsNegative(client: Client,request: Request) {
        expect(timeRes2,"Failed on negative time 2 response returning wrong value/format").to.be.a("string").that.includes(`pepperi.com/V1.0/addons/api/5122dc6d-745b-4f46-bb8e-bd25225d350a/api/sync_variables failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: SYNC_TIME_LIMITATION should be in the range (0.01 - 10).","detail":{"errorcode":"BadRequest"}}}`);
        expect(sizeRes1,"Failed on negative size 1 response returning wrong value/format").to.be.a("string").that.includes(`pepperi.com/V1.0/addons/api/5122dc6d-745b-4f46-bb8e-bd25225d350a/api/sync_variables failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: SYNC_DATA_SIZE_LIMITATION should be in the range (1 - 1024).","detail":{"errorcode":"BadRequest"}}}`);
        expect(sizeRes2,"Failed on negative size 2 response returning wrong value/format").to.be.a("string").that.includes(`pepperi.com/V1.0/addons/api/5122dc6d-745b-4f46-bb8e-bd25225d350a/api/sync_variables failed with status: 400 - Bad Request error: {"fault":{"faultstring":"Failed due to exception: SYNC_DATA_SIZE_LIMITATION should be in the range (1 - 1024).","detail":{"errorcode":"BadRequest"}}}`);
-    })
+    });
   });
 
   console.log(`syncSoftLimitsNegative::Finished Mocha tests`);

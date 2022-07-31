@@ -55,8 +55,7 @@ class SyncService {
   }
 
   async pullData(syncObject: any) {
-    //const url = `/addons/data/pull`;
-    const url = `/addons/api/5122dc6d-745b-4f46-bb8e-bd25225d350a/api/pull`;
+    const url = `/addons/data/pull`;
     const res = await this.papiClient.post(url, syncObject);
     return res;
   }
