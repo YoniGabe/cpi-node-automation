@@ -619,6 +619,35 @@ export async function Cpi_Adal(client: Client, request: Request) {
   return testResults;
 }
 
+export async function pfs_cpi(client: Client, request: Request) {
+  const service = new MyService(client);
+  const isLocal = false;
+  let webAPIBaseURL = await service.getWebAPIBaseURL();
+  let accessToken = await service.getAccessToken(webAPIBaseURL);
+  console.log(webAPIBaseURL);
+  console.log(accessToken);
+
+  if (isLocal) {
+    accessToken = "257ef28b-e2c0-4e77-b83e-e82dbea51c95"; //fill in from CPINode debugger
+    webAPIBaseURL = "http://localhost:8093";
+  }
+  //run in case sync is running before tests
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
+  //run and get mocha tests results from cpiSide
+  const testResults = await service.runCPISideTest(
+    accessToken,
+    webAPIBaseURL,
+    "pfs_cpi"
+  );
+  //deactive adal tesk trigger
+  const initSync2 = await service.initSync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.sleep(2000);
+  //return test results
+  return testResults;
+}
+
 export async function dataObjectNegativeCRUD(client: Client, request: Request) {
   const service = new MyService(client);
   const isLocal = false;
@@ -2548,7 +2577,7 @@ export async function clientActionsInterceptorsTester(
   }
   console.log(arrActions);
   const dialogSequenceArr: any[] = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < actions.size; i++) {
     const actionData = await clientActionsService.parseActionDataForTest(
       arrActions[i][1]
     );
@@ -2730,7 +2759,7 @@ export async function clientActionsInterceptorsTester(
     }
     it(`Client Actions Automation - Parsed execution sequence results`, async () => {
       const arr = udtData[0].Values[0].split(",");
-
+      debugger;
       const geoData = {
         lat: arr[24].split(":"),
         acc: arr[25].split(":"),

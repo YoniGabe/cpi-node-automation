@@ -15,7 +15,7 @@ import { dataObjectCrud } from "./api-tests/dataobject-crud";
 import { dataObjectNegativeCrud } from "./api-tests/dataobject-negative-crud";
 import { firstUIObjectCrud } from "./api-tests/ui-object-crud-1";
 import { secondUIObjectCrud } from "./api-tests/ui-object-crud-2";
-import { Client } from "@pepperi-addons/cpi-node/build/cpi-side/events";
+import { Client, EventKey } from "@pepperi-addons/cpi-node/build/cpi-side/events";
 import { AddonsDataSearchParams } from "@pepperi-addons/cpi-node/build/cpi-side/client-api";
 
 //**Test data variables */
@@ -1540,6 +1540,389 @@ router.get("/zozo", async (req, res, next) => {
   res.json(15);
 });
 
+
+router.get("/DI-21871", async (req, res, next) => {
+  await pepperi.resources.resource('resources').key("TestUDC").get();
+});
+
+router.get("/DI-21685", async (req, res, next) => {
+  let resp;
+  let errorMessage;
+  try {
+    debugger;
+    resp = await pepperi.resources.resource('resources').search({});
+    const z = resp.filter(collection => collection.Name.includes("survey"));
+    debugger;
+  } catch (error) {
+    debugger;
+    errorMessage = (error as any).message;
+  }
+  debugger;
+
+});
+
+router.get("/DI-21834", async (req, res, next) => {
+  debugger;
+  const a = await pepperi.addons.data.relations.pageBlocks();
+  const b = await pepperi.addons.data.relations.addonBlocks();
+  const c = (await pepperi.addons.data.relations.pageBlocks())[0].AddonBaseURL;
+  console.log(`a:${a}, b:${b}, c:${c}`);
+  debugger;
+});
+
+router.get("/DI-21858", async (req, res, next) => {
+  debugger;
+  let errorMessage = "";
+  let resp;
+  try {
+    resp = await pepperi.addons.data.schemes.uuid("dd0a85ea-7ef0-4bc1-b14f-959e0372877a").name("base_surveys").get();
+  } catch (error) {
+    errorMessage = (error as any).message;
+  }
+  debugger;
+});
+
+router.get("/DI-22185", async (req, res, next) => {
+  const { describe, it, expect, run } = Tester("My test");
+  describe("addons.papi testing - cpi side", async () => {
+    it("addons.papi.uuid test", async () => {
+      let errorMessage = "";
+      const addonUUID = "fc5a5974-3b30-4430-8feb-7d5b9699bc9f";//Generic Resource addon UUID as hes the owner
+      let a;
+      debugger;
+      try {
+        a = await pepperi.addons.papi.uuid(addonUUID).resource('accounts').search({});//{ Where: "City='Rostock'" }
+      } catch (error) {
+        errorMessage = (error as any).message;
+      }
+      expect(errorMessage, `got error message:${errorMessage}`).to.equal("");
+      expect(a.Objects.length, "response array is empty").to.be.above(0);
+    });
+  });
+  const testResult = await run();
+  res.json(testResult);
+});
+
+
+router.get("/DI-22239", async (req, res, next) => {
+  const { describe, it, expect, run } = Tester("My test");
+  describe("addons.papi testing - cpi side", async () => {
+    it("addons.papi.uuid test", async () => {
+      let errorMessage = "";
+      const addonUUID = "fc5a5974-3b30-4430-8feb-7d5b9699bc9f";//Generic Resource addon UUID as hes the owner
+      let a;
+      debugger;
+      try {
+        a = await pepperi.addons.papi.uuid(addonUUID).resource('accounts').search({});//{ Where: "City='Rostock'" }
+      } catch (error) {
+        errorMessage = (error as any).message;
+      }
+      expect(errorMessage, `got error message:${errorMessage}`).to.equal("");
+      expect(a.Objects.length, "response array is empty").to.be.above(0);
+    });
+  });
+  const testResult = await run();
+  res.json(testResult);
+});
+
+// (event: import("./events").EventKey, data: any, context?: import("./events").IContext | undefined) => Promise<{
+//   data: any;
+// }>;
+
+
+
+router.get("/DI-20880", async (req, res, next) => {
+  const { describe, it, expect, run } = Tester("My test");
+  describe("addons.papi testing - cpi side", async () => {
+    it("addons.papi.uuid test", async () => {
+      debugger;
+      const a = await pepperi.events.emit(
+        'evgeny' as EventKey,
+        {
+          ObjectType: "Array123"
+        }
+      );
+      debugger;
+      console.log(a);
+    });
+  });
+  const testResult = await run();
+  res.json(testResult);
+});
+
+
+router.get("/DI-22441", async (req, res, next) => {
+  const { describe, it, expect, run } = Tester("My test");
+  describe("addons.papi testing - cpi side", async () => {
+    it("addons.papi.uuid test", async () => {
+      let errorMessage = "";
+      let resp;
+      try {
+        resp = await pepperi.resources.resource('MySurveys').search({});
+        debugger;
+      } catch (error) {
+        errorMessage = (error as any).message;
+        debugger;
+      }
+      console.log(errorMessage);
+      console.log(resp);
+    });
+  });
+  const testResult = await run();
+  res.json(testResult);
+});
+
+
+
+router.get("/DI-22037", async (req, res, next) => {
+  const { describe, it, expect, run } = Tester("My test");
+  describe("addons.papi testing - cpi side", async () => {
+    it("addons.papi.uuid test", async () => {
+      const catalogResponseGet = await pepperi.api.catalogs.get({ key: { UUID: "ed1cc3e0-d316-4246-a094-9337dfc8d942" }, fields: ["InternalID", "ExternalID"] });
+      expect(catalogResponseGet.object.InternalID).to.equal(79720);
+      expect(catalogResponseGet.object.ExternalID).to.equal("Default Catalog");
+      debugger;
+      let catalogResponseSearch;
+      let error = "";
+      try {
+        catalogResponseSearch = await pepperi.api.catalogs.search({ fields: ["InternalID", "ExternalID", "CreationDateTime"] });
+      } catch (e) {
+        error = (e as any).message;
+        debugger;
+      }
+      debugger;
+      expect(catalogResponseSearch.success).to.equal(true);
+      expect(catalogResponseSearch.page).to.equal(1);
+      expect(catalogResponseSearch.count).to.equal(1);
+      expect(catalogResponseSearch.objects.length).to.equal(1);
+      expect(catalogResponseSearch.objects[0].InternalID).to.equal(79720);
+      expect(catalogResponseSearch.objects[0].ExternalID).to.equal("Default Catalog");
+    });
+  });
+  const testResult = await run();
+  res.json(testResult);
+});
+
+
+router.get("/DI-22226", async (req, res, next) => {
+  const { describe, it, expect, run } = Tester("My test");
+  describe("addons.papi testing - cpi side", async () => {
+    it("addons.papi.uuid test", async () => {
+      let catalogResponseGet;
+      let error;
+      try {
+        debugger;
+        catalogResponseGet = await pepperi.resources.resource('accounts').get({});
+      } catch (e) {
+        error = (e as any).message;
+        debugger;
+      }
+      debugger;
+      console.log(catalogResponseGet);
+      // let catalogResponseSearch;
+      // let error = "";
+      // try {
+      //   catalogResponseSearch = await pepperi.api.catalogs.search({ fields: ["InternalID", "ExternalID", "CreationDateTime"] });
+      // } catch (e) {
+      //   error = (e as any).message;
+      //   debugger;
+      // }
+      // debugger;
+      // expect(catalogResponseSearch.success).to.equal(true);
+      // expect(catalogResponseSearch.page).to.equal(1);
+      // expect(catalogResponseSearch.count).to.equal(1);
+      // expect(catalogResponseSearch.objects.length).to.equal(1);
+      // expect(catalogResponseSearch.objects[0].InternalID).to.equal(79720);
+      // expect(catalogResponseSearch.objects[0].ExternalID).to.equal("Default Catalog");
+    });
+  });
+  const testResult = await run();
+  res.json(testResult);
+});
+
+
+router.get("/DI-22079", async (req, res, next) => {
+  const { describe, it, expect, run } = Tester("My test");
+  describe("addons.papi testing - cpi side", async () => {
+    it("addons.papi.uuid test", async () => {
+      let error = '';
+      let accResponseGet;
+      let accResponseSearch;
+      try {
+        accResponseGet = await pepperi.api.accounts.get({ key: { UUID: "c19ce981-1113-48d4-af66-259c6e74985e" }, fields: ["InternalID", "City", "Country"] });
+      } catch (e) {
+        error = (e as any).message;
+      }
+      expect(error).to.equal('');
+      expect(accResponseGet.success).to.equal(true);
+      expect(accResponseGet.object.InternalID).to.equal(24095345);
+      expect(accResponseGet.object.City).to.equal("New York");
+      expect(accResponseGet.object.Country).to.equal("USA");
+      error = '';
+      try {
+        accResponseSearch = await pepperi.api.accounts.search({ fields: ["InternalID", "City", "Country"] }) as any;
+      } catch (e) {
+        error = (e as any).message;
+      }
+      expect(accResponseSearch.success).to.equal(true);
+      expect(accResponseSearch.page).to.equal(1);
+      expect(accResponseSearch.count).to.equal(2);
+      expect(accResponseSearch.objects.length).to.equal(2);
+      for (let index = 0; index < accResponseSearch.objects.length; index++) {
+        const element = accResponseSearch.objects[index];
+        expect(element.InternalID).to.be.oneOf([24095356, 24095345]);
+        expect(element.Country).to.be.oneOf(["USA", "-"]);
+        expect(element.City).to.be.oneOf(["Raanana", "New York"]);
+      }
+    });
+  });
+  const testResult = await run();
+  res.json(testResult);
+});
+
+
+
+router.get("/pfs_cpi", async (req, res, next) => {
+  const { describe, it, expect, run } = Tester("My test");
+  describe("addons.pfs testing - cpi side", async () => {
+    const assetsUUID = "ad909780-0c23-401e-8e8e-f514cc4f6aa2";
+    const assetsSchemaName = "Assets";
+    it("positive test: addons.pfs.uuid.schema.find - get all Assets Files", async () => {
+      const pfsResponse = await pepperi.addons.pfs.uuid(assetsUUID).schema(assetsSchemaName).find({}) as any;
+      const returnedObjects = pfsResponse.Objects;
+      expect(returnedObjects.length).to.equal(3);
+      for (let index = 0; index < returnedObjects.length; index++) {
+        const element = returnedObjects[index];
+        expect(element).to.haveOwnProperty("CreationDateTime");
+        expect(element).to.haveOwnProperty("Description");
+        expect(element).to.haveOwnProperty("Folder");
+        expect(element).to.haveOwnProperty("Hidden");
+        expect(element.Hidden).to.equal(false);
+        expect(element).to.haveOwnProperty("Key");
+        expect(element.Key).to.be.oneOf(['folder123/', 'folder123/Switch_by_Sam_Perkins.png', 'images.png']);
+        expect(element).to.haveOwnProperty("MIME");
+        expect(element).to.haveOwnProperty("Name");
+        expect(element.Name).to.be.oneOf([element.Key, element.Key.substring(element.Key.indexOf('/') + 1)]);
+        expect(element).to.haveOwnProperty("Sync");
+        if (element.Name !== 'folder123/') {
+          expect(element).to.haveOwnProperty("UploadedBy");
+          expect(element.UploadedBy).to.equal('dd7cb027-24e4-4099-a356-c91c5f4b0c62');
+        }
+        expect(element).to.haveOwnProperty("URL");
+      }
+    });
+    it("positive test: addons.pfs.uuid.schema.key.get - get Assets File by a key", async () => {
+      const pfsResponse = await pepperi.addons.pfs.uuid("ad909780-0c23-401e-8e8e-f514cc4f6aa2").schema('Assets').key("images.png").get();
+      expect(pfsResponse).to.haveOwnProperty("ModificationDateTime");
+      expect(pfsResponse).to.haveOwnProperty("FileVersion");
+      expect(pfsResponse).to.haveOwnProperty("Folder");
+      expect(pfsResponse.Folder).to.equal("/");
+      expect(pfsResponse.MIME).to.equal("image/png");
+      expect(pfsResponse).to.haveOwnProperty("CreationDateTime");
+      expect(pfsResponse).to.haveOwnProperty("Sync");
+      expect(pfsResponse.URL).to.include("pfs");
+      expect(pfsResponse.Hidden).to.equal(false);
+      expect(pfsResponse.Cache).to.equal(true);
+      expect(pfsResponse.FileSize).to.equal(17962);
+      expect(pfsResponse.UploadedBy).to.equal("dd7cb027-24e4-4099-a356-c91c5f4b0c62");
+      expect(pfsResponse.Name).to.equal("images.png");
+      expect(pfsResponse.Key).to.equal("images.png");
+    });
+    it("positive test: addons.pfs.uuid.schema.find - get all Assets files under certain folder", async () => {
+      const pfsResponse = await pepperi.addons.pfs.uuid(assetsUUID).schema(assetsSchemaName).find({ folder: "folder123" });
+      expect(pfsResponse.length).to.equal(1);
+      const parsedResponse = pfsResponse[0];
+      expect(parsedResponse).to.haveOwnProperty("ModificationDateTime");
+      expect(parsedResponse).to.haveOwnProperty("FileVersion");
+      expect(parsedResponse).to.haveOwnProperty("Folder");
+      expect(parsedResponse.Folder).to.equal("folder123/");
+      expect(parsedResponse.MIME).to.equal("image/png");
+      expect(parsedResponse).to.haveOwnProperty("CreationDateTime");
+      expect(parsedResponse).to.haveOwnProperty("Sync");
+      expect(parsedResponse.URL).to.include("pfs");
+      expect(parsedResponse.Hidden).to.equal(false);
+      expect(parsedResponse.Cache).to.equal(true);
+      expect(parsedResponse.FileSize).to.equal(117004);
+      expect(parsedResponse.UploadedBy).to.equal("dd7cb027-24e4-4099-a356-c91c5f4b0c62");
+      expect(parsedResponse.Name).to.equal("Switch_by_Sam_Perkins.png");
+      expect(parsedResponse.Key).to.equal("folder123/Switch_by_Sam_Perkins.png");
+    });
+  });
+  const testResult = await run();
+  res.json(testResult);
+});
+
+
+router.get("/DI-21785", async (req, res, next) => {
+  const { describe, it, expect, run } = Tester("My test");
+  describe("addons.papi testing - cpi side", async () => {
+    it("addons.papi.uuid test", async () => {
+      debugger;
+      const a = await pepperi.addons.pfs.uuid("ad909780-0c23-401e-8e8e-f514cc4f6aa2").schema('Assets').find({});
+      debugger;
+      console.log(a);
+    });
+  });
+  const testResult = await run();
+  res.json(testResult);
+});
+
+
+router.get("/DI-21877", async (req, res, next) => {
+  const addonUUID = "2b39d63e-0982-4ada-8cbb-737b03b9ee58";
+  debugger;
+  let errorMessage = "";
+  let resp;
+  try {
+    resp = await pepperi.addons.data.uuid(addonUUID).table("cpiAdalTest3").search({ Where: "CreationDateTime='2022-11-30T13:56:27.673Z'" });
+  } catch (error) {
+    errorMessage = (error as any).message;
+  }
+});
+
+router.get("/DI-22184", async (req, res, next) => {
+  debugger;
+  let errorMessage = "";
+  let resp;
+  try {
+    resp = await pepperi.addons.papi.uuid("accounts")
+  }
+  catch (error) {
+    errorMessage = (error as any).message;
+    debugger;
+  }
+  debugger;
+});
+
+router.get("/DI-21737", async (req, res, next) => {
+  const { describe, it, expect, run } = Tester("My test");
+  describe("addons.papi testing - cpi side", async () => {
+    it("addons.papi.uuid test", async () => {
+      debugger;
+      const a = await pepperi.addons.pfs.uuid("ad909780-0c23-401e-8e8e-f514cc4f6aa2").schema('Assets').key("images.png").get();
+      debugger;
+      console.log(a);
+    });
+  });
+  const testResult = await run();
+  res.json(testResult);
+});
+
+router.get("/DI-21784", async (req, res, next) => {
+  const { describe, it, expect, run } = Tester("My test");
+  describe("addons.papi testing - cpi side", async () => {
+    it("addons.papi.uuid test", async () => {
+      debugger;
+      const a = await pepperi.addons.pfs.uuid("ad909780-0c23-401e-8e8e-f514cc4f6aa2").schema('Assets').find({ folder: "folder123" });
+      debugger;
+      console.log(a);
+    });
+  });
+  const testResult = await run();
+  res.json(testResult);
+});
+
+
 router.get("/Cpi_Adal", async (req, res, next) => {
   let GUID = "";
   let randKey = "";
@@ -1554,24 +1937,23 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       } catch (error) {
         errorMessage = (error as any).message;
       }
-      expect(errorMessage).to.equal("Could not find object with key: '2b39d63e-0982-4ada-8cbb-737b03b9ee58_NOT EXISTING' on table: 'schemes'");
+      expect(errorMessage).to.equal(`Could not find object with key: '${addonUUID}_NOT EXISTING' on table: 'schemes'`);
     });
     it("pepperi.addons.schemes.get - positive test: getting all sync: true schemes", async () => {
       let errorMessage = "";
       let resp;
       try {
         resp = await pepperi.addons.data.schemes.get({});
-      } catch (error) {
+      }
+      catch (error) {
         errorMessage = (error as any).message;
       }
       expect(errorMessage).to.equal("");
       expect(resp.length).to.above(7);
       for (let index = 0; index < resp.length; index++) {
         const scheme = resp[index];
-        expect(scheme.AddonUUID).to.be.oneOf([addonUUID, "df90dba6-e7cc-477b-95cf-2c70114e44e0", "122c0e9d-c240-4865-b446-f37ece866c22"]);
         expect(scheme.Hidden).to.equal(false);
-        // expect(scheme.Key).to.be.oneOf([`${addonUUID}_cpiAdalTest`, `${addonUUID}_cpiAdalTest2`, `${addonUUID}_cpiAdalTest3`, `${addonUUID}_genericResourceTest1`, 'df90dba6-e7cc-477b-95cf-2c70114e44e0_resources', '122c0e9d-c240-4865-b446-f37ece866c22_TestUDC', '122c0e9d-c240-4865-b446-f37ece866c22_OnlineUDC']);
-        // expect(scheme.Name).to.be.oneOf(['cpiAdalTest', 'cpiAdalTest2', 'cpiAdalTest3', 'genericResourceTest1', 'resources', 'TestUDC', 'OnlineUDC']);
+        expect(scheme.Type).to.be.oneOf(["papi", "meta_data", "data", "abstract"]);
         expect(scheme.SyncData.Sync).to.equal(true);
       }
     });
@@ -1593,6 +1975,7 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       expect(resp.Fields.Value.Type).to.equal("string");
     });
     it("addons.data.uuid.table.key - negative test: getting not existing key", async () => {
+      // debugger;
       let errorMessage = "";
       try {
         await pepperi.addons.data.uuid(addonUUID).table(tableName).key("NON").get();
@@ -1613,6 +1996,26 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       expect(resp.Hidden).to.equal(false);
       expect(resp.Key).to.equal("test1");
       expect(resp.Value).to.equal("abc1");
+    });
+    it("addons.data.uuid.table.search - positive test: testing the search is case sensitive", async () => {
+      let errorMessage = "";
+      let respShouldHaveData;
+      let respNoData;
+      try {
+        respShouldHaveData = await pepperi.addons.data.uuid(addonUUID).table("Di22006").search({});
+        respNoData = await pepperi.addons.data.uuid(addonUUID).table("di22006").search({});
+      } catch (error) {
+        errorMessage = (error as any).message;
+
+      }
+      debugger;
+      expect(errorMessage).to.equal("");
+      expect(respShouldHaveData.Objects[0].ValueA).to.equal("evgey");
+      expect(respShouldHaveData.Objects[0].Hidden).to.equal(false);
+      expect(respShouldHaveData.Objects[0]).to.haveOwnProperty("CreationDateTime");
+      expect(respShouldHaveData.Objects[0]).to.haveOwnProperty("ModificationDateTime");
+      expect(respShouldHaveData.Objects[0]).to.haveOwnProperty("Key");
+      expect(respNoData.Objects).to.deep.equal([]);
     });
     it("addons.data.uuid.table.search - positive test: using 'search' to 'sort_by' key", async () => {
       const options: AddonsDataSearchParams = {
@@ -1762,6 +2165,23 @@ router.get("/Cpi_Adal", async (req, res, next) => {
         expect(dataReturned.Value).to.equal(`abc${index + 1}`);
       }
     });
+    it("addons.data.uuid.table.search - positive test: filtering get using where clause on Keys", async () => {
+      let errorMessage = "";
+      let resp;
+      try {
+        resp = await pepperi.addons.data.uuid(addonUUID).table(tableName).search({ Where: "CreationDateTime Like '2022-11%'" });
+      } catch (error) {
+        errorMessage = (error as any).message;
+      }
+      expect(errorMessage).to.equal("");
+      const arrayOfReturnals = resp.Objects;
+      expect(arrayOfReturnals.length).to.equal(4);
+      for (let index = 0; index < arrayOfReturnals.length; index++) {
+        const dataReturned = arrayOfReturnals[index];
+        expect(dataReturned.Key).to.equal(`test${index + 1}`);
+        expect(dataReturned.Value).to.equal(`abc${index + 1}`);
+      }
+    });
     it("addons.data.uuid.table.search - positive test: using keyList inside where to filter the data", async () => {
       let errorMessage = "";
       let resp;
@@ -1779,25 +2199,23 @@ router.get("/Cpi_Adal", async (req, res, next) => {
         expect(dataReturned.Value).to.equal(`abc${index + 1}`);
       }
     });
-    //TODO: include count wrong number returned 
-    // it("addons.data.uuid.table.search - positive test: filtering get using where clause on Hidden to get all Hidden data counted with page size = -1", async () => {
-    //   let errorMessage = "";
-    //   let resp;
-    //   try {
-    //     resp = await pepperi.addons.data.uuid(addonUUID).table(tableName).search({ Where: "Hidden=true", "IncludeCount": true, "PageSize": -1 });
-    //   } catch (error) {
-    //     errorMessage = (error as any).message;
-    //   }
-    //   expect(errorMessage).to.equal("");
-    //   debugger;
-    //   const arrayOfReturnals = resp.Objects;
-    //   expect(resp.Count).to.equal(arrayOfReturnals.length);
-    //   expect(arrayOfReturnals.length).to.be.at.least(150);
-    //   for (let index = 0; index < arrayOfReturnals.length; index++) {
-    //     const dataReturned = arrayOfReturnals[index];
-    //     expect(dataReturned.Hidden).to.equal(true);
-    //   }
-    // });
+    it("addons.data.uuid.table.search - positive test: filtering get using where clause on Hidden to get all Hidden data counted with page size = -1", async () => {
+      let errorMessage = "";
+      let resp;
+      try {
+        resp = await pepperi.addons.data.uuid(addonUUID).table(tableName).search({ Where: "Hidden=true", "IncludeCount": true, "PageSize": -1 });
+      } catch (error) {
+        errorMessage = (error as any).message;
+      }
+      expect(errorMessage).to.equal("");
+      const arrayOfReturnals = resp.Objects;
+      //TODO: include count wrong number returned 
+      expect(resp.Count).to.equal(arrayOfReturnals.length);
+      for (let index = 0; index < arrayOfReturnals.length; index++) {
+        const dataReturned = arrayOfReturnals[index];
+        expect(dataReturned.Hidden).to.equal(true);
+      }
+    });
     it("addons.data.uuid.table.upsert - positive test: cleanse upserted data and test indeed hidden", async () => {
       const options: any = {
         Key: GUID,
@@ -1837,9 +2255,9 @@ router.get("/Cpi_Adal", async (req, res, next) => {
         errorMessage = (error as any).message;
       }
       expect(errorMessage).to.equal("");
-      expect(resp.length).to.be.above(3);
-      for (let index = 0; index < resp.length; index++) {
-        const genericResource = resp[index];
+      expect(resp.Objects.length).to.be.above(3);
+      for (let index = 0; index < resp.Objects.length; index++) {
+        const genericResource = resp.Objects[index];
         expect(genericResource.GenericResource).to.equal(true);
         expect(genericResource.Hidden).to.equal(false);
       }
@@ -1910,15 +2328,6 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       expect(resp.DocumentKey.Fields).to.deep.equal([]);
     });
     it("pepperi.resources.resource('resources').search - positive test: getting UDC by using name search", async () => {
-      // Where?: string;
-      // Page?: number;
-      // PageSize?: number;
-      // KeyList?: string[];
-      // UniqueFieldsList?: string[];
-      // UniqueFieldID?: string;
-      // IncludeCount?: boolean;
-      // Fields?: string[];
-      //{ Where: }
       let errorMessage = "";
       let resp;
       try {
@@ -1927,8 +2336,8 @@ router.get("/Cpi_Adal", async (req, res, next) => {
         errorMessage = (error as any).message;
       }
       expect(errorMessage).to.equal("");
-      // expect(resp.Count).to.equal(resp.length);
-      const gottenData = resp[0];
+      expect(resp.Count).to.equal(resp.Objects.length);
+      const gottenData = resp.Objects[0];
       expect(gottenData.AddonUUID).to.equal('122c0e9d-c240-4865-b446-f37ece866c22');
       expect(gottenData.GenericResource).to.equal(true);
       expect(gottenData.Hidden).to.equal(false);
@@ -1952,7 +2361,7 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       } catch (error) {
         errorMessage = (error as any).message;
       }
-      expect(errorMessage).to.include("Could not parse where clause 'Name=xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx' on scheme 'schemes");
+      expect(resp.fault.faultstring).to.include("Failed due to exception: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx scheme does not exist");
     });
     it("pepperi.resources.resource('UDC').get - positive test: getting all fields - no filter, validating data is correct", async () => {
       let errorMessage = "";
@@ -2012,7 +2421,7 @@ router.get("/Cpi_Adal", async (req, res, next) => {
         errorMessage = (error as any).message;
       }
       expect(errorMessage).to.equal("");
-      const gottenData = resp[0];
+      const gottenData = resp.Objects[0];
       expect(gottenData).to.haveOwnProperty("CreationDateTime");
       expect(gottenData).to.haveOwnProperty("ModificationDateTime");
       expect(gottenData).to.haveOwnProperty("Key");
@@ -2020,26 +2429,22 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       expect(gottenData).to.haveOwnProperty("a");
       expect(gottenData.a).to.equal("test_udc_field_evgeny");
     });
-    //TODO: once include count is working
-    // it("pepperi.resources.resource('UDC').search - positive test: using UDC as the 'proxy resource': using 'IncludeCount' - testing the number is correct", async () => {
-    //   let errorMessage = "";
-    //   let resp;
-    //   try {
-    //     resp = await pepperi.resources.resource('TestUDC').search({ IncludeCount: true });
-    //   } catch (error) {
-    //     errorMessage = (error as any).message;
-    //     debugger;
-    //   }
-    //   debugger;
-    //   expect(errorMessage).to.equal("");
-    //   const gottenData = resp[0];
-    //   expect(gottenData).to.haveOwnProperty("CreationDateTime");
-    //   expect(gottenData).to.haveOwnProperty("ModificationDateTime");
-    //   expect(gottenData).to.haveOwnProperty("Key");
-    //   expect(gottenData.Key).to.equal("3e67c8af-34cb-4c7b-a238-3486a2f4bcad");
-    //   expect(gottenData).to.haveOwnProperty("a");
-    //   expect(gottenData.a).to.equal("test_udc_field_evgeny");
-    // });
+    it("pepperi.resources.resource('UDC').search - positive test: using UDC as the 'proxy resource': using 'IncludeCount' - testing the number is correct", async () => {
+      let errorMessage = "";
+      let resp;
+      try {
+        resp = await pepperi.resources.resource('TestUDC').search({ IncludeCount: true });
+      } catch (error) {
+        errorMessage = (error as any).message;
+      }
+      expect(errorMessage).to.equal("");
+      expect(resp.Objects.length).to.equal(resp.Count);
+      const gottenData = resp.Objects[0];
+      expect(gottenData).to.haveOwnProperty("CreationDateTime");
+      expect(gottenData).to.haveOwnProperty("ModificationDateTime");
+      expect(gottenData).to.haveOwnProperty("Key");
+      expect(gottenData).to.haveOwnProperty("a");
+    });
     it("pepperi.resources.resource('UDC').post - positive test: using UDC as the 'proxy resource': posting a field and validating response", async () => {
       let errorMessage = "";
       let resp;
@@ -2094,7 +2499,7 @@ router.get("/Cpi_Adal", async (req, res, next) => {
         errorMessage = (error as any).message;
       }
       expect(errorMessage).to.equal("");
-      expect(resp.fault.faultstring).to.include("Failed due to exception: Unsupported schema type 'contained'");
+      expect(resp.fault.faultstring).to.include("Failed due to exception: Unsupported schema type contained");
     });
     it("pepperi.resources.resource('resources').search - positive test: using UDC as the 'proxy resource': trying to GET online only scheme", async () => {
       let errorMessage = "";
@@ -2105,7 +2510,7 @@ router.get("/Cpi_Adal", async (req, res, next) => {
         errorMessage = (error as any).message;
       }
       expect(errorMessage).to.equal("");
-      const recivedCollection = resp[0];
+      const recivedCollection = resp.Objects[0];
       expect(recivedCollection.AddonUUID).to.equal('122c0e9d-c240-4865-b446-f37ece866c22');
       expect(recivedCollection.GenericResource).to.equal(true);
       expect(recivedCollection.Hidden).to.equal(false);
