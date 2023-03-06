@@ -8,7 +8,7 @@ import DataService, {
   adalTableName,
 } from "./services/data.service";
 import { runScript } from "./services/scripts.service";
-import { createUIObjectTest } from "./api-tests/create-ui-object";
+// import { createUIObjectTest } from "./api-tests/create-ui-object";
 import { performanceTest } from "./api-tests/performance-test";
 import { clientApiADALTest } from "./api-tests/client-api-adal";
 import { dataObjectCrud } from "./api-tests/dataobject-crud";
@@ -1672,6 +1672,41 @@ router.get("/DI-22441", async (req, res, next) => {
   res.json(testResult);
 });
 
+// 
+router.get("/evg1", async (req, res, next) => {
+  debugger;
+  const obj = await pepperi.DataObject.Get("TransactionLine","88989e12-5971-4a6e-be7d-1583a399e1dd");
+  obj!.setFieldValue('TSAEventData', 123);
+  debugger;
+});
+
+router.get("/DI-22688", async (req, res, next) => {
+  debugger;
+  const x = await pepperi.events.emit('Bulx2' as EventKey,
+    {
+      ObjectType: "Sales Order"
+    }
+  );
+  console.log(x);
+  debugger;
+});
+
+router.get("/DI-22810", async (req, res, next) => {
+  debugger;
+  const user = await (await pepperi.environment.user()).email;
+  const user1 = await (await pepperi.environment.user()).externalID;
+  const user2 = await (await pepperi.environment.user()).internalID;
+  const user3 = await (await pepperi.environment.user()).externalID;
+  const user4 = await (await pepperi.environment.user()).firstName;
+  const user5 = await (await pepperi.environment.user()).lastName;
+  console.log(user);
+  console.log(user2);
+  console.log(user3);
+  console.log(user4);
+  console.log(user5);
+  debugger;
+});
+
 
 
 router.get("/DI-22037", async (req, res, next) => {
@@ -1712,7 +1747,7 @@ router.get("/DI-22226", async (req, res, next) => {
       let error;
       try {
         debugger;
-        catalogResponseGet = await pepperi.resources.resource('accounts').get({});
+        catalogResponseGet = await pepperi.resources.resource('account_users').search({});
       } catch (e) {
         error = (e as any).message;
         debugger;
@@ -1922,6 +1957,23 @@ router.get("/DI-21784", async (req, res, next) => {
   res.json(testResult);
 });
 
+router.get("/DI-22336", async (req, res, next) => {
+  //EVGENY
+  const options: any = {
+    Key: "Value",
+    Value: "1234"
+  };
+  let errorMessage = "";
+  let resp;
+  try {
+    resp = await pepperi.addons.data.uuid(addonUUID).table("test333").upsert(options);
+    debugger;
+  } catch (error) {
+    errorMessage = (error as any).message;
+    debugger;
+  }
+});
+
 
 router.get("/Cpi_Adal", async (req, res, next) => {
   let GUID = "";
@@ -2008,7 +2060,6 @@ router.get("/Cpi_Adal", async (req, res, next) => {
         errorMessage = (error as any).message;
 
       }
-      debugger;
       expect(errorMessage).to.equal("");
       expect(respShouldHaveData.Objects[0].ValueA).to.equal("evgey");
       expect(respShouldHaveData.Objects[0].Hidden).to.equal(false);
@@ -2069,6 +2120,7 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       expect(errorMessage).to.include("Could not parse where clause 'Key is Like 'test%25'' on scheme 'cpiAdalTest3");
     });
     it("addons.data.uuid.table.upsert - positive test: using 'upsert' to change exsisting object (using exsisting key)", async () => {
+      //evgeny hayom
       const options: any = {
         Key: "test3",
         Value: "abc4"
@@ -2165,11 +2217,11 @@ router.get("/Cpi_Adal", async (req, res, next) => {
         expect(dataReturned.Value).to.equal(`abc${index + 1}`);
       }
     });
-    it("addons.data.uuid.table.search - positive test: filtering get using where clause on Keys", async () => {
+    it("addons.data.uuid.table.search - positive test: filtering get using where clause on CreationDateTime", async () => {
       let errorMessage = "";
       let resp;
       try {
-        resp = await pepperi.addons.data.uuid(addonUUID).table(tableName).search({ Where: "CreationDateTime Like '2022-11%'" });
+        resp = await pepperi.addons.data.uuid(addonUUID).table(tableName).search({ Where: "CreationDateTime > '2022-11-01:00:00:00.000Z' AND CreationDateTime < '2022-11-31:00:00:00.000Z'" });
       } catch (error) {
         errorMessage = (error as any).message;
       }
@@ -2198,6 +2250,17 @@ router.get("/Cpi_Adal", async (req, res, next) => {
         expect(dataReturned.Key).to.equal(`test${index + 1}`);
         expect(dataReturned.Value).to.equal(`abc${index + 1}`);
       }
+    });
+    it("addons.data.uuid.table.search - DI-22861 Verification: KeyList throws exception when sending key that does not exist", async () => {
+      let errorMessage = "";
+      let resp;
+      try {
+        resp = await pepperi.addons.data.uuid(addonUUID).table(tableName).search({ KeyList: ["nonExsistingKEY123"] });
+      } catch (error) {
+        errorMessage = (error as any).message;
+      }
+      expect(errorMessage).to.equal("");
+      expect(resp.Objects.length).to.equal(0);
     });
     it("addons.data.uuid.table.search - positive test: filtering get using where clause on Hidden to get all Hidden data counted with page size = -1", async () => {
       let errorMessage = "";
@@ -3299,11 +3362,11 @@ router.get("/JWT", async (req, res, next) => {
   }
 });
 //===========================UIObject.Create Test Endpoint================================================
-router.get("/UIObjectCreate", async (req, res, next) => {
-  console.log("Inside uiObject.Create endpoint");
-  const testResult = await createUIObjectTest();
-  res.json(testResult);
-});
+// router.get("/UIObjectCreate", async (req, res, next) => {
+//   console.log("Inside uiObject.Create endpoint");
+//   const testResult = await createUIObjectTest();
+//   res.json(testResult);
+// });
 //===========================Positive dataObject CRUD endpoint============================================
 router.get("/dataObjectCrud", async (req, res, next) => {
   console.log("Inside dataObjectCrud endpoint");
