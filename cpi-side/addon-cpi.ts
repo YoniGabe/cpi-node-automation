@@ -8,7 +8,7 @@ import DataService, {
   adalTableName,
 } from "./services/data.service";
 import { runScript } from "./services/scripts.service";
-// import { createUIObjectTest } from "./api-tests/create-ui-object";
+import { createUIObjectTest } from "./api-tests/create-ui-object";
 import { performanceTest } from "./api-tests/performance-test";
 import { clientApiADALTest } from "./api-tests/client-api-adal";
 import { dataObjectCrud } from "./api-tests/dataobject-crud";
@@ -1824,10 +1824,9 @@ router.get("/pfs_cpi", async (req, res, next) => {
     const assetsSchemaName = "Assets";
     it("positive test: addons.pfs.uuid.schema.find - get all Assets Files", async () => {
       const pfsResponse = await pepperi.addons.pfs.uuid(assetsUUID).schema(assetsSchemaName).find({}) as any;
-      const returnedObjects = pfsResponse.Objects;
-      expect(returnedObjects.length).to.equal(3);
-      for (let index = 0; index < returnedObjects.length; index++) {
-        const element = returnedObjects[index];
+      expect(pfsResponse.length).to.equal(3);
+      for (let index = 0; index < pfsResponse.length; index++) {
+        const element = pfsResponse[index];
         expect(element).to.haveOwnProperty("CreationDateTime");
         expect(element).to.haveOwnProperty("Description");
         expect(element).to.haveOwnProperty("Folder");
@@ -3362,11 +3361,11 @@ router.get("/JWT", async (req, res, next) => {
   }
 });
 //===========================UIObject.Create Test Endpoint================================================
-// router.get("/UIObjectCreate", async (req, res, next) => {
-//   console.log("Inside uiObject.Create endpoint");
-//   const testResult = await createUIObjectTest();
-//   res.json(testResult);
-// });
+router.get("/UIObjectCreate", async (req, res, next) => {
+  console.log("Inside uiObject.Create endpoint");
+  const testResult = await createUIObjectTest();
+  res.json(testResult);
+});
 //===========================Positive dataObject CRUD endpoint============================================
 router.get("/dataObjectCrud", async (req, res, next) => {
   console.log("Inside dataObjectCrud endpoint");
