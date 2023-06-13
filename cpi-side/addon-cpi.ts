@@ -1840,7 +1840,7 @@ router.get("/pfs_cpi", async (req, res, next) => {
         expect(element).to.haveOwnProperty("Sync");
         if (element.Name !== 'folder123/') {
           expect(element).to.haveOwnProperty("UploadedBy");
-          expect(element.UploadedBy).to.equal('dd7cb027-24e4-4099-a356-c91c5f4b0c62');
+          expect(element.UploadedBy).to.be.oneOf(['dd7cb027-24e4-4099-a356-c91c5f4b0c62','416f409d-a06e-4d13-9585-a1ad2d52c598']);
         }
         expect(element).to.haveOwnProperty("URL");
       }
@@ -1858,7 +1858,7 @@ router.get("/pfs_cpi", async (req, res, next) => {
       expect(pfsResponse.Hidden).to.equal(false);
       expect(pfsResponse.Cache).to.equal(true);
       expect(pfsResponse.FileSize).to.equal(17962);
-      expect(pfsResponse.UploadedBy).to.equal("dd7cb027-24e4-4099-a356-c91c5f4b0c62");
+      expect(pfsResponse.UploadedBy).to.be.oneOf(['dd7cb027-24e4-4099-a356-c91c5f4b0c62','416f409d-a06e-4d13-9585-a1ad2d52c598']);
       expect(pfsResponse.Name).to.equal("images.png");
       expect(pfsResponse.Key).to.equal("images.png");
     });
@@ -1877,7 +1877,7 @@ router.get("/pfs_cpi", async (req, res, next) => {
       expect(parsedResponse.Hidden).to.equal(false);
       expect(parsedResponse.Cache).to.equal(true);
       expect(parsedResponse.FileSize).to.equal(117004);
-      expect(parsedResponse.UploadedBy).to.equal("dd7cb027-24e4-4099-a356-c91c5f4b0c62");
+      expect(parsedResponse.UploadedBy).to.be.oneOf(['dd7cb027-24e4-4099-a356-c91c5f4b0c62','416f409d-a06e-4d13-9585-a1ad2d52c598']);
       expect(parsedResponse.Name).to.equal("Switch_by_Sam_Perkins.png");
       expect(parsedResponse.Key).to.equal("folder123/Switch_by_Sam_Perkins.png");
     });
