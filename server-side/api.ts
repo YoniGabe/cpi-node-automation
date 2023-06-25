@@ -603,13 +603,14 @@ export async function Cpi_Adal(client: Client, request: Request) {
     webAPIBaseURL = "http://localhost:8093";
   }
   //run in case sync is running before tests
-  await service.getSyncStatus(accessToken, webAPIBaseURL, 10);
+  await service.initResync(accessToken, webAPIBaseURL);
+  await service.getSyncStatus(accessToken, webAPIBaseURL, 30);
   await service.sleep(2000);
   //run and get mocha tests results from cpiSide
   const testResults = await service.runCPISideTest(
     accessToken,
     webAPIBaseURL,
-    "Cpi_Adal"
+    "Cpi_Adal",
   );
   //deactive adal tesk trigger
   const initSync2 = await service.initSync(accessToken, webAPIBaseURL);

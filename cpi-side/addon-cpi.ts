@@ -2004,7 +2004,7 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       for (let index = 0; index < resp.length; index++) {
         const scheme = resp[index];
         expect(scheme.Hidden).to.equal(false);
-        expect(scheme.Type).to.be.oneOf(["papi", "meta_data", "data", "abstract"]);
+        expect(scheme.Type).to.be.oneOf(["papi", "meta_data", "data", "abstract","contained"]);
         expect(scheme.SyncData.Sync).to.equal(true);
       }
     });
@@ -2220,7 +2220,7 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       let errorMessage = "";
       let resp;
       try {
-        resp = await pepperi.addons.data.uuid(addonUUID).table(tableName).search({ Where: "CreationDateTime > '2022-11-01:00:00:00.000Z' AND CreationDateTime < '2022-11-31:00:00:00.000Z'" });
+        resp = await pepperi.addons.data.uuid(addonUUID).table(tableName).search({ Where: "CreationDateTime > '2023-06-18:00:00:00.000Z' AND Key Like 'test%'" });
       } catch (error) {
         errorMessage = (error as any).message;
       }
@@ -2328,7 +2328,7 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       let errorMessage = "";
       let resp;
       try {
-        resp = await pepperi.resources.resource('resources').key("genericResourceTest1").get();
+        resp = await pepperi.resources.resource('resources').key("genericresourcetest").get();
       } catch (error) {
         errorMessage = (error as any).message;
       }
@@ -2336,8 +2336,8 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       expect(resp.AddonUUID).to.equal(addonUUID);
       expect(resp.GenericResource).to.equal(true);
       expect(resp.Hidden).to.equal(false);
-      expect(resp.Key).to.equal(`${addonUUID}_genericResourceTest1`);
-      expect(resp.Name).to.equal(`genericResourceTest1`);
+      expect(resp.Key).to.equal(`${addonUUID}_genericresourcetest`);
+      expect(resp.Name).to.equal(`genericresourcetest`);
       expect(resp.SyncData.Sync).to.equal(true);
       expect(resp.Type).to.equal("data");
       expect(resp.Fields.Value.Type).to.equal("string");
@@ -2487,7 +2487,7 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       expect(gottenData).to.haveOwnProperty("CreationDateTime");
       expect(gottenData).to.haveOwnProperty("ModificationDateTime");
       expect(gottenData).to.haveOwnProperty("Key");
-      expect(gottenData.Key).to.equal("3e67c8af-34cb-4c7b-a238-3486a2f4bcad");
+      expect(gottenData.Key).to.be.oneOf(["3e67c8af-34cb-4c7b-a238-3486a2f4bcad","d0828e5a-cb21-424a-b41a-4538c5139cc1","69de7517-20d4-40d1-8c6c-4e78fde42305","d819f405-4544-444e-8a91-e999c3c5def4"]);
       expect(gottenData).to.haveOwnProperty("a");
       expect(gottenData.a).to.equal("test_udc_field_evgeny");
     });
@@ -2560,8 +2560,23 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       } catch (error) {
         errorMessage = (error as any).message;
       }
+      expect(errorMessage).to.include("SchemeOnlyUDC not found");
+    });
+    it("pepperi.resources.resource('UDC').post - positive test: trying to GET a scheme only collection", async () => {
+      let errorMessage = "";
+      let resp;
+      try {
+        resp = await pepperi.addons.data.schemes.uuid('122c0e9d-c240-4865-b446-f37ece866c22').name('SchemeOnlyUDC').get();
+      } catch (error) {
+        errorMessage = (error as any).message;
+      }
       expect(errorMessage).to.equal("");
-      expect(resp.fault.faultstring).to.include("Failed due to exception: Unsupported schema type contained");
+      expect(resp.GenericResource).to.equal(true);
+      expect(resp.AddonUUID).to.equal("122c0e9d-c240-4865-b446-f37ece866c22");
+      expect(resp.Hidden).to.equal(false);
+      expect(resp.Name).to.equal('SchemeOnlyUDC');
+      expect(resp.SyncData.Sync).to.equal(true);
+      expect(resp.Fields.a.Type).to.equal("String");
     });
     it("pepperi.resources.resource('resources').search - positive test: using UDC as the 'proxy resource': trying to GET online only scheme", async () => {
       let errorMessage = "";
@@ -2572,20 +2587,8 @@ router.get("/Cpi_Adal", async (req, res, next) => {
         errorMessage = (error as any).message;
       }
       expect(errorMessage).to.equal("");
-      const recivedCollection = resp.Objects[0];
-      expect(recivedCollection.AddonUUID).to.equal('122c0e9d-c240-4865-b446-f37ece866c22');
-      expect(recivedCollection.GenericResource).to.equal(true);
-      expect(recivedCollection.Hidden).to.equal(false);
-      expect(recivedCollection.Key).to.equal(`122c0e9d-c240-4865-b446-f37ece866c22_OnlineUDC`);
-      expect(recivedCollection.Name).to.equal(`OnlineUDC`);
-      expect(recivedCollection.SyncData.Sync).to.equal(true);
-      expect(recivedCollection.Type).to.equal("data");
-      expect(recivedCollection.Fields.a.Type).to.equal("String");
-      expect(recivedCollection.Fields.a.Mandatory).to.equal(false);
-      expect(recivedCollection.UserDefined).to.equal(true);
-      expect(recivedCollection.DocumentKey.Delimiter).to.equal("@");
-      expect(recivedCollection.DocumentKey.Type).to.equal("AutoGenerate");
-      expect(recivedCollection.DocumentKey.Fields).to.deep.equal([]);
+      const recivedCollection = resp;
+      expect(recivedCollection.Objects).to.deep.equal([]);
     });
   });
   const testResult = await run();

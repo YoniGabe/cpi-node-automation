@@ -303,6 +303,21 @@ class MyService {
     return navigateToHomescreen;
   }
 
+  async getResource() {//evgeny
+    let apiRegion: string = await this.getAPIRegion();
+    const URL = `https://${apiRegion}.pepperi.com/V1.0/resources/resources`;
+    const resourcesReturned = await (
+      await fetch(URL, {
+        method: "GET",
+          headers: {
+            Authorization: `Bearer ${this.client.OAuthAccessToken}`,
+            "Content-Type": "application/json",
+          },
+      })
+    ).json();
+    return resourcesReturned;
+  }
+
   async initResync(accessToken: string, webAPIBaseURL: string) {
     //webapi.sandbox.pepperi.com/16.60.82/webapi/Service1.svc/v1/HomePage
     debugger;
@@ -497,7 +512,7 @@ class MyService {
   async runCPISideTest(
     accessToken: string,
     webAPIBaseURL: string,
-    testName: string
+    testName: string,
   ) {
     //make request to the CPISide tests
     let URL = `${webAPIBaseURL}/Service1.svc/v1/Addons/Api/${this.client.AddonUUID}/addon-cpi/${testName}`;
