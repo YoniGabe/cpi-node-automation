@@ -1,6 +1,6 @@
 import "@pepperi-addons/cpi-node";
 import Tester from "./tester";
-import { Item, TransactionLine, Transaction } from "@pepperi-addons/cpi-node";
+import { Item, TransactionLine, Transaction, FlowObject } from "@pepperi-addons/cpi-node";
 import { NavigationOptions, UDCGetParams, UDCGetListParams } from "./services/general.service";
 import DataService, {
   OCEvents,
@@ -1545,6 +1545,44 @@ router.get("/DI-21871", async (req, res, next) => {
   await pepperi.resources.resource('resources').key("TestUDC").get();
 });
 
+
+router.get("/DI-23750", async (req, res, next) => {//evgeny 222
+  debugger;
+  const runFlowObject: FlowObject = {
+    FlowKey: 'c3a44b77-f419-4c2a-a78b-118c9beb5b26',
+    FlowParams: {}
+    //     Param1: {
+    //         Source: 'Dynamic',
+    //         Value: 'someValue'
+    //     }
+    // }
+  };
+  let res2;
+  try {
+    res2 = await pepperi.flows.run({
+      RunFlow: runFlowObject,
+      Data: {},
+    });
+  } catch (error) {
+    debugger;
+  }
+  console.log('EVGENY: ' + res2);
+  debugger;
+});
+
+router.get("/new_test", async (req, res, next) => {//evgeny 222
+  debugger;
+  let errorMessage = "";
+  let resp;
+  try {
+    resp = await pepperi.addons.data.schemes.uuid("dc8c5ca7-3fcc-4285-b790-349c7f3908bd").name("flows").get();
+  } catch (error) {
+    errorMessage = (error as any).message;
+    debugger;
+  }
+  debugger;
+});
+
 router.get("/DI-21685", async (req, res, next) => {
   let resp;
   let errorMessage;
@@ -1558,7 +1596,6 @@ router.get("/DI-21685", async (req, res, next) => {
     errorMessage = (error as any).message;
   }
   debugger;
-
 });
 
 router.get("/DI-21834", async (req, res, next) => {
@@ -1675,7 +1712,7 @@ router.get("/DI-22441", async (req, res, next) => {
 // 
 router.get("/evg1", async (req, res, next) => {
   debugger;
-  const obj = await pepperi.DataObject.Get("TransactionLine","88989e12-5971-4a6e-be7d-1583a399e1dd");
+  const obj = await pepperi.DataObject.Get("TransactionLine", "88989e12-5971-4a6e-be7d-1583a399e1dd");
   obj!.setFieldValue('TSAEventData', 123);
   debugger;
 });
@@ -1840,7 +1877,7 @@ router.get("/pfs_cpi", async (req, res, next) => {
         expect(element).to.haveOwnProperty("Sync");
         if (element.Name !== 'folder123/') {
           expect(element).to.haveOwnProperty("UploadedBy");
-          expect(element.UploadedBy).to.be.oneOf(['dd7cb027-24e4-4099-a356-c91c5f4b0c62','416f409d-a06e-4d13-9585-a1ad2d52c598']);
+          expect(element.UploadedBy).to.be.oneOf(['dd7cb027-24e4-4099-a356-c91c5f4b0c62', '416f409d-a06e-4d13-9585-a1ad2d52c598']);
         }
         expect(element).to.haveOwnProperty("URL");
       }
@@ -1858,7 +1895,7 @@ router.get("/pfs_cpi", async (req, res, next) => {
       expect(pfsResponse.Hidden).to.equal(false);
       expect(pfsResponse.Cache).to.equal(true);
       expect(pfsResponse.FileSize).to.equal(17962);
-      expect(pfsResponse.UploadedBy).to.be.oneOf(['dd7cb027-24e4-4099-a356-c91c5f4b0c62','416f409d-a06e-4d13-9585-a1ad2d52c598']);
+      expect(pfsResponse.UploadedBy).to.be.oneOf(['dd7cb027-24e4-4099-a356-c91c5f4b0c62', '416f409d-a06e-4d13-9585-a1ad2d52c598']);
       expect(pfsResponse.Name).to.equal("images.png");
       expect(pfsResponse.Key).to.equal("images.png");
     });
@@ -1877,7 +1914,7 @@ router.get("/pfs_cpi", async (req, res, next) => {
       expect(parsedResponse.Hidden).to.equal(false);
       expect(parsedResponse.Cache).to.equal(true);
       expect(parsedResponse.FileSize).to.equal(117004);
-      expect(parsedResponse.UploadedBy).to.be.oneOf(['dd7cb027-24e4-4099-a356-c91c5f4b0c62','416f409d-a06e-4d13-9585-a1ad2d52c598']);
+      expect(parsedResponse.UploadedBy).to.be.oneOf(['dd7cb027-24e4-4099-a356-c91c5f4b0c62', '416f409d-a06e-4d13-9585-a1ad2d52c598']);
       expect(parsedResponse.Name).to.equal("Switch_by_Sam_Perkins.png");
       expect(parsedResponse.Key).to.equal("folder123/Switch_by_Sam_Perkins.png");
     });
@@ -2004,7 +2041,7 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       for (let index = 0; index < resp.length; index++) {
         const scheme = resp[index];
         expect(scheme.Hidden).to.equal(false);
-        expect(scheme.Type).to.be.oneOf(["papi", "meta_data", "data", "abstract","contained"]);
+        expect(scheme.Type).to.be.oneOf(["papi", "meta_data", "data", "abstract", "contained"]);
         expect(scheme.SyncData.Sync).to.equal(true);
       }
     });
@@ -2487,7 +2524,7 @@ router.get("/Cpi_Adal", async (req, res, next) => {
       expect(gottenData).to.haveOwnProperty("CreationDateTime");
       expect(gottenData).to.haveOwnProperty("ModificationDateTime");
       expect(gottenData).to.haveOwnProperty("Key");
-      expect(gottenData.Key).to.be.oneOf(["3e67c8af-34cb-4c7b-a238-3486a2f4bcad","d0828e5a-cb21-424a-b41a-4538c5139cc1","69de7517-20d4-40d1-8c6c-4e78fde42305","d819f405-4544-444e-8a91-e999c3c5def4"]);
+      expect(gottenData.Key).to.be.oneOf(["3e67c8af-34cb-4c7b-a238-3486a2f4bcad", "d0828e5a-cb21-424a-b41a-4538c5139cc1", "69de7517-20d4-40d1-8c6c-4e78fde42305", "d819f405-4544-444e-8a91-e999c3c5def4"]);
       expect(gottenData).to.haveOwnProperty("a");
       expect(gottenData.a).to.equal("test_udc_field_evgeny");
     });
